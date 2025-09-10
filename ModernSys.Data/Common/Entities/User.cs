@@ -20,6 +20,17 @@ namespace ModularSys.Data.Common.Entities
         public Role Role { get; set; }
         public Department Department { get; set; }
 
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        public User() { }
+
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        public User(string username, string email, int departmentId)
+        {
+            Username = username;
+            Email = email;
+            DepartmentId = departmentId;
+        }
+
         //public ICollection<InventoryAdjustment> InventoryAdjustments { get; set; }
         //public ICollection<SalesOrder> SalesOrders { get; set; }
         //public ICollection<ServiceRequest> ServiceRequests { get; set; }

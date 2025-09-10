@@ -1,0 +1,87 @@
+﻿@page "/permissions"
+@using ModularSys.Data.Common.Entities
+@inject IRolePermissionService RolePermissionService
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5" Class="mb-4">🔐 Role Permission Matrix</MudText>
+
+    @if (roles.Count == 0 || permissions.Count == 0)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+    }
+    else
+    {
+        <MudTable Items="@roles" Bordered="true" Striped="true" Elevation="1">
+            <HeaderContent>
+                <MudTh>Role</MudTh>
+                @foreach (var perm in permissions)
+                {
+                    <MudTh>@perm.PermissionName</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.RoleName</MudTd>
+                @foreach (var perm in permissions)
+                {
+                    <MudTd>
+                        <MudCheckBox T="bool"
+                                     Value="@permissionMatrix[context.RoleId][perm.PermissionId]"
+                                     ValueChanged="@(value => OnPermissionChanged(context.RoleId, perm.PermissionId, value))"
+                                     Color="Color.Primary" />
+
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private List<Role> roles = new();
+    private List<Permission> permissions = new();
+
+    private Dictionary<int, Dictionary<int, bool>> permissionMatrix = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var rolePermissions = await RolePermissionService.GetAllAsync();
+
+        roles = rolePermissions
+            .Select(rp => rp.Role)
+            .DistinctBy(r => r.RoleId)
+            .ToList();
+
+        permissions = rolePermissions
+            .Select(rp => rp.Permission)
+            .DistinctBy(p => p.PermissionId)
+            .ToList();
+
+        // Initialize matrix
+        foreach (var role in roles)
+        {
+            permissionMatrix[role.RoleId] = new Dictionary<int, bool>();
+
+            foreach (var perm in permissions)
+            {
+                bool hasPermission = role.RolePermissions.Any(rp => rp.PermissionId == perm.PermissionId);
+                permissionMatrix[role.RoleId][perm.PermissionId] = hasPermission;
+            }
+        }
+    }
+
+    private async Task OnPermissionChanged(int roleId, int permissionId, bool isGranted)
+    {
+        try
+        {
+            await RolePermissionService.ToggleAsync(roleId, permissionId, isGranted);
+            permissionMatrix[roleId][permissionId] = isGranted;
+
+            Snackbar.Add($"Permission {(isGranted ? "granted" : "revoked")} successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating permission: {ex.Message}", Severity.Error);
+        }
+    }
+}

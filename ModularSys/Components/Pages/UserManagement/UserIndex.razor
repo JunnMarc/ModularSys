@@ -1,0 +1,91 @@
+﻿@page "/users"
+@using ModularSys.Data.Common.Entities
+@inject IUserService UserService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-6">
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.h4" Class="mb-2">User Management</MudText>
+
+        <MudTable Items="@users" Hover="true" Bordered="true" Striped="true" Elevation="1">
+            <HeaderContent>
+                <MudTh>Username</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Role</MudTh>
+                <MudTh>Department</MudTh>
+                <MudTh>Created</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Username</MudTd>
+                <MudTd>@context.Email</MudTd>
+                <MudTd>
+                    @if (context.Role is not null)
+                    {
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                            @context.Role.RoleName
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (context.Department is not null)
+                    {
+                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled">
+                            @context.Department.DepartmentName
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                <MudTd>
+                    <MudStack Direction="Row" Spacing="1">
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="@(() => EditUser(context.Id))">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" /> Edit
+                        </MudButton>
+                        <MudButton Color="Color.Error" Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => DeleteUser(context.Id))">
+                            <MudIcon Icon="@Icons.Material.Filled.Delete" /> Delete
+                        </MudButton>
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudDivider Class="my-4" />
+
+        <MudButton Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="@AddUser">
+            Add New User
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private List<User> users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Snackbar.Add("Loading users...", Severity.Info);
+
+            users = await UserService.GetAllAsync();
+
+            Snackbar.Add("Users loaded successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load users: {ex.Message}", Severity.Error);
+        }
+    }
+ 
+
+    private void EditUser(int id) => NavigationManager.NavigateTo($"/users/edit/{id}");
+
+    private void AddUser() => NavigationManager.NavigateTo("/users/add");
+
+    private async Task DeleteUser(int id)
+    {
+        await UserService.DeleteAsync(id);
+        users = await UserService.GetAllAsync();
+        StateHasChanged();
+    }
+}

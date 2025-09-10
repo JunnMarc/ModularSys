@@ -12,10 +12,15 @@ public class RolePermissionService : IRolePermissionService
     }
 
     public async Task<List<RolePermission>> GetAllAsync() =>
-        await _db.RolePermissions.Include(rp => rp.Role).Include(rp => rp.Permission).ToListAsync();
+        await _db.RolePermissions
+            .Include(rp => rp.Role)
+            .Include(rp => rp.Permission)
+            .ToListAsync();
 
     public async Task<RolePermission?> GetAsync(int roleId, int permissionId) =>
-        await _db.RolePermissions.Include(rp => rp.Role).Include(rp => rp.Permission)
+        await _db.RolePermissions
+            .Include(rp => rp.Role)
+            .Include(rp => rp.Permission)
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
 
     public async Task<RolePermission> CreateAsync(RolePermission rolePermission)
@@ -29,7 +34,51 @@ public class RolePermissionService : IRolePermissionService
     {
         var rp = await _db.RolePermissions.FindAsync(roleId, permissionId);
         if (rp == null) return false;
+
         _db.RolePermissions.Remove(rp);
         return await _db.SaveChangesAsync() > 0;
+    }
+
+    // 🔄 Toggle permission assignment
+    public async Task<bool> ToggleAsync(int roleId, int permissionId, bool isGranted)
+    {
+        var existing = await GetAsync(roleId, permissionId);
+
+        if (isGranted && existing is null)
+        {
+            await CreateAsync(new RolePermission { RoleId = roleId, PermissionId = permissionId });
+            return true;
+        }
+        else if (!isGranted && existing is not null)
+        {
+            return await DeleteAsync(roleId, permissionId);
+        }
+
+        return false;
+    }
+
+    public async Task AssignPermissionsAsync(int roleId, List<int> permissionIds)
+    {
+        var existing = await _db.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .Select(rp => rp.PermissionId)
+            .ToListAsync();
+
+        var toAdd = permissionIds.Except(existing);
+        foreach (var pid in toAdd)
+        {
+            _db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = pid });
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<Permission>> GetPermissionsForRoleAsync(int roleId)
+    {
+        return await _db.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .Include(rp => rp.Permission)
+            .Select(rp => rp.Permission)
+            .ToListAsync();
     }
 }

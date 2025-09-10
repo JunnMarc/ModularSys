@@ -26,7 +26,7 @@
             <div class="d-flex flex-column h-100">
                 <!-- Logo -->
                 <div class="px-4 py-3 border-bottom">
-                    <MudText Typo="Typo.h6" Class="fw-bold text-primary">ModuERP</MudText>
+                    <MudText Typo="Typo.h6" Class="fw-bold text-primary">ModularSys</MudText>
                 </div>
 
                 <!-- Navigation -->
@@ -47,7 +47,7 @@
                                     Class="nav-link-custom">
                             Users
                         </MudNavLink>
-                        <MudNavLink Href="/settings"
+                        <MudNavLink Href="/permissions"
                                     Icon="@Icons.Material.Filled.Settings"
                                     Class="nav-link-custom">
                             Settings
@@ -302,7 +302,7 @@
             "/users" => "Users",
             "/settings" => "Settings",
             _ => ModuleLoader.Subsystems?.FirstOrDefault(s =>
-                s.Route?.ToLowerInvariant() == path)?.Name ?? "ModuERP"
+                s.Route?.ToLowerInvariant() == path)?.Name ?? "ModularSys"
         };
     }
 
