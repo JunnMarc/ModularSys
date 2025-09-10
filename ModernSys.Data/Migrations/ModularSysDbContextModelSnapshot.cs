@@ -3,7 +3,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ModularSys.Data.Common.Db;
 
@@ -12,20 +11,18 @@ using ModularSys.Data.Common.Db;
 namespace ModularSys.Data.Migrations
 {
     [DbContext(typeof(ModularSysDbContext))]
-    [Migration("20250909134655_InitialCreate")]
-    partial class InitialCreate
+    partial class ModularSysDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.Department", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Department", b =>
                 {
                     b.Property<int>("DepartmentId")
                         .ValueGeneratedOnAdd()
@@ -54,7 +51,7 @@ namespace ModularSys.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.Inventory.InventoryItem", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.InventoryItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -82,7 +79,7 @@ namespace ModularSys.Data.Migrations
                     b.ToTable("InventoryItems", (string)null);
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.Permission", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Permission", b =>
                 {
                     b.Property<int>("PermissionId")
                         .ValueGeneratedOnAdd()
@@ -129,7 +126,7 @@ namespace ModularSys.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.Role", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Role", b =>
                 {
                     b.Property<int>("RoleId")
                         .ValueGeneratedOnAdd()
@@ -153,7 +150,7 @@ namespace ModularSys.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.RolePermission", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.RolePermission", b =>
                 {
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
@@ -161,12 +158,9 @@ namespace ModularSys.Data.Migrations
                     b.Property<int>("PermissionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
-
                     b.HasKey("RoleId", "PermissionId");
 
-                    b.HasIndex("DepartmentId");
+                    b.HasIndex("PermissionId");
 
                     b.ToTable("RolePermissions");
 
@@ -193,7 +187,7 @@ namespace ModularSys.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.User", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -236,39 +230,41 @@ namespace ModularSys.Data.Migrations
                             Id = 1,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             DepartmentId = 1,
-                            Email = "admin@yourcompany.com",
-                            PasswordHash = "OVt6h5QK9QmQXl3k5i1Qp1r5QK1QwZQ+QvFv7b1p1r8=",
+                            Email = "admin@techvault.com",
+                            PasswordHash = "JAvlGPq9JyTdtvBO6x2llnRI1+gxwIyPqCKAn3THIKk=",
                             RoleId = 1,
                             Username = "admin"
                         });
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.RolePermission", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.RolePermission", b =>
                 {
-                    b.HasOne("ModuERP.Data.Common.Entities.Department", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId");
+                    b.HasOne("ModularSys.Data.Common.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("ModuERP.Data.Common.Entities.Role", "Role")
+                    b.HasOne("ModularSys.Data.Common.Entities.Role", "Role")
                         .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Department");
+                    b.Navigation("Permission");
 
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.User", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.User", b =>
                 {
-                    b.HasOne("ModuERP.Data.Common.Entities.Department", "Department")
+                    b.HasOne("ModularSys.Data.Common.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ModuERP.Data.Common.Entities.Role", "Role")
+                    b.HasOne("ModularSys.Data.Common.Entities.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -279,7 +275,12 @@ namespace ModularSys.Data.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("ModuERP.Data.Common.Entities.Role", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Role", b =>
                 {
                     b.Navigation("RolePermissions");
 

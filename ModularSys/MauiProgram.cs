@@ -47,6 +47,13 @@ namespace ModularSys
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddCoreServices();
 
+
+            // User Management services
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IRoleService, RoleService>();
+            builder.Services.AddScoped<IPermissionService, PermissionService>();
+            builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
+
             // ✅ Register dynamic modules before building the app
             var loggerFactory = LoggerFactory.Create(config => config.AddDebug());
             var logger = loggerFactory.CreateLogger("ModuleLoader");

@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys", "ModularSys\ModularSys.csproj", "{D78DF03F-99DE-453E-802B-F0040DD1C121}"
+	ProjectSection(ProjectDependencies) = postProject
+		{153AF2D4-377E-436F-8226-C9728DE5E386} = {153AF2D4-377E-436F-8226-C9728DE5E386}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.Core", "ModularSys.Core\ModularSys.Core.csproj", "{3E835638-EBA0-422A-A3B6-59FC6EA81747}"
 EndProject
@@ -13,6 +16,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.Data", "ModernSys.Data\ModularSys.Data.csproj", "{153AF2D4-377E-436F-8226-C9728DE5E386}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.EFHost", "ModularSys.EFHost\ModularSys.EFHost.csproj", "{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.Inventory", "ModularSys.Inventory\ModularSys.Inventory.csproj", "{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +40,14 @@ Global
 		{153AF2D4-377E-436F-8226-C9728DE5E386}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{153AF2D4-377E-436F-8226-C9728DE5E386}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{153AF2D4-377E-436F-8226-C9728DE5E386}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

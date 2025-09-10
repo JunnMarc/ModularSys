@@ -21,8 +21,8 @@ public static class ModuleLoader
 
         var basePath = AppContext.BaseDirectory;
 
-        var dlls = Directory.GetFiles(basePath, "ModuERP.*.dll", SearchOption.TopDirectoryOnly)
-            .Where(f => !f.Contains("ModuERP.Core"));
+        var dlls = Directory.GetFiles(basePath, "ModularSys.*.dll", SearchOption.TopDirectoryOnly)
+            .Where(f => !f.Contains("ModularSys.Core"));
 
         logger?.LogInformation("[ModuleLoader] Scanning directory: {Path}", basePath);
         foreach (var dll in dlls)

@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
         <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
         <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
@@ -61,7 +60,15 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Include="..\ModularSys.Inventory\_Imports.razor" Link="_Imports.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
@@ -75,7 +82,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
       <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
+      <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
     </ItemGroup>
 
 </Project>

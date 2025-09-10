@@ -10,7 +10,7 @@ namespace ModularSys.Data.Common.Db
         public ModularSysDbContext CreateDbContext(string[] args)
         {
             var basePath = Directory.GetCurrentDirectory();
-            var configPath = Path.Combine(basePath, "..", "ModuERP", "appsettings.json");
+            var configPath = Path.Combine(basePath, "..", "ModularSys", "appsettings.json");
 
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(basePath)
