@@ -1,0 +1,130 @@
+﻿@page "/login"
+@using ModularSys.Core.Interfaces
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.Small"
+              Class="d-flex align-center justify-center"
+              Style="height:100vh; background-color:#f3f4f6;">
+
+    <MudPaper Elevation="8"
+              Class="pa-6 rounded-md login-card d-flex flex-column align-center justify-center">
+
+        <!-- Logo -->
+        <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.Computer" Color="Color.Inherit" Size="Size.Large" />
+        </MudAvatar>
+
+        <MudText Typo="Typo.h5" Align="Align.Center" Class="fw-bold mb-1">Login</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Info" Align="Align.Center" Class="mb-4">
+            Please sign in with your credentials
+        </MudText>
+
+        <!-- Login Form -->
+        <MudForm @ref="_form"
+                 Class="w-100"
+                 Validation="@(new Func<bool>(() => !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password)))">
+
+            <MudTextField @bind-Value="username"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          FullWidth="true"
+                          Margin="Margin.Normal"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person" />
+
+            <MudTextField @bind-Value="password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          InputType="InputType.Password"
+                          FullWidth="true"
+                          Margin="Margin.Normal"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock" />
+
+            <MudButton OnClick="LoginUser"
+                       Disabled="@_loading"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       Class="mt-4 rounded-md">
+                @if (_loading)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Login</span>
+                }
+            </MudButton>
+        </MudForm>
+
+        <!-- Error message -->
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <MudText Color="Color.Error" Align="Align.Center" Class="mt-3">@error</MudText>
+        }
+
+        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-3">
+            Don't have an account?
+            <MudLink Href="/register" Color="Color.Primary" Class="fw-bold">
+                Register
+            </MudLink>
+        </MudText>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mt-4">
+            © @DateTime.Now.Year ModuERP
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .login-card {
+        width: 100%;
+        max-width: 420px; /* Desktop width */
+        background-color: white;
+        border-radius: 0.5rem;
+    }
+</style>
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string? error;
+    private MudForm? _form;
+    private bool _loading = false;
+    private bool _rememberMe = false;
+
+    private async Task LoginUser()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            error = "Please enter both username and password.";
+            return;
+        }
+
+        _loading = true;
+        error = null;
+
+        var result = await AuthService.LoginAsync(username, password);
+        _loading = false;
+
+        if (!result)
+        {
+            error = "Invalid username or password.";
+        }
+        else
+        {
+            if (_rememberMe)
+            {
+                // save credentials to local storage or secure store
+            }
+        }
+    }
+}

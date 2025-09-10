@@ -1,5 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ModularSys.Core.Extensions;
+using ModularSys.Core.Interfaces;
+using ModularSys.Core.Loader;
+using ModularSys.Core.Services;
+using ModularSys.Data.Common.Db;
 using MudBlazor.Services;
 
 namespace ModularSys
@@ -32,7 +38,19 @@ namespace ModularSys
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+            //Initializing SQL Server
+            builder.Services.AddDbContext<ModularSysDbContext>(options =>
+                options.UseSqlServer(connectionString));
 
+            // Auth + session
+            builder.Services.AddSingleton<ISessionStorage, MauiSessionStorage>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddCoreServices();
+
+            // ✅ Register dynamic modules before building the app
+            var loggerFactory = LoggerFactory.Create(config => config.AddDebug());
+            var logger = loggerFactory.CreateLogger("ModuleLoader");
+            ModuleLoader.RegisterAllModules(builder.Services, logger);
 
             return builder.Build();
         }
