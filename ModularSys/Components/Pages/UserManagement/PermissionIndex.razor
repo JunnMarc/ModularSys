@@ -226,22 +226,30 @@
 
     private async Task OnPermissionChanged(int roleId, int permissionId, bool isGranted)
     {
-        // Optimistic update with rollback on failure
         var previous = permissionMatrix[roleId][permissionId];
         permissionMatrix[roleId][permissionId] = isGranted;
+
         try
         {
             await RolePermissionService.ToggleAsync(roleId, permissionId, isGranted);
             Snackbar.Add($"Permission {(isGranted ? "granted" : "revoked")} • Role #{roleId}, Permission #{permissionId}", Severity.Success);
+
+            // Defer claim refresh to avoid render conflict
+            _ = InvokeAsync(async () =>
+            {
+                await Task.Delay(100); // let UI settle
+                await AuthService.RefreshClaimsAsync();
+            });
         }
         catch (Exception ex)
         {
-            permissionMatrix[roleId][permissionId] = previous; // rollback
+            permissionMatrix[roleId][permissionId] = previous;
             Snackbar.Add($"Error updating permission: {ex.Message}", Severity.Error);
         }
-        await AuthService.RefreshClaimsAsync();
+
         StateHasChanged();
     }
+
 
     private async Task SetAllPermissionsForRole(int roleId, bool grant)
     {

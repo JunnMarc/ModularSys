@@ -121,7 +121,8 @@ namespace ModularSys.Core.Services
 
         public async Task<bool> RefreshClaimsAsync()
         {
-            var principal = _authStateProvider.GetAuthenticationStateAsync().Result.User;
+            var authState = await _authStateProvider.GetAuthenticationStateAsync();
+            var principal = authState.User;
 
             if (principal.Identity?.IsAuthenticated != true)
                 return false;
@@ -130,14 +131,14 @@ namespace ModularSys.Core.Services
             if (string.IsNullOrWhiteSpace(idValue) || !int.TryParse(idValue, out var userId))
                 return false;
 
-            var dbUser = _db.Users
+            var dbUser = await _db.Users
                 .Include(u => u.Role)
-                .FirstOrDefault(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (dbUser == null)
                 return false;
 
-            var permissions = _rolePermissionService.GetPermissionsForRoleAsync(dbUser.RoleId).Result;
+            var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(dbUser.RoleId);
 
             var claims = new List<Claim>
     {
@@ -160,6 +161,7 @@ namespace ModularSys.Core.Services
 
             return true;
         }
+
 
         public async void Logout()
         {
