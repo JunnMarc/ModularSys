@@ -4,7 +4,90 @@
 @using ModularSys.Data.Common.Entities
 @inject IDialogService DialogService
 
-Hello!
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-0 h-100">
+    <MudPaper Elevation="1" Class="pa-6 h-100 d-flex flex-column">
+        <MudStack Spacing="2" Class="h-100">
+            <MudText Typo="Typo.h4" GutterBottom="true">Inventory Management</MudText>
+
+            <MudTabs Class="h-100"
+                     Rounded="true"
+                     Elevation="0"
+                     Grow="true"
+                     Dense="true"
+                     ScrollButtons="ScrollButtons.Auto"
+                     KeepPanelsAlive="true">
+
+                <!-- Products Tab -->
+                <MudTabPanel Text="Products" Icon="@Icons.Material.Filled.Inventory2">
+                    <MudDivider Class="mb-4" />
+                    <ProductIndex />
+                </MudTabPanel>
+
+                <!-- Categories Tab -->
+                <MudTabPanel Text="Categories" Icon="@Icons.Material.Filled.Category">
+                    <MudDivider Class="mb-4" />
+                    <CategoryIndex />
+                </MudTabPanel>
+
+                <!-- Sales Orders Tab -->
+                <MudTabPanel Text="Sales Orders" Icon="@Icons.Material.Filled.ReceiptLong">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Sales Orders</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
+                            Sales order management UI coming soon...
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+
+                <!-- Purchase Orders Tab -->
+                <MudTabPanel Text="Purchase Orders" Icon="@Icons.Material.Filled.ShoppingCart">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Purchase Orders</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
+                            Purchase order management UI coming soon...
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+
+                <!-- Inventory Transactions Tab -->
+                <MudTabPanel Text="Inventory Transactions" Icon="@Icons.Material.Filled.SwapHoriz">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Inventory Transactions</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
+                            Inventory transaction logs coming soon...
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+
+                <!-- Reports Tab -->
+                <MudTabPanel Text="Reports" Icon="@Icons.Material.Filled.Assessment">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Reports</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
+                            Reports and analytics coming soon...
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+
+                <!-- Settings Tab -->
+                <MudTabPanel Text="Settings" Icon="@Icons.Material.Filled.Settings">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Settings</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
+                            Inventory settings coming soon...
+                        </MudAlert>
+                    </MudStack>
+                </MudTabPanel>
+            </MudTabs>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
 
 @code {
+    // Ready for tab-specific services when needed
 }

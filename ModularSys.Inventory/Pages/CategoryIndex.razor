@@ -1,0 +1,88 @@
+﻿@using MudBlazor
+@using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Inventory.Interface
+@using ModularSys.Inventory.Services
+@inject ICategoryService CategoryService
+@inject IDialogService Dialogs
+@inject ISnackbar Snack
+
+<MudPaper Elevation="0" Class="pa-0 h-100 d-flex flex-column">
+    <!-- Header Row -->
+    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h6">Categories</MudText>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="@Create">
+            <MudIcon Icon="@Icons.Material.Filled.Add" />&nbsp;Add Category
+        </MudButton>
+    </MudStack>
+
+    <!-- Table -->
+    <div style="flex:1; overflow:auto;">
+        <MudTable Items="_view" Dense="true" Hover="true" Elevation="0" Class="w-100">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Action</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.CategoryName</MudTd>
+                <MudTd>@context.Description</MudTd>
+                <MudTd Align="Align.Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Edit(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Remove(context))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">No categories found.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</MudPaper>
+
+@code {
+    private List<Category> _categories = new();
+    private IEnumerable<Category> _view => string.IsNullOrWhiteSpace(_search)
+        ? _categories
+        : _categories.Where(c => (c.CategoryName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = (await CategoryService.GetAllAsync()).ToList();
+    }
+
+
+    private async Task Create()
+    {
+        var dialog = Dialogs.Show<CategoryForm>("Add Category", new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            _categories = (await CategoryService.GetAllAsync()).ToList();
+            Snack.Add("Category created.", Severity.Success);
+        }
+    }
+
+    private async Task Edit(Category c)
+    {
+        var parameters = new DialogParameters { ["Id"] = c.CategoryId };
+        var dialog = Dialogs.Show<CategoryForm>("Edit Category", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            _categories = (await CategoryService.GetAllAsync()).ToList();
+            Snack.Add("Category updated.", Severity.Success);
+        }
+    }
+
+    private async Task Remove(Category c)
+    {
+        bool? confirm = await Dialogs.ShowMessageBox("Delete category?", $"This will remove {c.CategoryName}.", yesText: "Delete", cancelText: "Cancel");
+        if (confirm == true)
+        {
+            await CategoryService.DeleteAsync(c.CategoryId);
+            _categories.Remove(c);
+            Snack.Add("Category deleted.", Severity.Info);
+        }
+    }
+}

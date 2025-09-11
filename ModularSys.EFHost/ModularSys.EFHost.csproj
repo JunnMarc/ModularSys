@@ -8,12 +8,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
 	  <PackageReference Include="Microsoft.AspNetCore.Authorization" />
 	  <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
 	  <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
+	  <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />

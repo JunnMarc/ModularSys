@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ModularSys.Inventory.Services;
 using ModularSys.Core.Interfaces;
+using ModularSys.Inventory.Interface;
+using ModularSys.Inventory.Services;
 using MudBlazor;
-using System.Reflection.PortableExecutable;
-using System.Runtime.CompilerServices;
 
-public class InventorySubsystem : ISubsystem
+public class InventoryModule : ISubsystem
 {
     public string Name => "Inventory";
     public string Route => "/inventory";
@@ -14,7 +13,8 @@ public class InventorySubsystem : ISubsystem
 
     public void RegisterServices(IServiceCollection services)
     {
-        services.AddScoped<IInventoryService, InventoryService>();
-    } 
+        services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
+    }
 }

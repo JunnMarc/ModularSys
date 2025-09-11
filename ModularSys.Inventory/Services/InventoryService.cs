@@ -14,27 +14,27 @@ namespace ModularSys.Inventory.Services
             _db = db;
         }
 
-        public async Task<IEnumerable<InventoryItem>> GetAllItemsAsync()
+        public async Task<IEnumerable<Product>> GetAllItemsAsync()
         {
             return await _db.InventoryItems.AsNoTracking().ToListAsync();
         }
 
-        public async Task<InventoryItem?> GetItemByIdAsync(int id)
+        public async Task<Product?> GetItemByIdAsync(int id)
         {
-            return await _db.InventoryItems.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            return await _db.InventoryItems.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == id);
         }
 
-        public async Task<InventoryItem> AddItemAsync(InventoryItem item)
+        public async Task<Product> AddItemAsync(Product item)
         {
             _db.InventoryItems.Add(item);
             await _db.SaveChangesAsync();
             return item;
         }
 
-        public async Task<InventoryItem> UpdateItemAsync(InventoryItem item)
+        public async Task<Product> UpdateItemAsync(Product item)
         {
-            var existing = await _db.InventoryItems.FindAsync(item.Id);
-            if (existing == null) throw new KeyNotFoundException($"Item with ID {item.Id} not found");
+            var existing = await _db.InventoryItems.FindAsync(item.ProductId);
+            if (existing == null) throw new KeyNotFoundException($"Item with ID {item.ProductId} not found");
 
             _db.Entry(existing).CurrentValues.SetValues(item);
             await _db.SaveChangesAsync();

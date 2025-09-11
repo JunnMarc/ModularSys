@@ -1,0 +1,145 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Inventory.Interface
+@using ModularSys.Inventory.Models
+@using System.ComponentModel.DataAnnotations
+
+@inject IProductService ProductService
+@inject ICategoryService CategoryService
+@inject IDialogService Dialogs
+@inject ISnackbar Snack
+
+<MudDialogContent Class="pa-4">
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">
+            @_errorMessage
+        </MudAlert>
+    }
+
+    <MudForm @ref="_form" Model="_model">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_model.Name"
+                          Label="Product Name"
+                          Required="true"
+                          FullWidth="true"
+                          Margin="Margin.Normal" />
+
+            <MudSelect T="int" @bind-Value="_model.CategoryId"
+                       Label="Category"
+                       Required="true"
+                       FullWidth="true"
+                       Margin="Margin.Normal">
+                @foreach (var cat in _categories)
+                {
+                    <MudSelectItem Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudNumericField T="decimal" @bind-Value="_model.UnitPrice"
+                             Label="Unit Price"
+                             Required="true"
+                             FullWidth="true"
+                             Margin="Margin.Normal"
+                             Min="0"
+                             Adornment="Adornment.Start"
+                             AdornmentText="₱" />
+
+            <MudNumericField T="int" @bind-Value="_model.QuantityOnHand"
+                             Label="Quantity On Hand"
+                             Required="true"
+                             FullWidth="true"
+                             Margin="Margin.Normal"
+                             Min="0" />
+
+            <MudNumericField T="int" @bind-Value="_model.ReorderLevel"
+                             Label="Reorder Level"
+                             Required="true"
+                             FullWidth="true"
+                             Margin="Margin.Normal"
+                             Min="0" />
+        </MudStack>
+    </MudForm>
+</MudDialogContent>
+
+<MudDialogActions Class="justify-end pa-3">
+    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+</MudDialogActions>
+
+@code {
+    private ProductInputModel _model = new();
+    private MudForm _form;
+    private List<Category> _categories = new();
+    private string _errorMessage; // <-- store UI error message
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public int? Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = (await CategoryService.GetAllAsync()).ToList();
+
+        if (Id is int id)
+        {
+            var existing = await ProductService.GetByIdAsync(id);
+            if (existing is not null)
+            {
+                _model = new ProductInputModel
+                {
+                    ProductId = existing.ProductId,
+                    Name = existing.Name,
+                    CategoryId = existing.CategoryId,
+                    UnitPrice = existing.UnitPrice,
+                    QuantityOnHand = existing.QuantityOnHand,
+                    ReorderLevel = existing.ReorderLevel,
+                };
+            }
+        }
+        else if (_categories.Count > 0)
+        {
+            _model.CategoryId = _categories[0].CategoryId;
+        }
+    }
+
+    private async Task Save()
+    {
+        _errorMessage = null; // reset error
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        bool? confirm = await Dialogs.ShowMessageBox(
+            Id == null ? "Add Product" : "Update Product",
+            Id == null
+                ? $"Are you sure you want to add '{_model.Name}'?"
+                : $"Are you sure you want to update '{_model.Name}'?",
+            yesText: "Yes", cancelText: "Cancel");
+
+        if (confirm != true) return;
+
+        try
+        {
+            if (_model.ProductId == 0)
+            {
+                await ProductService.CreateAsync(_model);
+                Snack.Add("Product created successfully.", Severity.Success);
+            }
+            else
+            {
+                await ProductService.UpdateAsync(_model);
+                Snack.Add("Product updated successfully.", Severity.Success);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (ValidationException ex)
+        {
+            // Instead of crashing, show the error in the UI
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

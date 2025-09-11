@@ -8,7 +8,7 @@ namespace ModularSys.Data.Common.Db
     public class ModularSysDbContext : DbContext
     {
         public DbSet<User> Users => Set<User>();
-        public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+        public DbSet<Product> InventoryItems => Set<Product>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<Department> Departments => Set<Department>();
         public DbSet<Permission> Permissions => Set<Permission>();

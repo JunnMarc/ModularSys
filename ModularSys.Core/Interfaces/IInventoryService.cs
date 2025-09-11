@@ -10,10 +10,10 @@ namespace ModularSys.Core.Interfaces
 {
     public interface IInventoryService
     {
-        Task<IEnumerable<InventoryItem>> GetAllItemsAsync();
-        Task<InventoryItem?> GetItemByIdAsync(int id);
-        Task<InventoryItem> AddItemAsync(InventoryItem item);
-        Task<InventoryItem> UpdateItemAsync(InventoryItem item);
+        Task<IEnumerable<Product>> GetAllItemsAsync();
+        Task<Product?> GetItemByIdAsync(int id);
+        Task<Product> AddItemAsync(Product item);
+        Task<Product> UpdateItemAsync(Product item);
         Task<bool> DeleteItemAsync(int id);
     }
 }

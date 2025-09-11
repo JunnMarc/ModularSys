@@ -45,9 +45,13 @@ namespace ModularSys
             // 1) Scoped DbContext for normal page/services (optional but common)
             builder.Services.AddDbContext<ModularSysDbContext>(options =>
                 options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<InventoryDbContext>(options =>
+                options.UseSqlServer(connectionString));
 
             // 2) Factory for isolated contexts (policy checks, background ops)
             builder.Services.AddDbContextFactory<ModularSysDbContext>(options =>
+                options.UseSqlServer(connectionString));
+            builder.Services.AddDbContextFactory<InventoryDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
             // Session & Auth

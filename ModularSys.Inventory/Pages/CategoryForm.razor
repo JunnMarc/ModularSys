@@ -1,0 +1,68 @@
+﻿@using MudBlazor
+@using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Inventory.Interface
+
+@inject ICategoryService CategoryService
+
+<MudDialogContent Class="pa-4">
+    <MudForm @ref="_form" Model="_model">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_model.CategoryName"
+                          Label="Category Name"
+                          Required="true"
+                          FullWidth="true"
+                          Margin="Margin.Normal" />
+
+            <MudTextField @bind-Value="_model.Description"
+                          Label="Description"
+                          Lines="3"
+                          FullWidth="true"
+                          Margin="Margin.Normal" />
+        </MudStack>
+    </MudForm>
+</MudDialogContent>
+
+<MudDialogActions Class="justify-end pa-3">
+    <MudButton Variant="Variant.Text"
+               Color="Color.Secondary"
+               OnClick="Cancel">
+        Cancel
+    </MudButton>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="Save">
+        Save
+    </MudButton>
+</MudDialogActions>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public int? Id { get; set; }
+
+    private MudForm _form;
+    private Category _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is int id)
+        {
+            var existing = await CategoryService.GetByIdAsync(id);
+            if (existing is not null) _model = existing;
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_model.CategoryId == 0)
+            await CategoryService.CreateAsync(_model);
+        else
+            await CategoryService.UpdateAsync(_model);
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
