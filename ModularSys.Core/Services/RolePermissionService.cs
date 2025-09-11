@@ -79,6 +79,18 @@ public class RolePermissionService : IRolePermissionService
             .Where(rp => rp.RoleId == roleId)
             .Include(rp => rp.Permission)
             .Select(rp => rp.Permission)
+            .Distinct()
             .ToListAsync();
     }
+
+    public async Task<List<Permission>> GetPermissionsForRolesAsync(IEnumerable<int> roleIds)
+    {
+        return await _db.RolePermissions
+            .Where(rp => roleIds.Contains(rp.RoleId))
+            .Include(rp => rp.Permission)
+            .Select(rp => rp.Permission)
+            .Distinct()
+            .ToListAsync();
+    }
+
 }

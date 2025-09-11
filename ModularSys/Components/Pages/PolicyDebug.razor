@@ -1,0 +1,136 @@
+﻿@page "/policydebug"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using ModularSys.Core.Interfaces
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISessionStorage Storage
+@inject IAuthService AuthService
+@inject HttpClient Http
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">🔍 Policy Debug Page</MudText>
+    <MudDivider Class="my-2" />
+
+    <MudText Typo="Typo.subtitle1">Current User Claims:</MudText>
+    @if (claimsRestoredFromCache)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            ⚠️ Claims restored from offline cache — you may be in offline mode.
+        </MudAlert>
+    }
+    <MudList T="Claim" Dense="true">
+        @if (userClaims?.Any() == true)
+        {
+            @foreach (var claim in userClaims)
+            {
+                <MudListItem>@claim.Type = @claim.Value</MudListItem>
+            }
+        }
+        else
+        {
+            <MudListItem>No claims found (not logged in)</MudListItem>
+        }
+    </MudList>
+
+    <MudDivider Class="my-2" />
+
+    <MudText Typo="Typo.subtitle1">Policy Checks:</MudText>
+    @if (userClaims?.Any(c => c.Type == "Permission") == true)
+    {
+        @foreach (var perm in userClaims
+            .Where(c => c.Type == "Permission")
+            .Select(c => c.Value)
+            .Distinct())
+        {
+            <AuthorizeView Policy="@perm">
+                <Authorized>
+                    <MudAlert Severity="Severity.Success">✅ You have @perm permission</MudAlert>
+                </Authorized>
+                <NotAuthorized>
+                    <MudAlert Severity="Severity.Error">❌ You do NOT have @perm permission</MudAlert>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+    }
+    else
+    {
+        <MudText>No permission claims to check.</MudText>
+    }
+
+    <MudDivider Class="my-2" />
+
+    <MudText Typo="Typo.subtitle1">Actions:</MudText>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="RefreshFromDb">
+        🔄 Refresh Claims from DB
+    </MudButton>
+
+    <MudDivider Class="my-2" />
+
+    <MudText Typo="Typo.subtitle1">API Test:</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!apiConfigured)" OnClick="TestApi">
+        Call /test-policy (ManageUsers)
+    </MudButton>
+
+    @if (!string.IsNullOrEmpty(apiResult))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-2">@apiResult</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    private List<Claim>? userClaims;
+    private string? apiResult;
+    private bool claimsRestoredFromCache;
+    private bool apiConfigured;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClaimsAsync();
+
+        // Detect if claims came from offline cache
+        var storedClaimsJson = Storage.Get("current_user_claims");
+        claimsRestoredFromCache = !string.IsNullOrEmpty(storedClaimsJson)
+                                  && !(await AuthStateProvider.GetAuthenticationStateAsync())
+                                      .User.Identity?.IsAuthenticated == false;
+
+        // Disable API button if no BaseAddress or placeholder
+        apiConfigured = Http?.BaseAddress != null
+                        && !Http.BaseAddress.ToString().Contains("localhost:5001");
+    }
+
+    private async Task LoadClaimsAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userClaims = authState.User.Claims.ToList();
+    }
+
+    private async Task RefreshFromDb()
+    {
+        var ok = await AuthService.RefreshClaimsAsync();
+        if (ok)
+        {
+            await LoadClaimsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task TestApi()
+    {
+        try
+        {
+            var response = await Http.GetAsync("test-policy");
+            if (response.IsSuccessStatusCode)
+            {
+                apiResult = "✅ API call succeeded: " + await response.Content.ReadAsStringAsync();
+            }
+            else
+            {
+                apiResult = $"❌ API call failed: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            apiResult = $"⚠️ Error calling API: {ex.Message}";
+        }
+    }
+}

@@ -10,5 +10,6 @@ public interface IRolePermissionService
     Task<bool> ToggleAsync(int roleId, int permissionId, bool isGranted);
     Task AssignPermissionsAsync(int roleId, List<int> permissionIds);
     Task<List<Permission>> GetPermissionsForRoleAsync(int roleId);
+    Task<List<Permission>> GetPermissionsForRolesAsync(IEnumerable<int> roleIds);
 }
 

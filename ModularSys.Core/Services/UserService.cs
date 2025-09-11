@@ -62,6 +62,14 @@ public class UserService : IUserService
         _db.Users.Update(user);
         return await _db.SaveChangesAsync() > 0;
     }
+    public async Task<int?> GetRoleIdAsync(int userId)
+    {
+        var user = await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        return user?.RoleId;
+    }
 
     private string HashPassword(string password)
     {

@@ -10,4 +10,6 @@ public interface IUserService
     Task<bool> DeleteAsync(int id);
     Task<bool> SetRoleAsync(int userId, int roleId);
     Task<bool> SetDepartmentAsync(int userId, int departmentId);
+    Task<int?> GetRoleIdAsync(int userId);
+
 }

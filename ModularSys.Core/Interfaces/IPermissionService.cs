@@ -7,4 +7,5 @@ public interface IPermissionService
     Task<Permission> CreateAsync(Permission permission);
     Task<bool> UpdateAsync(Permission permission);
     Task<bool> DeleteAsync(int id);
+    Task<Permission?> GetByNameAsync(string permissionName);
 }

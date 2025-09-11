@@ -1,87 +1,305 @@
 ﻿@page "/permissions"
+@using Microsoft.Maui.Layouts
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Services
 @using ModularSys.Data.Common.Entities
 @inject IRolePermissionService RolePermissionService
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject IAuthService AuthService
 @inject ISnackbar Snackbar
 
 <MudPaper Class="pa-4">
-    <MudText Typo="Typo.h5" Class="mb-4">🔐 Role Permission Matrix</MudText>
+    <MudStack Spacing="2">
+        <MudStack Direction="Row" AlignItems="AlignItems.Start" Spacing="2" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.h5">Role Permission Matrix</MudText>
+            <MudText Typo="Typo.caption" Class="ml-auto">
+                @($"{FilteredRoles.Count} roles • {FilteredPermissions.Count} permissions")
+            </MudText>
+        </MudStack>
 
-    @if (roles.Count == 0 || permissions.Count == 0)
-    {
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
-    }
-    else
-    {
-        <MudTable Items="@roles" Bordered="true" Striped="true" Elevation="1">
-            <HeaderContent>
-                <MudTh>Role</MudTh>
-                @foreach (var perm in permissions)
-                {
-                    <MudTh>@perm.PermissionName</MudTh>
-                }
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.RoleName</MudTd>
-                @foreach (var perm in permissions)
-                {
-                    <MudTd>
-                        <MudCheckBox T="bool"
-                                     Value="@permissionMatrix[context.RoleId][perm.PermissionId]"
-                                     ValueChanged="@(value => OnPermissionChanged(context.RoleId, perm.PermissionId, value))"
-                                     Color="Color.Primary" />
+        <MudStack Direction="Row" Spacing="2" Wrap="Wrap.Wrap">
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="roleFilter" Label="Filter roles" Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.ManageAccounts"
+                                  Immediate="true" DebounceInterval="200" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="permissionFilter" Label="Filter permissions" Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock"
+                                  Immediate="true" DebounceInterval="200" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Outlined" OnClick="ClearFilters"
+                               Disabled="@(string.IsNullOrWhiteSpace(roleFilter) && string.IsNullOrWhiteSpace(permissionFilter))">
+                        Clear
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudStack>
 
-                    </MudTd>
-                }
-            </RowTemplate>
-        </MudTable>
-    }
+        @if (isLoading)
+        {
+            <MudStack AlignItems="AlignItems.Center" JustifyContent="Center" Class="py-6">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            </MudStack>
+        }
+        else if (!roles.Any() || !permissions.Any())
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No roles or permissions found. Add some to get started.
+            </MudAlert>
+        }
+        else
+        {
+            <div class="matrix-container">
+                <MudTable Items="@FilteredRoles" Bordered="true" Striped="true" Elevation="1" Dense="true">
+                    <HeaderContent>
+                        <MudTh Class="sticky-first">
+                            <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle2">Role</MudText>
+                            </MudStack>
+                        </MudTh>
+                        @foreach (var perm in FilteredPermissions)
+                        {
+                            <MudTh Class="sticky-header">
+                                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudTooltip Text="@perm.Description">
+                                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@perm.PermissionName</MudText>
+                                    </MudTooltip>
+                                    <MudStack Direction="Row" Spacing="1" JustifyContent="Center">
+                                        <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                                       Size="Size.Small"
+                                                       Disabled="@isBusy"
+                                                       Title="Grant all for this permission"
+                                                       OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, true))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                                       Size="Size.Small"
+                                                       Disabled="@isBusy"
+                                                       Title="Revoke all for this permission"
+                                                       OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, false))" />
+                                    </MudStack>
+                                </MudStack>
+                            </MudTh>
+                        }
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd Class="sticky-first">
+                            <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudChip Value="@context.RoleName"
+                                         Color="Color.Primary"
+                                         Variant="Variant.Filled"
+                                         Size="Size.Small">
+                                    @context.RoleName
+                                </MudChip>
+                                <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                               Size="Size.Small"
+                                               Disabled="@isBusy"
+                                               Title="Grant all for this role"
+                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, true))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                               Size="Size.Small"
+                                               Disabled="@isBusy"
+                                               Title="Revoke all for this role"
+                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, false))" />
+                            </MudStack>
+                        </MudTd>
+
+                        @foreach (var perm in FilteredPermissions)
+                        {
+                            <MudTd>
+                                <MudCheckBox T="bool"
+                                             Value="@permissionMatrix[context.RoleId][perm.PermissionId]"
+                                             ValueChanged="@(value => OnPermissionChanged(context.RoleId, perm.PermissionId, value))"
+                                             Color="Color.Primary"
+                                             DisableRipple="true"
+                                             Disabled="@isBusy"
+                                             AriaLabel="@($"{context.RoleName} — {perm.PermissionName}")" />
+                            </MudTd>
+                        }
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    </MudStack>
 </MudPaper>
 
+<style>
+    .matrix-container {
+        overflow: auto;
+    }
+
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background: var(--mud-palette-surface);
+        z-index: 1;
+    }
+
+    .sticky-first {
+        position: sticky;
+        left: 0;
+        background: var(--mud-palette-surface);
+        z-index: 2;
+    }
+
+    .mw-250 {
+        max-width: 250px;
+    }
+</style>
+
 @code {
+    // Data
     private List<Role> roles = new();
     private List<Permission> permissions = new();
 
-    private Dictionary<int, Dictionary<int, bool>> permissionMatrix = new();
+    // Filters
+    private string roleFilter = string.Empty;
+    private string permissionFilter = string.Empty;
+
+    // Matrix: RoleId → PermissionId → bool
+    private readonly Dictionary<int, Dictionary<int, bool>> permissionMatrix = new();
+
+    // UI State
+    private bool isLoading = true;
+    private bool isBusy = false; // disables controls during bulk/async ops
+
+    // Computed
+    private List<Role> FilteredRoles =>
+        string.IsNullOrWhiteSpace(roleFilter)
+            ? roles
+            : roles.Where(r => r.RoleName.Contains(roleFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private List<Permission> FilteredPermissions =>
+        string.IsNullOrWhiteSpace(permissionFilter)
+            ? permissions
+            : permissions.Where(p => p.PermissionName.Contains(permissionFilter, StringComparison.OrdinalIgnoreCase)
+                                  || (!string.IsNullOrWhiteSpace(p.Description) && p.Description.Contains(permissionFilter, StringComparison.OrdinalIgnoreCase)))
+                         .ToList();
 
     protected override async Task OnInitializedAsync()
     {
-        var rolePermissions = await RolePermissionService.GetAllAsync();
-
-        roles = rolePermissions
-            .Select(rp => rp.Role)
-            .DistinctBy(r => r.RoleId)
-            .ToList();
-
-        permissions = rolePermissions
-            .Select(rp => rp.Permission)
-            .DistinctBy(p => p.PermissionId)
-            .ToList();
-
-        // Initialize matrix
-        foreach (var role in roles)
+        try
         {
-            permissionMatrix[role.RoleId] = new Dictionary<int, bool>();
+            isLoading = true;
 
-            foreach (var perm in permissions)
+            // Load all roles and all permissions from their own sources
+            roles = await RoleService.GetAllAsync(); // from Roles table
+            permissions = await PermissionService.GetAllAsync(); // from Permissions table
+
+            // Load existing role-permission links
+            var rolePermissions = await RolePermissionService.GetAllAsync();
+
+            // Initialize matrix with default false
+            foreach (var role in roles)
             {
-                bool hasPermission = role.RolePermissions.Any(rp => rp.PermissionId == perm.PermissionId);
-                permissionMatrix[role.RoleId][perm.PermissionId] = hasPermission;
+                permissionMatrix[role.RoleId] = new Dictionary<int, bool>();
+
+                foreach (var perm in permissions)
+                {
+                    bool hasPermission = rolePermissions.Any(rp =>
+                        rp.RoleId == role.RoleId &&
+                        rp.PermissionId == perm.PermissionId);
+
+                    permissionMatrix[role.RoleId][perm.PermissionId] = hasPermission;
+                }
             }
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load permissions: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private void ClearFilters()
+    {
+        roleFilter = string.Empty;
+        permissionFilter = string.Empty;
     }
 
     private async Task OnPermissionChanged(int roleId, int permissionId, bool isGranted)
     {
+        // Optimistic update with rollback on failure
+        var previous = permissionMatrix[roleId][permissionId];
+        permissionMatrix[roleId][permissionId] = isGranted;
         try
         {
             await RolePermissionService.ToggleAsync(roleId, permissionId, isGranted);
-            permissionMatrix[roleId][permissionId] = isGranted;
-
-            Snackbar.Add($"Permission {(isGranted ? "granted" : "revoked")} successfully.", Severity.Success);
+            Snackbar.Add($"Permission {(isGranted ? "granted" : "revoked")} • Role #{roleId}, Permission #{permissionId}", Severity.Success);
         }
         catch (Exception ex)
         {
+            permissionMatrix[roleId][permissionId] = previous; // rollback
             Snackbar.Add($"Error updating permission: {ex.Message}", Severity.Error);
         }
+        await AuthService.RefreshClaimsAsync();
+        StateHasChanged();
+    }
+
+    private async Task SetAllPermissionsForRole(int roleId, bool grant)
+    {
+        if (!permissionMatrix.TryGetValue(roleId, out var row)) return;
+
+        isBusy = true;
+        StateHasChanged();
+
+        // Optimistic row update
+        var previous = row.ToDictionary(kv => kv.Key, kv => kv.Value);
+        try
+        {
+            foreach (var permId in FilteredPermissions.Select(p => p.PermissionId))
+            {
+                if (row[permId] == grant) continue;
+                row[permId] = grant;
+                await RolePermissionService.ToggleAsync(roleId, permId, grant);
+            }
+            Snackbar.Add($"{(grant ? "Granted" : "Revoked")} all for the role.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            // rollback
+            foreach (var kv in previous) row[kv.Key] = kv.Value;
+            Snackbar.Add($"Bulk update failed: {ex.Message}", Severity.Error);
+        }
+        finally
+            { isBusy = false; StateHasChanged(); }
+    }
+
+    private async Task SetPermissionForAllRoles(int permissionId, bool grant)
+    {
+        isBusy = true;
+        StateHasChanged();
+
+        // Optimistic column update
+        var prev = new Dictionary<int, bool>();
+        foreach (var role in FilteredRoles)
+            prev[role.RoleId] = permissionMatrix[role.RoleId][permissionId];
+
+        try
+        {
+            foreach (var role in FilteredRoles)
+            {
+                var current = permissionMatrix[role.RoleId][permissionId];
+                if (current == grant) continue;
+                permissionMatrix[role.RoleId][permissionId] = grant;
+                await RolePermissionService.ToggleAsync(role.RoleId, permissionId, grant);
+            }
+            Snackbar.Add($"{(grant ? "Granted" : "Revoked")} for all roles on this permission.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            foreach (var role in FilteredRoles)
+                permissionMatrix[role.RoleId][permissionId] = prev[role.RoleId];
+            Snackbar.Add($"Bulk update failed: {ex.Message}", Severity.Error);
+        }
+        finally
+            { isBusy = false; StateHasChanged(); }
     }
 }

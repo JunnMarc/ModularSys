@@ -14,6 +14,9 @@
   <ItemGroup>
 	  <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
 	  <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
+	  <PackageReference Include="Microsoft.AspNetCore.Authorization" />
+	  <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" />
 
 	  <PackageReference Include="Microsoft.EntityFrameworkCore" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design">

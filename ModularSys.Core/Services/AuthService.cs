@@ -1,9 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ModularSys.Core.Interfaces;
+using ModularSys.Core.Security; // for SessionAuthStateProvider
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace ModularSys.Core.Services
 {
@@ -11,14 +14,19 @@ namespace ModularSys.Core.Services
     {
         private readonly ModularSysDbContext _db;
         private readonly ISessionStorage _storage;
+        private readonly IRolePermissionService _rolePermissionService;
+        private readonly SessionAuthStateProvider _authStateProvider;
 
-        public AuthService(ModularSysDbContext db, ISessionStorage storage)
+        public AuthService(
+            ModularSysDbContext db,
+            ISessionStorage storage,
+            IRolePermissionService rolePermissionService,
+            SessionAuthStateProvider authStateProvider)
         {
             _db = db;
             _storage = storage;
-
-            CurrentUser = _storage.Get("current_user");
-            IsAuthenticated = !string.IsNullOrEmpty(CurrentUser);
+            _rolePermissionService = rolePermissionService;
+            _authStateProvider = authStateProvider;
         }
 
         public bool IsAuthenticated { get; private set; }
@@ -72,29 +80,96 @@ namespace ModularSys.Core.Services
         {
             var hash = HashPassword(password);
             var user = await _db.Users
+                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Username == username && u.PasswordHash == hash);
 
             if (user != null)
             {
+                var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(user.RoleId);
+
+                var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Role, user.Role.RoleName)
+        };
+
+                foreach (var perm in permissions)
+                    claims.Add(new Claim("Permission", perm.PermissionName));
+
+                _storage.Set("current_user", user.Username);
+                _storage.SetClaims("current_user_claims", claims);
+
                 IsAuthenticated = true;
                 CurrentUser = user.Username;
-                _storage.Set("current_user", user.Username);
+
+                _authStateProvider.NotifyUserAuthentication(claims);
                 OnAuthStateChanged?.Invoke();
                 return true;
             }
 
+            _storage.Remove("current_user");
+            _storage.Remove("current_user_claims");
+
             IsAuthenticated = false;
             CurrentUser = null;
-            _storage.Remove("current_user");
+
+            _authStateProvider.NotifyUserLogout();
             OnAuthStateChanged?.Invoke();
             return false;
         }
 
-        public void Logout()
+        public async Task<bool> RefreshClaimsAsync()
         {
+            var principal = _authStateProvider.GetAuthenticationStateAsync().Result.User;
+
+            if (principal.Identity?.IsAuthenticated != true)
+                return false;
+
+            var idValue = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(idValue) || !int.TryParse(idValue, out var userId))
+                return false;
+
+            var dbUser = _db.Users
+                .Include(u => u.Role)
+                .FirstOrDefault(u => u.Id == userId);
+
+            if (dbUser == null)
+                return false;
+
+            var permissions = _rolePermissionService.GetPermissionsForRoleAsync(dbUser.RoleId).Result;
+
+            var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.Name, dbUser.Username),
+        new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
+        new Claim(ClaimTypes.Role, dbUser.Role.RoleName)
+    };
+
+            foreach (var perm in permissions)
+                claims.Add(new Claim("Permission", perm.PermissionName));
+
+            _storage.Set("current_user", dbUser.Username);
+            _storage.SetClaims("current_user_claims", claims);
+
+            _authStateProvider.NotifyUserAuthentication(claims);
+            OnAuthStateChanged?.Invoke();
+
+            IsAuthenticated = true;
+            CurrentUser = dbUser.Username;
+
+            return true;
+        }
+
+        public async void Logout()
+        {
+            _storage.Remove("current_user");
+            _storage.Remove("current_user_claims");
+
             IsAuthenticated = false;
             CurrentUser = null;
-            _storage.Remove("current_user");
+
+            _authStateProvider.NotifyUserLogout();
             OnAuthStateChanged?.Invoke();
         }
 

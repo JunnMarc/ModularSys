@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ModularSys.Core.Extensions;
 using ModularSys.Core.Interfaces;
 using ModularSys.Core.Loader;
+using ModularSys.Core.Security;
 using ModularSys.Core.Services;
 using ModularSys.Data.Common.Db;
 using MudBlazor.Services;
@@ -38,23 +41,44 @@ namespace ModularSys
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-            //Initializing SQL Server
+            // Database
+            // 1) Scoped DbContext for normal page/services (optional but common)
             builder.Services.AddDbContext<ModularSysDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
-            // Auth + session
-            builder.Services.AddSingleton<ISessionStorage, MauiSessionStorage>();
+            // 2) Factory for isolated contexts (policy checks, background ops)
+            builder.Services.AddDbContextFactory<ModularSysDbContext>(options =>
+                options.UseSqlServer(connectionString));
+
+            // Session & Auth
+            builder.Services.AddAuthorizationCore();
+
+            // Auth state provider (single instance registered as itself and as the interface)
+            builder.Services.AddScoped<SessionAuthStateProvider>();
+            builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<SessionAuthStateProvider>());
+
+            // Dynamic policies
+            builder.Services.AddScoped<IAuthorizationPolicyProvider, DynamicAuthPolicyProvider>();
+
+            // Session storage
+            builder.Services.AddScoped<ISessionStorage, MauiSessionStorage>();
+
+            // Domain services
             builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddCoreServices();
-
-
-            // User Management services
+            builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
+            builder.Services.AddScoped<IPermissionService, PermissionService>();
+            builder.Services.AddScoped<IClaimsPermissionChecker, ClaimsPermissionChecker>();
+            builder.Services.AddScoped<IPermissionChecker, PermissionChecker>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRoleService, RoleService>();
-            builder.Services.AddScoped<IPermissionService, PermissionService>();
-            builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
 
-            // ✅ Register dynamic modules before building the app
+            // HttpClient (adjust BaseAddress to your API host/port)
+            builder.Services.AddScoped(sp => new HttpClient
+            {
+                BaseAddress = new Uri("https://localhost:5001/") // Desktop: API running locally
+            });
+
+            // Register dynamic modules
             var loggerFactory = LoggerFactory.Create(config => config.AddDebug());
             var logger = loggerFactory.CreateLogger("ModuleLoader");
             ModuleLoader.RegisterAllModules(builder.Services, logger);
