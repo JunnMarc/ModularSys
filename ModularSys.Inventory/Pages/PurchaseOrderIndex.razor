@@ -1,0 +1,122 @@
+﻿@page "/purchases"
+@using MudBlazor
+@using ModularSys.Inventory.Interface
+@using ModularSys.Data.Common.Entities.Inventory
+@inject IPurchaseOrderService PurchaseOrderService
+@inject IDialogService Dialogs
+@inject ISnackbar Snack
+
+<MudStack Spacing="2" Class="h-100">
+    <!-- Header Row -->
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.h6">Purchase Orders</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@Create">
+            New Purchase
+        </MudButton>
+    </MudStack>
+
+    <!-- Search -->
+    <MudTextField @bind-Value="_search" Placeholder="Search by status..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
+
+    <!-- Scrollable Table Area -->
+    <div style="flex:1; overflow:auto;">
+        <MudTable Items="@_view" Hover="true" Dense="true" Class="w-100">
+            <HeaderContent>
+                <MudTh>Order #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh align="right">Total</MudTh>
+                <MudTh align="right">Tax</MudTh>
+                <MudTh align="right">Grand Total</MudTh>
+                <MudTh>Action</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.PurchaseOrderId</MudTd>
+                <MudTd>@context.OrderDate.ToShortDateString()</MudTd>
+                <MudTd>@context.Status</MudTd>
+                <MudTd Align="Align.Right">@context.TotalAmount.ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">@(@context.TotalAmount * 0.12m).ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">@(@context.TotalAmount * 1.12m).ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Edit(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+                    @if (context.Status == "Pending")
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" OnClick="@(() => Receive(context.PurchaseOrderId))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">No purchase orders found.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</MudStack>
+
+@code {
+    private List<PurchaseOrder> _orders = new();
+    private string _search = "";
+
+    private IEnumerable<PurchaseOrder> _view => string.IsNullOrWhiteSpace(_search)
+        ? _orders
+        : _orders.Where(o => (o.Status ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        try
+        {
+            var orders = await PurchaseOrderService.GetAllAsync();
+            _orders = orders.ToList(); // Avoid chaining directly
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading purchase orders: {ex.Message}");
+        }
+    }
+
+    private async Task Create()
+    {
+        var dialog = Dialogs.Show<PurchaseOrderForm>("New Purchase Order", new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
+            Snack.Add("Purchase order created.", Severity.Success);
+        }
+    }
+
+    private async Task Edit(PurchaseOrder order)
+    {
+        var parameters = new DialogParameters { ["Id"] = order.PurchaseOrderId };
+        var dialog = Dialogs.Show<PurchaseOrderForm>("Edit Purchase Order", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
+            Snack.Add("Purchase order updated.", Severity.Success);
+        }
+    }
+
+    // private async Task Remove(PurchaseOrder order)
+    // {
+    //     bool? confirm = await Dialogs.ShowMessageBox("Delete purchase order?", $"This will remove order #{order.PurchaseOrderId}.", yesText: "Delete", cancelText: "Cancel");
+    //     if (confirm == true)
+    //     {
+    //         await PurchaseOrderService.DeleteAsync(order.PurchaseOrderId);
+    //         _orders.Remove(order);
+    //         Snack.Add("Purchase order deleted.", Severity.Info);
+    //     }
+    // }
+
+    private async Task Receive(int id)
+    {
+        await PurchaseOrderService.ReceiveAsync(id);
+        _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
+        Snack.Add("Purchase order marked as received.", Severity.Success);
+    }
+}

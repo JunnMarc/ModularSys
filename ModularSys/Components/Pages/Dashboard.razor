@@ -1,13 +1,17 @@
 ﻿@page "/dashboard"
+@using MudBlazor
+@using ModularSys.Inventory.Interface
+@using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Data.Common.Entities.Finance
+
 @inject NavigationManager Nav
+@inject IRevenueService RevenueService
+@inject ISalesOrderService SalesOrderService
+@inject IPurchaseOrderService PurchaseOrderService
+@inject IProductService ProductService
+@inject IUserService UserService
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
-    <!-- Header -->
-    @* <div class="dashboard-header">
-        <MudText Typo="Typo.h5" Class="font-weight-semibold mb-1">Inventory Management</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Track and manage your computer parts distribution</MudText>
-    </div> *@
-
     <!-- Stats Cards -->
     <MudGrid Class="px-0 pb-3" Spacing="2">
         <MudItem xs="12" sm="6" md="3">
@@ -18,12 +22,8 @@
                             <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">₱125,430</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">₱@_totalRevenue.ToString("#,##0.00")</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Revenue</MudText>
-                            <div class="d-flex align-center mt-1 positive-trend">
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" />
-                                <MudText Typo="Typo.caption" Class="ml-1">12.5% from last month</MudText>
-                            </div>
                         </div>
                     </div>
                 </MudCardContent>
@@ -38,12 +38,8 @@
                             <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">1,240</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_totalOrders</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Orders</MudText>
-                            <div class="d-flex align-center mt-1 positive-trend">
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" />
-                                <MudText Typo="Typo.caption" Class="ml-1">8.3% from last month</MudText>
-                            </div>
                         </div>
                     </div>
                 </MudCardContent>
@@ -58,12 +54,8 @@
                             <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">320</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_activeUsers</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Active Users</MudText>
-                            <div class="d-flex align-center mt-1 positive-trend">
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" />
-                                <MudText Typo="Typo.caption" Class="ml-1">5.2% from last month</MudText>
-                            </div>
                         </div>
                     </div>
                 </MudCardContent>
@@ -78,12 +70,8 @@
                             <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">4,852</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_inventoryCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Inventory Items</MudText>
-                            <div class="d-flex align-center mt-1 negative-trend">
-                                <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" />
-                                <MudText Typo="Typo.caption" Class="ml-1">3.1% from last month</MudText>
-                            </div>
                         </div>
                     </div>
                 </MudCardContent>
@@ -100,12 +88,7 @@
                         <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Sales Overview</MudText>
                         <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text" />
                     </div>
-                    <MudChart ChartType="ChartType.Line"
-                              ChartSeries="@_salesSeries"
-                              XAxisLabels="@_months"
-                              Width="100%"
-                              Height="280px"
-                              AxisChartOptions="_chartOptions" />
+                    <MudChart ChartType="ChartType.Line" ChartSeries="@_salesSeries" XAxisLabels="@_months" Width="100%" Height="280px" AxisChartOptions="_chartOptions" />
                 </MudCardContent>
             </MudCard>
         </MudItem>
@@ -117,95 +100,78 @@
                         <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Stock Levels per Item</MudText>
                         <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text" />
                     </div>
-                    <MudChart ChartType="ChartType.Bar"
-                              ChartSeries="@_stockSeries"
-                              XAxisLabels="@_items"
-                              Width="100%"
-                              Height="280px"
-                              AxisChartOptions="_chartOptions" />
+                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_stockSeries" XAxisLabels="@_items" Width="100%" Height="280px" AxisChartOptions="_chartOptions" />
                 </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
+
     <!-- Policy Debug Button -->
     <div class="d-flex justify-center mt-4">
         <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Policy" OnClick="@(() => Nav.NavigateTo("/policydebug"))">
             Policy Debug
         </MudButton>
     </div>
-
-    <style>
-        .dashboard-header {
-            padding: 1rem 0;
-            border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 1.5rem;
-        }
-
-        .stat-card {
-            border-radius: 8px;
-            transition: all 0.2s ease;
-        }
-
-            .stat-card:hover {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            }
-
-        .positive-trend {
-            color: #10b981;
-        }
-
-        .negative-trend {
-            color: #ef4444;
-        }
-
-        .chart-card {
-            border-radius: 8px;
-        }
-
-        .action-button {
-            flex-direction: column;
-            height: auto;
-            padding: 0.75rem 0.5rem;
-        }
-
-            .action-button .mud-icon-root {
-                margin-bottom: 0.25rem;
-                font-size: 1.25rem;
-            }
-
-        @@media (max-width: 960px) {
-            .dashboard-header {
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
 </MudContainer>
 
 @code {
+    private decimal _totalRevenue;
+    private int _totalOrders;
+    private int _activeUsers;
+    private int _inventoryCount;
+
     private AxisChartOptions _chartOptions = new AxisChartOptions
     {
         XAxisLabelRotation = -30,
         MatchBoundsToSize = true,
     };
 
-    private List<ChartSeries> _salesSeries = new()
+    private List<ChartSeries> _salesSeries = new();
+    private string[] _months = Array.Empty<string>();
+
+    private List<ChartSeries> _stockSeries = new();
+    private string[] _items = Array.Empty<string>();
+
+    protected override async Task OnInitializedAsync()
     {
-        new ChartSeries {
-            Name = "Sales",
-            Data = new double[] { 12000, 19000, 15000, 25000, 22000, 30000, 28000, 35000, 32000, 40000, 38000, 45000 }
-        }
-    };
+        var revenueTransactions = await RevenueService.GetAllAsync();
+        var salesOrders = await SalesOrderService.GetAllAsync();
+        var products = await ProductService.GetAllAsync();
+        var users = await UserService.GetAllAsync();
 
-    private string[] _months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        _totalRevenue = revenueTransactions.Sum(r => r.Amount);
+        _totalOrders = salesOrders.Count();
+        _inventoryCount = products.Sum(p => p.QuantityOnHand);
+        _activeUsers = users.Count;
 
-    private List<ChartSeries> _stockSeries = new()
-    {
-        new ChartSeries {
-            Name = "Stock",
-            Data = new double[] { 120, 85, 60, 150, 95, 40, 75 }
-        }
-    };
+        _salesSeries = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Sales",
+                Data = salesOrders
+                    .GroupBy(o => o.OrderDate.Month)
+                    .OrderBy(g => g.Key)
+                    .Select(g => (double)g.Sum(o => o.TotalAmount))
+                    .ToArray()
+            }
+        };
 
-    private string[] _items = { "CPUs", "GPUs", "RAM", "SSDs", "HDDs", "Motherboards", "PSUs" };
+        _months = salesOrders
+            .GroupBy(o => o.OrderDate.Month)
+            .OrderBy(g => g.Key)
+            .Select(g => new DateTime(2025, g.Key, 1).ToString("MMM"))
+            .ToArray();
+
+        _stockSeries = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Stock",
+                Data = products.Select(p => (double)p.QuantityOnHand).ToArray()
+            }
+        };
+
+        _items = products.Select(p => p.Name).ToArray();
+    }
 }

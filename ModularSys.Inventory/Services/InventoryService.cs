@@ -1,54 +1,66 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
-using ModularSys.Core.Interfaces;
 using ModularSys.Data.Common.Entities.Inventory;
+using ModularSys.Inventory.Interface;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace ModularSys.Inventory.Services
 {
     public class InventoryService : IInventoryService
     {
-        private readonly ModularSysDbContext _db;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public InventoryService(ModularSysDbContext db)
+        public InventoryService(IServiceScopeFactory scopeFactory)
         {
-            _db = db;
+            _scopeFactory = scopeFactory;
         }
 
-        public async Task<IEnumerable<Product>> GetAllItemsAsync()
+        // ✅ Shared transactional usage
+        public async Task RecordTransactionAsync(InventoryDbContext db, int productId, int quantityChange, decimal amount, string transactionType)
         {
-            return await _db.InventoryItems.AsNoTracking().ToListAsync();
+            var product = await db.Products.FirstOrDefaultAsync(p => p.ProductId == productId);
+            if (product == null)
+                throw new KeyNotFoundException("Product not found.");
+
+            product.QuantityOnHand += quantityChange;
+
+            var transaction = new InventoryTransaction
+            {
+                ProductId = productId,
+                QuantityChange = quantityChange,
+                Amount = amount,
+                TransactionType = transactionType,
+                TransactionDate = DateTime.UtcNow
+            };
+
+            db.InventoryTransactions.Add(transaction);
+            // SaveChangesAsync is handled by the caller
         }
 
-        public async Task<Product?> GetItemByIdAsync(int id)
+        // ✅ Standalone usage — scoped internally
+        public async Task<IEnumerable<InventoryTransaction>> GetHistoryAsync(int productId)
         {
-            return await _db.InventoryItems.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == id);
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            return await db.InventoryTransactions
+                .Where(t => t.ProductId == productId)
+                .OrderByDescending(t => t.TransactionDate)
+                .ToListAsync();
         }
 
-        public async Task<Product> AddItemAsync(Product item)
+        public async Task<IEnumerable<InventoryTransaction>> GetAllAsync()
         {
-            _db.InventoryItems.Add(item);
-            await _db.SaveChangesAsync();
-            return item;
-        }
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
 
-        public async Task<Product> UpdateItemAsync(Product item)
-        {
-            var existing = await _db.InventoryItems.FindAsync(item.ProductId);
-            if (existing == null) throw new KeyNotFoundException($"Item with ID {item.ProductId} not found");
-
-            _db.Entry(existing).CurrentValues.SetValues(item);
-            await _db.SaveChangesAsync();
-            return existing;
-        }
-
-        public async Task<bool> DeleteItemAsync(int id)
-        {
-            var item = await _db.InventoryItems.FindAsync(id);
-            if (item == null) return false;
-
-            _db.InventoryItems.Remove(item);
-            await _db.SaveChangesAsync();
-            return true;
+            return await db.InventoryTransactions
+                .OrderByDescending(t => t.TransactionDate)
+                .ToListAsync();
         }
     }
 }

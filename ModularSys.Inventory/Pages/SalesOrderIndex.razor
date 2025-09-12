@@ -1,0 +1,78 @@
+﻿@page "/sales"
+@using MudBlazor
+@using ModularSys.Inventory.Interface
+@using ModularSys.Data.Common.Entities.Inventory
+@inject ISalesOrderService SalesOrderService
+@inject IDialogService DialogService
+
+<MudStack Spacing="2" Class="h-100">
+    <!-- Header Row -->
+    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+        <MudText Typo="Typo.h6">Sales Orders</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@CreateOrder">
+            New Sale
+        </MudButton>
+    </MudStack>
+
+    <!-- Scrollable Table Area -->
+    <div style="flex:1; overflow:auto;">
+        <MudTable Items="@_orders" Hover="true" Dense="true" Class="w-100">
+            <HeaderContent>
+                <MudTh>Order #</MudTh>
+                <MudTh>Date</MudTh>
+                <MudTh align="right">Total</MudTh>
+                <MudTh align="right">Tax</MudTh>
+                <MudTh align="right">Grand Total</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.SalesOrderId</MudTd>
+                <MudTd>@context.OrderDate.ToShortDateString()</MudTd>
+                <MudTd Align="Align.Right">@context.TotalAmount.ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">@(@context.TotalAmount * 0.12m).ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">@(@context.TotalAmount * 1.12m).ToString("₱#,##0.00")</MudTd>
+                <MudTd Align="Align.Right">
+                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small" OnClick="@(() => CompleteOrder(context.SalesOrderId))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">No sales orders found.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</MudStack>
+
+@code {
+    private List<SalesOrder> _orders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        var orders = await SalesOrderService.GetAllAsync();
+        _orders = orders.ToList();
+    }
+
+    private async Task CreateOrder()
+    {
+        var dialog = DialogService.Show<SalesOrderForm>(
+            "New Sales Order",
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true }
+        );
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            _orders = (await SalesOrderService.GetAllAsync()).ToList();
+        }
+    }
+
+    private async Task CompleteOrder(int id)
+    {
+        await SalesOrderService.CompleteAsync(id);
+        _orders = (await SalesOrderService.GetAllAsync()).ToList();
+    }
+}

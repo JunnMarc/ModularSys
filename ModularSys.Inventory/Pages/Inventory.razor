@@ -31,35 +31,20 @@
 
                 <!-- Sales Orders Tab -->
                 <MudTabPanel Text="Sales Orders" Icon="@Icons.Material.Filled.ReceiptLong">
-                    <MudText Typo="Typo.h6" GutterBottom="true">Sales Orders</MudText>
                     <MudDivider Class="mb-4" />
-                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
-                            Sales order management UI coming soon...
-                        </MudAlert>
-                    </MudStack>
+                    <SalesOrderIndex />
                 </MudTabPanel>
 
                 <!-- Purchase Orders Tab -->
                 <MudTabPanel Text="Purchase Orders" Icon="@Icons.Material.Filled.ShoppingCart">
-                    <MudText Typo="Typo.h6" GutterBottom="true">Purchase Orders</MudText>
                     <MudDivider Class="mb-4" />
-                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
-                            Purchase order management UI coming soon...
-                        </MudAlert>
-                    </MudStack>
+                    <PurchaseOrderIndex />
                 </MudTabPanel>
 
                 <!-- Inventory Transactions Tab -->
                 <MudTabPanel Text="Inventory Transactions" Icon="@Icons.Material.Filled.SwapHoriz">
-                    <MudText Typo="Typo.h6" GutterBottom="true">Inventory Transactions</MudText>
                     <MudDivider Class="mb-4" />
-                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
-                            Inventory transaction logs coming soon...
-                        </MudAlert>
-                    </MudStack>
+                    <InventoryTransactionIndex />
                 </MudTabPanel>
 
                 <!-- Reports Tab -->

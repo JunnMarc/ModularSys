@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ModularSys.Data.Common.Entities.Finance;
 using ModularSys.Data.Common.Entities.Inventory;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,10 @@ namespace ModularSys.Data.Common.Db
         public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
         public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
         public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+
+        //For now
+        public DbSet<RevenueTransaction> RevenueTransactions { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

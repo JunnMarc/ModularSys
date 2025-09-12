@@ -1,0 +1,162 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using MudBlazor
+@using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Inventory.Interface
+@using ModularSys.Inventory.Models
+@using System.ComponentModel.DataAnnotations
+
+@inject IProductService ProductService
+@inject IPurchaseOrderService PurchaseOrderService
+@inject IDialogService Dialogs
+@inject ISnackbar Snack
+
+<MudDialogContent Class="pa-4">
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">
+            @_errorMessage
+        </MudAlert>
+    }
+
+    <MudForm @ref="_form">
+        <MudStack Spacing="3">
+            @foreach (var line in _model.Lines)
+            {
+                <MudPaper Class="pa-2 d-flex flex-wrap gap-2">
+                    <MudSelect T="int"
+                               Label="Product"
+                               Required="true"
+                               Style="width:200px;"
+                               Value="@line.ProductId"
+                               ValueChanged="@(id => OnProductChanged(line, id))">
+                        @foreach (var product in _products)
+                        {
+                            <MudSelectItem Value="@product.ProductId">@product.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudNumericField T="int"
+                                     Label="Qty"
+                                     Required="true"
+                                     Min="1"
+                                     Style="width:100px;"
+                                     @bind-Value="line.Quantity" />
+
+                    <MudNumericField T="decimal"
+                                     Label="Unit Cost"
+                                     Disabled="true"
+                                     Min="0"
+                                     Style="width:120px;"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="₱"
+                                     @bind-Value="line.UnitCost" />
+
+                    <MudText Class="mt-4">Line Total: ₱@line.LineTotal.ToString("#,##0.00")</MudText>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   OnClick="@(() => RemoveLine(line))" />
+                </MudPaper>
+            }
+
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddLine">
+                <MudIcon Icon="@Icons.Material.Filled.Add" />&nbsp;Add Line
+            </MudButton>
+
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.subtitle2">Total: ₱@_model.TotalAmount.ToString("#,##0.00")</MudText>
+            <MudText Typo="Typo.subtitle2">Tax (12%): ₱@_model.Tax.ToString("#,##0.00")</MudText>
+            <MudText Typo="Typo.subtitle2">Grand Total: ₱@_model.GrandTotal.ToString("#,##0.00")</MudText>
+        </MudStack>
+    </MudForm>
+</MudDialogContent>
+
+<MudDialogActions Class="justify-end pa-3">
+    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@(!_model.Lines.Any())">Save</MudButton>
+</MudDialogActions>
+
+@code {
+    private PurchaseOrderMultiInputModel _model = new();
+    private MudForm _form;
+    private List<Product> _products = new();
+    private string _errorMessage;
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _products = (await ProductService.GetAllAsync()).ToList();
+        AddLine();
+    }
+
+    private void AddLine()
+    {
+        var defaultProductId = _products.FirstOrDefault()?.ProductId ?? 0;
+        var defaultCost = _products.FirstOrDefault(p => p.ProductId == defaultProductId)?.UnitPrice ?? 0;
+
+        _model.Lines.Add(new PurchaseOrderLineInputModel
+        {
+            ProductId = defaultProductId,
+            Quantity = 1,
+            UnitCost = defaultCost
+        });
+    }
+
+    private void RemoveLine(PurchaseOrderLineInputModel line)
+    {
+        _model.Lines.Remove(line);
+    }
+
+    private void OnProductChanged(PurchaseOrderLineInputModel line, int productId)
+    {
+        line.ProductId = productId;
+        var selected = _products.FirstOrDefault(p => p.ProductId == productId);
+        if (selected is not null)
+        {
+            line.UnitCost = selected.UnitPrice;
+        }
+    }
+
+    private async Task Save()
+    {
+        _errorMessage = null;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        bool? confirm = await Dialogs.ShowMessageBox(
+            "Add Purchase Order",
+            $"Are you sure you want to create this purchase order?",
+            yesText: "Yes", cancelText: "Cancel");
+
+        if (confirm != true) return;
+
+        try
+        {
+            var order = new PurchaseOrder
+            {
+                OrderDate = DateTime.UtcNow,
+                Status = "Pending",
+                TotalAmount = _model.TotalAmount,
+                Lines = _model.Lines.Select(l => new PurchaseOrderLine
+                {
+                    ProductId = l.ProductId,
+                    Quantity = l.Quantity,
+                    UnitCost = l.UnitCost
+                }).ToList()
+            };
+
+            await PurchaseOrderService.CreateAsync(order);
+            Snack.Add("Purchase order created successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (ValidationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

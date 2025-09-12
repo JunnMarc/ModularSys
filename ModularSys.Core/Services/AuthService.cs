@@ -44,11 +44,11 @@ namespace ModularSys.Core.Services
             if (await _db.Users.AnyAsync(u => u.Username == username))
                 return false;
 
-            var defaultRole = await _db.Roles.FirstOrDefaultAsync(r => r.RoleName == "User");
+            var defaultRole = await _db.Roles.FirstOrDefaultAsync(r => r.RoleId == 1);
             if (defaultRole == null)
                 return false;
 
-            var defaultDepartment = await _db.Departments.FirstOrDefaultAsync(d => d.DepartmentName == "Default");
+            var defaultDepartment = await _db.Departments.FirstOrDefaultAsync(d => d.DepartmentId == 1);
             if (defaultDepartment == null)
                 return false;
 

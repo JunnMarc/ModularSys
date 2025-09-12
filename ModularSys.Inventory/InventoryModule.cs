@@ -15,6 +15,9 @@ public class InventoryModule : ISubsystem
     {
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICategoryService, CategoryService>();
-
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<ISalesOrderService, SalesOrderService>();
+        services.AddScoped<IRevenueService, RevenueService>();
     }
 }

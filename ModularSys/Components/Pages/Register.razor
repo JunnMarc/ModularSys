@@ -1,0 +1,47 @@
+﻿@page "/register"
+@using MudBlazor
+@using ModularSys.Core.Interfaces
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+
+<MudPaper Class="d-flex justify-center align-center" Style="height:100vh;">
+    <MudCard Style="width:400px;">
+        <MudCardHeader>
+            <MudText Typo="Typo.h5">Create a ModuERP Account</MudText>
+        </MudCardHeader>
+
+        <MudCardContent>
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Elevation="0">@error</MudAlert>
+            }
+
+            <MudTextField @bind-Value="username" Label="Username" Variant="Variant.Outlined" FullWidth="true" />
+            <MudTextField @bind-Value="password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" FullWidth="true" />
+        </MudCardContent>
+
+        <MudCardActions Class="d-flex justify-end">
+            <MudButton OnClick="HandleRegister" Color="Color.Primary" Variant="Variant.Filled">Register</MudButton>
+        </MudCardActions>
+        <MudText Typo="Typo.caption">
+            Already have an account? <MudLink Href="/login">Login here</MudLink>
+        </MudText>
+    </MudCard>
+</MudPaper>
+
+@code {
+    string username = "", password = "", error;
+
+    async Task HandleRegister()
+    {
+        var success = await AuthService.RegisterAsync(username, password);
+        if (success)
+        {
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            error = "Registration failed. Username may already exist or input is invalid.";
+        }
+    }
+}
