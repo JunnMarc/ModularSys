@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using ApexCharts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,7 @@ namespace ModularSys
             builder.Services.AddMudBlazorDialog();
             builder.Services.AddMudBlazorSnackbar();
             builder.Services.AddMudBlazorResizeListener();
+            builder.Services.AddApexCharts();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

@@ -14,15 +14,23 @@
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
     <!-- Stats Cards -->
     <MudGrid Class="px-0 pb-3" Spacing="2">
+        <!-- Revenue -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card" Elevation="1">
+            <MudCard Class="stat-card clickable" Elevation="1"
+                     @onclick="@(() => Nav.NavigateTo("/finance/revenue"))"
+                     @onmouseenter="@(() => _showRevenue = true)"
+                     @onmouseleave="@(() => _showRevenue = false)"
+                     @ontouchstart="@(() => _showRevenue = true)"
+                     @ontouchend="@(() => _showRevenue = false)">
                 <MudCardContent>
                     <div class="d-flex align-center">
                         <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="mr-3 stat-icon">
                             <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">₱@_totalRevenue.ToString("#,##0.00")</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
+                                @(_showRevenue ? $"₱{_totalRevenue:#,##0.00}" : "••••••")
+                            </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Total Revenue</MudText>
                         </div>
                     </div>
@@ -30,15 +38,23 @@
             </MudCard>
         </MudItem>
 
+        <!-- Orders -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card" Elevation="1">
+            <MudCard Class="stat-card clickable" Elevation="1"
+                     @onclick="@(() => Nav.NavigateTo("/sales"))"
+                     @onmouseenter="@(() => _showOrders = true)"
+                     @onmouseleave="@(() => _showOrders = false)"
+                     @ontouchstart="@(() => _showOrders = true)"
+                     @ontouchend="@(() => _showOrders = false)">
                 <MudCardContent>
                     <div class="d-flex align-center">
                         <MudAvatar Color="Color.Warning" Size="Size.Medium" Class="mr-3 stat-icon">
                             <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_totalOrders</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
+                                @(_showOrders? _totalOrders.ToString() : "••••••")
+                            </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Orders</MudText>
                         </div>
                     </div>
@@ -46,15 +62,23 @@
             </MudCard>
         </MudItem>
 
+        <!-- Active Users -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card" Elevation="1">
+            <MudCard Class="stat-card clickable" Elevation="1"
+                     @onclick="@(() => Nav.NavigateTo("/users"))"
+                     @onmouseenter="@(() => _showUsers = true)"
+                     @onmouseleave="@(() => _showUsers = false)"
+                     @ontouchstart="@(() => _showUsers = true)"
+                     @ontouchend="@(() => _showUsers = false)">
                 <MudCardContent>
                     <div class="d-flex align-center">
                         <MudAvatar Color="Color.Success" Size="Size.Medium" Class="mr-3 stat-icon">
                             <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_activeUsers</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
+                                @(_showUsers? _activeUsers.ToString() : "••••••")
+                            </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Active Users</MudText>
                         </div>
                     </div>
@@ -62,15 +86,23 @@
             </MudCard>
         </MudItem>
 
+        <!-- Inventory -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card" Elevation="1">
+            <MudCard Class="stat-card clickable" Elevation="1"
+                     @onclick="@(() => Nav.NavigateTo("/inventory"))"
+                     @onmouseenter="@(() => _showInventory = true)"
+                     @onmouseleave="@(() => _showInventory = false)"
+                     @ontouchstart="@(() => _showInventory = true)"
+                     @ontouchend="@(() => _showInventory = false)">
                 <MudCardContent>
                     <div class="d-flex align-center">
                         <MudAvatar Color="Color.Error" Size="Size.Medium" Class="mr-3 stat-icon">
                             <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" Color="Color.Inherit" />
                         </MudAvatar>
                         <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">@_inventoryCount</MudText>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
+                                @(_showInventory? _inventoryCount.ToString() : "••••••")
+                            </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Inventory Items</MudText>
                         </div>
                     </div>
@@ -79,40 +111,64 @@
         </MudItem>
     </MudGrid>
 
-    <!-- Charts -->
-    <MudGrid Class="px-0 pb-3" Spacing="2">
-        <MudItem xs="12" md="6">
-            <MudCard Elevation="1" Class="chart-card">
-                <MudCardContent>
-                    <div class="d-flex justify-space-between align-center mb-3">
-                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Sales Overview</MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text" />
-                    </div>
-                    <MudChart ChartType="ChartType.Line" ChartSeries="@_salesSeries" XAxisLabels="@_months" Width="100%" Height="280px" AxisChartOptions="_chartOptions" />
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+    <!-- Sales Chart -->
+    <MudPaper Class="pa-4 mt-4 modern-chart">
+        <MudText Typo="Typo.h6" Class="mb-2">📈 Monthly Sales Trend</MudText>
+        <MudChart ChartType="ChartType.Line"
+                  ChartSeries="_salesSeries"
+                  Labels="_months"
+                  Class="chart-line"
+                  Style="height:300px;" />
+    </MudPaper>
 
-        <MudItem xs="12" md="6">
-            <MudCard Elevation="1" Class="chart-card">
-                <MudCardContent>
-                    <div class="d-flex justify-space-between align-center mb-3">
-                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Stock Levels per Item</MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Variant="Variant.Text" />
-                    </div>
-                    <MudChart ChartType="ChartType.Bar" ChartSeries="@_stockSeries" XAxisLabels="@_items" Width="100%" Height="280px" AxisChartOptions="_chartOptions" />
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-
-    <!-- Policy Debug Button -->
-    <div class="d-flex justify-center mt-4">
-        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Policy" OnClick="@(() => Nav.NavigateTo("/policydebug"))">
-            Policy Debug
-        </MudButton>
-    </div>
+    <!-- Stock Chart -->
+    <MudPaper Class="pa-4 mt-4 modern-chart">
+        <MudText Typo="Typo.h6" Class="mb-2">📦 Inventory Stock Levels</MudText>
+        <MudChart ChartType="ChartType.Bar"
+                  ChartSeries="_stockSeries"
+                  Labels="_items"
+                  Class="chart-bar"
+                  Style="height:300px;" />
+    </MudPaper>
 </MudContainer>
+
+<style>
+    /* Modern Chart Styling */
+    .modern-chart {
+        border-radius: 16px;
+        background: linear-gradient(145deg, #ffffff, #f6f8fb);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        transition: transform 0.2s ease-in-out;
+    }
+
+        .modern-chart:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+
+    .chart-line canvas {
+        filter: drop-shadow(0 3px 6px rgba(63,81,181,0.25));
+    }
+
+    .chart-bar canvas {
+        filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
+    }
+
+    .stat-card {
+        border-radius: 14px;
+        transition: transform .2s, box-shadow .2s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+        }
+
+    .stat-icon {
+        background: rgba(255,255,255,0.7);
+        backdrop-filter: blur(6px);
+    }
+</style>
 
 @code {
     private decimal _totalRevenue;
@@ -120,17 +176,18 @@
     private int _activeUsers;
     private int _inventoryCount;
 
-    private AxisChartOptions _chartOptions = new AxisChartOptions
-    {
-        XAxisLabelRotation = -30,
-        MatchBoundsToSize = true,
-    };
-
     private List<ChartSeries> _salesSeries = new();
-    private string[] _months = Array.Empty<string>();
+    private string[] _days = Array.Empty<string>();
 
     private List<ChartSeries> _stockSeries = new();
     private string[] _items = Array.Empty<string>();
+    
+
+    // Per-card privacy reveal states
+    private bool _showRevenue;
+    private bool _showOrders;
+    private bool _showUsers;
+    private bool _showInventory;
 
     protected override async Task OnInitializedAsync()
     {
@@ -144,25 +201,30 @@
         _inventoryCount = products.Sum(p => p.QuantityOnHand);
         _activeUsers = users.Count;
 
+        // --- Sales: last 7 days ---
+        var today = DateTime.Today;
+        var last7Days = Enumerable.Range(0, 7)
+            .Select(i => today.AddDays(-6 + i)) // 7-day window
+            .ToList();
+
         _salesSeries = new List<ChartSeries>
         {
             new ChartSeries
             {
                 Name = "Sales",
-                Data = salesOrders
-                    .GroupBy(o => o.OrderDate.Month)
-                    .OrderBy(g => g.Key)
-                    .Select(g => (double)g.Sum(o => o.TotalAmount))
+                Data = last7Days
+                    .Select(day => (double)salesOrders
+                        .Where(o => o.OrderDate.Date == day.Date)
+                        .Sum(o => o.TotalAmount))
                     .ToArray()
             }
         };
 
-        _months = salesOrders
-            .GroupBy(o => o.OrderDate.Month)
-            .OrderBy(g => g.Key)
-            .Select(g => new DateTime(2025, g.Key, 1).ToString("MMM"))
+        _days = last7Days
+            .Select(d => d.ToString("ddd")) // Mon, Tue, etc.
             .ToArray();
 
+        // --- Stock Chart ---
         _stockSeries = new List<ChartSeries>
         {
             new ChartSeries

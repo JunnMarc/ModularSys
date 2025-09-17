@@ -64,6 +64,7 @@
     </ItemGroup>
 
     <ItemGroup>
+		<PackageReference Include="Blazor-ApexCharts" />
 		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" />

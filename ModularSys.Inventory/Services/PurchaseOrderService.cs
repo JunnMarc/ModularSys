@@ -3,10 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Inventory.Interface;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace ModularSys.Inventory.Services
 {
@@ -111,7 +107,7 @@ namespace ModularSys.Inventory.Services
 
             order.Status = "Received";
 
-            // ✅ Record inventory transactions
+            // Record inventory transactions
             foreach (var line in order.Lines)
             {
                 await inventory.RecordTransactionAsync(
@@ -123,7 +119,7 @@ namespace ModularSys.Inventory.Services
                 );
             }
 
-            // ✅ Record negative revenue
+            // Record negative revenue
             await revenue.RecordAsync(
                 db,
                 amount: -order.TotalAmount,
