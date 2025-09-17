@@ -1,88 +1,335 @@
-﻿@using MudBlazor
+@using MudBlazor
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
 @using ModularSys.Inventory.Services
 @inject ICategoryService CategoryService
+@inject IProductService ProductService
 @inject IDialogService Dialogs
 @inject ISnackbar Snack
 
-<MudPaper Elevation="0" Class="pa-0 h-100 d-flex flex-column">
-    <!-- Header Row -->
-    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween" Class="mb-3">
-        <MudText Typo="Typo.h6">Categories</MudText>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="@Create">
-            <MudIcon Icon="@Icons.Material.Filled.Add" />&nbsp;Add Category
-        </MudButton>
-    </MudStack>
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header Section -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h4">Category Management</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Organize your products into categories
+                    </MudText>
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" 
+                          StartIcon="@Icons.Material.Filled.Refresh" 
+                          OnClick="RefreshData"
+                          Loading="_loading">
+                    Refresh
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="Create">
+                    Add Category
+                </MudButton>
+            </MudStack>
+        </MudStack>
 
-    <!-- Table -->
-    <div style="flex:1; overflow:auto;">
-        <MudTable Items="_view" Dense="true" Hover="true" Elevation="0" Class="w-100">
-            <HeaderContent>
-                <MudTh>Name</MudTh>
-                <MudTh>Description</MudTh>
-                <MudTh>Action</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.CategoryName</MudTd>
-                <MudTd>@context.Description</MudTd>
-                <MudTd Align="Align.Right">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Edit(context))" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Remove(context))" />
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <MudText Color="Color.Secondary">No categories found.</MudText>
-            </NoRecordsContent>
-        </MudTable>
-    </div>
-</MudPaper>
+        <!-- Stats Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_categories.Count</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Categories</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_totalProducts</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_revenueCriticalCount</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Revenue Critical</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_activeCount</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Active Categories</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Search -->
+        <MudCard Elevation="1" Class="pa-4">
+            <MudTextField @bind-Value="_searchText" 
+                         Label="Search Categories" 
+                         Variant="Variant.Outlined" 
+                         Adornment="Adornment.Start" 
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         OnKeyUp="OnSearchChanged"
+                         Style="max-width: 400px;" />
+        </MudCard>
+
+        <!-- Categories Grid -->
+        <MudCard Elevation="2" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Categories (@_filteredCategories.Count())</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_loading)
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText>Loading categories...</MudText>
+                    </MudStack>
+                }
+                else if (_filteredCategories.Any())
+                {
+                    <MudGrid>
+                        @foreach (var category in _filteredCategories)
+                        {
+                            <MudItem xs="12" sm="6" md="4" lg="3">
+                                <MudCard Elevation="1" Class="pa-4 h-100" Style="@($"border-left: 4px solid {category.Color ?? "#1976d2"}")">
+                                    <MudStack Spacing="3" Class="h-100">
+                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@(category.Icon ?? Icons.Material.Filled.Category)" 
+                                                        Style="@($"color: {category.Color ?? "#1976d2"}")" 
+                                                        Size="Size.Medium" />
+                                                @if (category.IsRevenueCritical)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                                }
+                                            </MudStack>
+                                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(category))">
+                                                    Edit
+                                                </MudMenuItem>
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => Remove(category))">
+                                                    Delete
+                                                </MudMenuItem>
+                                            </MudMenu>
+                                        </MudStack>
+
+                                        <MudStack Spacing="1" Class="flex-grow-1">
+                                            <MudText Typo="Typo.h6">@category.CategoryName</MudText>
+                                            @if (!string.IsNullOrEmpty(category.Description))
+                                            {
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                    @category.Description
+                                                </MudText>
+                                            }
+                                        </MudStack>
+
+                                        <MudStack Spacing="2">
+                                            <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Products</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                                    @GetProductCount(category.CategoryId)
+                                                </MudChip>
+                                            </MudStack>
+                                            
+                                            @if (category.DefaultMinThreshold > 0)
+                                            {
+                                                <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Min Threshold</MudText>
+                                                    <MudText Typo="Typo.caption">@category.DefaultMinThreshold</MudText>
+                                                </MudStack>
+                                            }
+
+                                            <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
+                                                <MudChip T="string" Size="Size.Small" 
+                                                        Color="@(category.IsActive ? Color.Success : Color.Default)">
+                                                    @(category.IsActive ? "Active" : "Inactive")
+                                                </MudChip>
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+                else
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6" Color="Color.Secondary">No categories yet</MudText>
+                        <MudText Color="Color.Secondary">Get started by creating your first category</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create" Class="mt-4">
+                            Create First Category
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudStack>
+</MudContainer>
 
 @code {
     private List<Category> _categories = new();
-    private IEnumerable<Category> _view => string.IsNullOrWhiteSpace(_search)
-        ? _categories
-        : _categories.Where(c => (c.CategoryName ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private List<Product> _products = new();
+    private IEnumerable<Category> _filteredCategories = new List<Category>();
+    private bool _loading = true;
+    private string _searchText = string.Empty;
+    private int _totalProducts;
+    private int _revenueCriticalCount;
+    private int _activeCount;
 
+    // Legacy property for compatibility
     private string _search = "";
 
     protected override async Task OnInitializedAsync()
     {
-        _categories = (await CategoryService.GetAllAsync()).ToList();
+        await LoadData();
     }
 
+    protected override void OnParametersSet()
+    {
+        FilterCategories();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var categoriesTask = CategoryService.GetAllAsync();
+            var productsTask = ProductService.GetAllAsync();
+
+            await Task.WhenAll(categoriesTask, productsTask);
+
+            _categories = categoriesTask.Result.ToList();
+            _products = productsTask.Result.ToList();
+
+            _totalProducts = _products.Count;
+            _revenueCriticalCount = _categories.Count(c => c.IsRevenueCritical);
+            _activeCount = _categories.Count(c => c.IsActive);
+
+            FilterCategories();
+        }
+        catch (Exception ex)
+        {
+            Snack.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+        Snack.Add("Data refreshed successfully", Severity.Success);
+    }
+
+    private void FilterCategories()
+    {
+        var filtered = _categories.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            filtered = filtered.Where(c => 
+                c.CategoryName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (c.Description?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        _filteredCategories = filtered.OrderBy(c => c.CategoryName);
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        FilterCategories();
+    }
+
+    private int GetProductCount(int categoryId)
+    {
+        return _products.Count(p => p.CategoryId == categoryId);
+    }
 
     private async Task Create()
     {
-        var dialog = Dialogs.Show<CategoryForm>("Add Category", new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var dialog = Dialogs.Show<CategoryForm>("Add Category", 
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _categories = (await CategoryService.GetAllAsync()).ToList();
-            Snack.Add("Category created.", Severity.Success);
+            await LoadData();
+            Snack.Add("Category created successfully", Severity.Success);
         }
     }
 
-    private async Task Edit(Category c)
+    private async Task Edit(Category category)
     {
-        var parameters = new DialogParameters { ["Id"] = c.CategoryId };
-        var dialog = Dialogs.Show<CategoryForm>("Edit Category", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var parameters = new DialogParameters { ["Id"] = category.CategoryId };
+        var dialog = Dialogs.Show<CategoryForm>("Edit Category", parameters, 
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _categories = (await CategoryService.GetAllAsync()).ToList();
-            Snack.Add("Category updated.", Severity.Success);
+            await LoadData();
+            Snack.Add("Category updated successfully", Severity.Success);
         }
     }
 
-    private async Task Remove(Category c)
+    private async Task Remove(Category category)
     {
-        bool? confirm = await Dialogs.ShowMessageBox("Delete category?", $"This will remove {c.CategoryName}.", yesText: "Delete", cancelText: "Cancel");
+        var productCount = GetProductCount(category.CategoryId);
+        
+        string message = productCount > 0 
+            ? $"This category contains {productCount} products. Are you sure you want to delete '{category.CategoryName}'?"
+            : $"Are you sure you want to delete '{category.CategoryName}'?";
+
+        bool? confirm = await Dialogs.ShowMessageBox("Delete Category", message, 
+            yesText: "Delete", cancelText: "Cancel");
+        
         if (confirm == true)
         {
-            await CategoryService.DeleteAsync(c.CategoryId);
-            _categories.Remove(c);
-            Snack.Add("Category deleted.", Severity.Info);
+            try
+            {
+                await CategoryService.DeleteAsync(category.CategoryId, "System");
+                await LoadData();
+                Snack.Add($"Category '{category.CategoryName}' deleted successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snack.Add($"Error deleting category: {ex.Message}", Severity.Error);
+            }
         }
     }
 }

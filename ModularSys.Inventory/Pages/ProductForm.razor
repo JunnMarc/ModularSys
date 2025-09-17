@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web
 @using MudBlazor
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
@@ -31,9 +31,10 @@
                        Required="true"
                        FullWidth="true"
                        Margin="Margin.Normal">
+                <MudSelectItem T="int" Value="0" Disabled="true">Select a category...</MudSelectItem>
                 @foreach (var cat in _categories)
                 {
-                    <MudSelectItem Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
+                    <MudSelectItem T="int" Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
                 }
             </MudSelect>
 

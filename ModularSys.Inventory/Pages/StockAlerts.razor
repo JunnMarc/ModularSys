@@ -1,0 +1,343 @@
+@page "/inventory/alerts"
+@using ModularSys.Inventory.Interface
+@using MudBlazor
+@inject IInventoryDashboardService DashboardService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Class="mr-2" />
+                Stock Alerts
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" 
+                          StartIcon="@Icons.Material.Filled.Refresh" 
+                          OnClick="RefreshAlerts"
+                          Loading="_loading">
+                    Refresh
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Add" 
+                          OnClick="CreateProduct">
+                    Add Product
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <!-- Alert Summary Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Error" 
+                                Color="Color.Error" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_criticalAlerts</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Critical Alerts</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" 
+                                Color="Color.Warning" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_warningAlerts</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Warning Alerts</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" 
+                                Color="Color.Info" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_expiringAlerts</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Expiring Soon</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" 
+                                Color="Color.Success" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@(_stockAlerts?.Count() ?? 0)</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Alerts</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Filters -->
+        <MudCard Elevation="1" Class="pa-4">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="4">
+                <MudSelect T="string" @bind-Value="_selectedAlertType" Label="Alert Type" 
+                          Variant="Variant.Outlined" Dense="true" Style="min-width: 150px;">
+                    <MudSelectItem Value="@("All")">All Types</MudSelectItem>
+                    <MudSelectItem Value="@("OutOfStock")">Out of Stock</MudSelectItem>
+                    <MudSelectItem Value="@("LowStock")">Low Stock</MudSelectItem>
+                    <MudSelectItem Value="@("Expiring")">Expiring</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect T="string" @bind-Value="_selectedSeverity" Label="Severity" 
+                          Variant="Variant.Outlined" Dense="true" Style="min-width: 150px;">
+                    <MudSelectItem Value="@("All")">All Severities</MudSelectItem>
+                    <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
+                    <MudSelectItem Value="@("Error")">Error</MudSelectItem>
+                    <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                    <MudSelectItem Value="@("Info")">Info</MudSelectItem>
+                </MudSelect>
+
+                <MudTextField @bind-Value="_searchText" Label="Search Products" 
+                             Variant="Variant.Outlined" Dense="true"
+                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudStack>
+        </MudCard>
+
+        <!-- Alerts Table -->
+        <MudCard Elevation="2" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Stock Alerts</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_loading)
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-4">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText>Loading alerts...</MudText>
+                    </MudStack>
+                }
+                else if (_filteredAlerts?.Any() == true)
+                {
+                    <MudTable Items="_filteredAlerts" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                        <HeaderContent>
+                            <MudTh>Severity</MudTh>
+                            <MudTh>Product</MudTh>
+                            <MudTh>SKU</MudTh>
+                            <MudTh>Alert Type</MudTh>
+                            <MudTh>Message</MudTh>
+                            <MudTh Style="text-align: right">Current Stock</MudTh>
+                            <MudTh Style="text-align: right">Reorder Level</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
+                                    @context.Severity
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@context.SKU</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" Color="@GetAlertTypeColor(context.AlertType)" Variant="Variant.Outlined">
+                                    @context.AlertType
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2">@context.Message</MudText>
+                                @if (context.ExpiryDate.HasValue)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Expires: @context.ExpiryDate.Value.ToString("MMM dd, yyyy")
+                                    </MudText>
+                                }
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudChip T="string" Size="Size.Small" 
+                                        Color="@(context.CurrentStock == 0 ? MudBlazor.Color.Error : context.CurrentStock <= (context.MinStockLevel ?? 0) ? MudBlazor.Color.Warning : MudBlazor.Color.Success)">
+                                    @context.CurrentStock
+                                </MudChip>
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudText Typo="Typo.body2">@context.ReorderLevel</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                  Size="Size.Small" 
+                                                  Color="Color.Primary"
+                                                  OnClick="@(() => EditProduct(context.ProductId))" />
+                                    @if (context.AlertType == "LowStock" || context.AlertType == "OutOfStock")
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Success"
+                                                      OnClick="@(() => CreatePurchaseOrder(context.ProductId))" />
+                                    }
+                                </MudStack>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Color="Color.Secondary" Align="Align.Center">No alerts found</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                        <MudText Typo="Typo.h6" Color="Color.Success">All Good!</MudText>
+                        <MudText Color="Color.Secondary">No stock alerts at this time.</MudText>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudStack>
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private IEnumerable<StockAlert>? _stockAlerts;
+    private IEnumerable<StockAlert>? _filteredAlerts;
+    private string _selectedAlertType = "All";
+    private string _selectedSeverity = "All";
+    private string _searchText = string.Empty;
+
+    private int _criticalAlerts;
+    private int _warningAlerts;
+    private int _expiringAlerts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAlerts();
+    }
+
+    protected override void OnParametersSet()
+    {
+        FilterAlerts();
+    }
+
+    private async Task LoadAlerts()
+    {
+        try
+        {
+            _loading = true;
+            StateHasChanged();
+
+            _stockAlerts = await DashboardService.GetStockAlertsAsync();
+            
+            // Calculate summary counts
+            _criticalAlerts = _stockAlerts.Count(a => a.Severity == "Critical");
+            _warningAlerts = _stockAlerts.Count(a => a.Severity == "Warning");
+            _expiringAlerts = _stockAlerts.Count(a => a.AlertType == "Expiring");
+
+            FilterAlerts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading alerts: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void FilterAlerts()
+    {
+        if (_stockAlerts == null)
+        {
+            _filteredAlerts = Enumerable.Empty<StockAlert>();
+            return;
+        }
+
+        var filtered = _stockAlerts.AsEnumerable();
+
+        if (_selectedAlertType != "All")
+        {
+            filtered = filtered.Where(a => a.AlertType == _selectedAlertType);
+        }
+
+        if (_selectedSeverity != "All")
+        {
+            filtered = filtered.Where(a => a.Severity == _selectedSeverity);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            filtered = filtered.Where(a => 
+                a.ProductName.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (a.SKU?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        _filteredAlerts = filtered.OrderByDescending(a => GetSeverityOrder(a.Severity))
+                                 .ThenBy(a => a.AlertType)
+                                 .ThenBy(a => a.ProductName);
+
+        StateHasChanged();
+    }
+
+    private async Task RefreshAlerts()
+    {
+        await LoadAlerts();
+        Snackbar.Add("Alerts refreshed", Severity.Success);
+    }
+
+    private async Task CreateProduct()
+    {
+        // Navigate to product creation or open dialog
+        Snackbar.Add("Product creation feature coming soon", Severity.Info);
+    }
+
+    private async Task EditProduct(int productId)
+    {
+        // Navigate to product edit or open dialog
+        Snackbar.Add($"Edit product {productId} feature coming soon", Severity.Info);
+    }
+
+    private async Task CreatePurchaseOrder(int productId)
+    {
+        // Create purchase order for the product
+        Snackbar.Add($"Create purchase order for product {productId} feature coming soon", Severity.Info);
+    }
+
+    private MudBlazor.Color GetSeverityColor(string severity) => severity switch
+    {
+        "Critical" => MudBlazor.Color.Error,
+        "Error" => MudBlazor.Color.Error,
+        "Warning" => MudBlazor.Color.Warning,
+        "Info" => MudBlazor.Color.Info,
+        _ => MudBlazor.Color.Default
+    };
+
+    private MudBlazor.Color GetAlertTypeColor(string alertType) => alertType switch
+    {
+        "OutOfStock" => MudBlazor.Color.Error,
+        "LowStock" => MudBlazor.Color.Warning,
+        "Expiring" => MudBlazor.Color.Info,
+        _ => MudBlazor.Color.Default
+    };
+
+    private int GetSeverityOrder(string severity) => severity switch
+    {
+        "Critical" => 4,
+        "Error" => 3,
+        "Warning" => 2,
+        "Info" => 1,
+        _ => 0
+    };
+}

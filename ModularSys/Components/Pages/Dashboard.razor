@@ -1,239 +1,982 @@
-﻿@page "/dashboard"
+@page "/dashboard"
 @using MudBlazor
-@using ModularSys.Inventory.Interface
-@using ModularSys.Data.Common.Entities.Inventory
-@using ModularSys.Data.Common.Entities.Finance
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Models
 
 @inject NavigationManager Nav
-@inject IRevenueService RevenueService
-@inject ISalesOrderService SalesOrderService
-@inject IPurchaseOrderService PurchaseOrderService
-@inject IProductService ProductService
+@inject IDashboardService DashboardService
 @inject IUserService UserService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
-    <!-- Stats Cards -->
-    <MudGrid Class="px-0 pb-3" Spacing="2">
-        <!-- Revenue -->
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <MudText Typo="Typo.h3" Class="font-weight-bold gradient-text">Dashboard</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">Welcome back! Here's what's happening with your business today.</MudText>
+        </div>
+        <div class="header-actions">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                           Color="Color.Inherit" 
+                           OnClick="RefreshAsync"
+                           Title="Refresh Dashboard Data"
+                           Class="refresh-btn" />
+        </div>
+        <div class="header-decoration">
+            <div class="decoration-circle circle-1"></div>
+            <div class="decoration-circle circle-2"></div>
+            <div class="decoration-circle circle-3"></div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <MudGrid Spacing="2" Class="mb-4">
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card clickable" Elevation="1"
-                     @onclick="@(() => Nav.NavigateTo("/finance/revenue"))"
-                     @onmouseenter="@(() => _showRevenue = true)"
-                     @onmouseleave="@(() => _showRevenue = false)"
-                     @ontouchstart="@(() => _showRevenue = true)"
-                     @ontouchend="@(() => _showRevenue = false)">
-                <MudCardContent>
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Primary" Size="Size.Medium" Class="mr-3 stat-icon">
-                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Medium" Color="Color.Inherit" />
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
-                                @(_showRevenue ? $"₱{_totalRevenue:#,##0.00}" : "••••••")
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Revenue</MudText>
-                        </div>
-                    </div>
+            <MudCard Class="stat-card revenue-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Total Users</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.TotalUsers ?? 0)</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
-        <!-- Orders -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card clickable" Elevation="1"
-                     @onclick="@(() => Nav.NavigateTo("/sales"))"
-                     @onmouseenter="@(() => _showOrders = true)"
-                     @onmouseleave="@(() => _showOrders = false)"
-                     @ontouchstart="@(() => _showOrders = true)"
-                     @ontouchend="@(() => _showOrders = false)">
-                <MudCardContent>
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Warning" Size="Size.Medium" Class="mr-3 stat-icon">
-                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" Color="Color.Inherit" />
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
-                                @(_showOrders? _totalOrders.ToString() : "••••••")
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Orders</MudText>
-                        </div>
-                    </div>
+            <MudCard Class="stat-card orders-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Active Users</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.ActiveUsersToday ?? 0)</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
-        <!-- Active Users -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card clickable" Elevation="1"
-                     @onclick="@(() => Nav.NavigateTo("/users"))"
-                     @onmouseenter="@(() => _showUsers = true)"
-                     @onmouseleave="@(() => _showUsers = false)"
-                     @ontouchstart="@(() => _showUsers = true)"
-                     @ontouchend="@(() => _showUsers = false)">
-                <MudCardContent>
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Success" Size="Size.Medium" Class="mr-3 stat-icon">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Medium" Color="Color.Inherit" />
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
-                                @(_showUsers? _activeUsers.ToString() : "••••••")
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Active Users</MudText>
-                        </div>
-                    </div>
+            <MudCard Class="stat-card users-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Departments</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.TotalDepartments ?? 0)</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
-        <!-- Inventory -->
         <MudItem xs="12" sm="6" md="3">
-            <MudCard Class="stat-card clickable" Elevation="1"
-                     @onclick="@(() => Nav.NavigateTo("/inventory"))"
-                     @onmouseenter="@(() => _showInventory = true)"
-                     @onmouseleave="@(() => _showInventory = false)"
-                     @ontouchstart="@(() => _showInventory = true)"
-                     @ontouchend="@(() => _showInventory = false)">
-                <MudCardContent>
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Error" Size="Size.Medium" Class="mr-3 stat-icon">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" Color="Color.Inherit" />
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.h6" Class="font-weight-bold mb-1">
-                                @(_showInventory? _inventoryCount.ToString() : "••••••")
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Inventory Items</MudText>
-                        </div>
-                    </div>
+            <MudCard Class="stat-card growth-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Growth Rate</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@((_dashboardStats?.UserGrowthPercentage ?? 0) >= 0 ? "+" : "")@(_dashboardStats?.UserGrowthPercentage ?? 0)%</MudText>
                 </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
 
-    <!-- Sales Chart -->
-    <MudPaper Class="pa-4 mt-4 modern-chart">
-        <MudText Typo="Typo.h6" Class="mb-2">📈 Monthly Sales Trend</MudText>
-        <MudChart ChartType="ChartType.Line"
-                  ChartSeries="_salesSeries"
-                  Labels="_months"
-                  Class="chart-line"
-                  Style="height:300px;" />
-    </MudPaper>
+    <!-- Charts Section -->
+    <div class="section-header">
+        <div class="section-title">
+            <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="section-icon" />
+            <MudText Typo="Typo.h5" Class="font-weight-medium">Analytics Overview</MudText>
+        </div>
+        <div class="filter-container">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">Time Period:</MudText>
+            <MudSelect T="string" Value="_selectedSalesPeriod" ValueChanged="OnSalesPeriodChanged" 
+                       Dense="true" Variant="Variant.Outlined" Class="period-filter">
+                <MudSelectItem T="string" Value='@("7d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" Class="mr-2" />
+                        Last 7 days
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value='@("30d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-2" />
+                        Last 30 days
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value='@("90d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-2" />
+                        Last 90 days
+                    </div>
+                </MudSelectItem>
+            </MudSelect>
+        </div>
+    </div>
+    
+    <MudGrid Spacing="2">
+        <!-- User Growth Trend -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="chart-card user-growth-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="chart-icon" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">User Growth Over Time</MudText>
+                    </div>
+                    <div class="chart-badge">
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">
+                            📈 @(_dashboardStats?.UserGrowthPercentage ?? 0)% Growth
+                        </MudChip>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Line"
+                              ChartSeries="_userGrowthSeries"
+                              XAxisLabels="_growthMonths"
+                              OptionsObject="_lineChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
 
-    <!-- Stock Chart -->
-    <MudPaper Class="pa-4 mt-4 modern-chart">
-        <MudText Typo="Typo.h6" Class="mb-2">📦 Inventory Stock Levels</MudText>
-        <MudChart ChartType="ChartType.Bar"
-                  ChartSeries="_stockSeries"
-                  Labels="_items"
-                  Class="chart-bar"
-                  Style="height:300px;" />
-    </MudPaper>
+        <!-- Department Distribution -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="chart-card department-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Class="chart-icon" Color="Color.Warning" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Users by Department</MudText>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Donut"
+                              ChartSeries="_departmentDistributionSeries"
+                              XAxisLabels="_departmentLabels"
+                              OptionsObject="_pieChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- User Activity & System Health -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="chart-card activity-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Class="chart-icon" Color="Color.Info" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">User Status Overview</MudText>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Bar"
+                              ChartSeries="_userStatusSeries"
+                              XAxisLabels="_statusLabels"
+                              OptionsObject="_barChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Recent Activity Feed -->
+        <MudItem xs="12">
+            <MudPaper Class="chart-card activity-feed" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="chart-icon" Color="Color.Success" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Recent Activity</MudText>
+                    </div>
+                    <div class="chart-badge">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">
+                            🔄 Live Feed
+                        </MudChip>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    @if (_recentActivities?.Any() == true)
+                    {
+                        <MudList T="string" Class="activity-list-container">
+                            @foreach (var activity in _recentActivities.Take(8))
+                            {
+                                <MudListItem T="string" Class="activity-list-item">
+                                    <div class="activity-content">
+                                        <div class="activity-icon-wrapper">
+                                            <MudAvatar Size="Size.Small" Color="@GetActivityColor(activity.Color)" Class="activity-avatar">
+                                                <MudIcon Icon="@GetActivityIcon(activity.Icon)" Size="Size.Small" />
+                                            </MudAvatar>
+                                        </div>
+                                        <div class="activity-info">
+                                            <div class="activity-header">
+                                                <MudText Typo="Typo.body2" Class="activity-title">@activity.Activity</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="activity-timestamp">
+                                                    @activity.Timestamp.ToString("MMM dd, HH:mm")
+                                                </MudText>
+                                            </div>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="activity-description">
+                                                @activity.Description
+                                            </MudText>
+                                        </div>
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <div class="no-activity">
+                            <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No recent activity</MudText>
+                        </div>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
 </MudContainer>
 
 <style>
-    /* Modern Chart Styling */
-    .modern-chart {
-        border-radius: 16px;
-        background: linear-gradient(145deg, #ffffff, #f6f8fb);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-        transition: transform 0.2s ease-in-out;
+    /* Header with decorative elements - Optimized for smaller screens */
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem 0 2rem 0;
+        margin-bottom: 1.5rem;
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        color: white;
+        overflow: hidden;
+        min-height: 100px;
     }
 
-        .modern-chart:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+    .header-content {
+        padding: 0 1.5rem;
+        z-index: 2;
+        position: relative;
+    }
+
+    .header-actions {
+        z-index: 2;
+        position: relative;
+        padding: 0 1.5rem;
+    }
+
+    .refresh-btn {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: rotate(180deg);
+    }
+
+    .header-content .mud-typography-h3 {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.25rem;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #ffffff, #f0f9ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .header-decoration {
+        position: absolute;
+        right: -30px;
+        top: -30px;
+        z-index: 1;
+    }
+
+    .decoration-circle {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.08;
+    }
+
+    .circle-1 {
+        width: 80px;
+        height: 80px;
+        background: white;
+        top: 0;
+        right: 0;
+    }
+
+    .circle-2 {
+        width: 50px;
+        height: 50px;
+        background: white;
+        top: 25px;
+        right: 40px;
+    }
+
+    .circle-3 {
+        width: 25px;
+        height: 25px;
+        background: white;
+        top: 50px;
+        right: 15px;
+    }
+
+    /* Section header with filter - Compact */
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding: 0.75rem 0;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+    }
+
+    .section-icon {
+        margin-right: 0.5rem;
+        color: #6366f1;
+        font-size: 1.25rem;
+    }
+
+    .filter-container {
+        display: flex;
+        align-items: center;
+        background: #f8fafc;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .period-filter {
+        min-width: 140px;
+    }
+
+    .filter-option {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Compact stat cards */
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        min-height: 100px;
+    }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, #10b981);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
-    .chart-line canvas {
-        filter: drop-shadow(0 3px 6px rgba(63,81,181,0.25));
-    }
-
-    .chart-bar canvas {
-        filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));
-    }
-
-    .stat-card {
-        border-radius: 14px;
-        transition: transform .2s, box-shadow .2s;
-    }
+        .stat-card:hover::before {
+            opacity: 1;
+        }
 
         .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            border-color: #cbd5e1;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-3px);
         }
 
-    .stat-icon {
-        background: rgba(255,255,255,0.7);
-        backdrop-filter: blur(6px);
+    /* Absolutely stunning chart cards */
+    .chart-card {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(139, 92, 246, 0.02) 50%, rgba(6, 182, 212, 0.02) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 1;
+        }
+
+        .chart-card:hover::before {
+            opacity: 1;
+        }
+
+        .chart-card:hover {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+            border-color: #cbd5e1;
+        }
+
+    /* Stunning accent borders with glow effect */
+    .sales-chart {
+        border-left: 4px solid #6366f1;
+        position: relative;
+    }
+
+        .sales-chart::after {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #6366f1, #8b5cf6);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .sales-chart:hover::after {
+            opacity: 1;
+        }
+
+    .distribution-chart {
+        border-left: 4px solid #f59e0b;
+        position: relative;
+    }
+
+        .distribution-chart::after {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #f59e0b, #f97316);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .distribution-chart:hover::after {
+            opacity: 1;
+        }
+
+    .stock-chart {
+        border-left: 4px solid #06b6d4;
+        position: relative;
+    }
+
+        .stock-chart::after {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #06b6d4, #0891b2);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .stock-chart:hover::after {
+            opacity: 1;
+        }
+
+    /* Premium chart headers */
+    .chart-header {
+        padding: 1rem 1.25rem 0.75rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%);
+        position: relative;
+        z-index: 2;
+    }
+
+    .chart-title-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .chart-icon {
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .chart-badge {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Stunning chart content area */
+    .chart-content {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 2;
+        background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+    }
+
+        /* Chart container enhancements */
+        .chart-content .mud-chart {
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.05));
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover .chart-content .mud-chart {
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.08));
+            transform: scale(1.01);
+        }
+
+    /* Typography enhancements - Optimized for smaller screens */
+    .stat-card .mud-typography-caption {
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .stat-card .mud-typography-h5 {
+        font-size: 1.5rem !important;
+        line-height: 1.2;
+        font-weight: 700;
+    }
+
+    /* Optimized grid spacing for 1366x768 */
+    .mud-grid {
+        margin: 0 !important;
+    }
+
+    .mud-grid-item {
+        padding: 0.5rem !important;
+    }
+
+    /* Screen size optimizations */
+    @@media (max-width: 1400px) {
+        .header {
+            padding: 1.25rem 0 1.75rem 0;
+            margin-bottom: 1.25rem;
+        }
+
+        .section-header {
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
+        }
+
+        .stat-card {
+            padding: 1rem;
+            min-height: 85px;
+        }
+
+        .chart-header {
+            padding: 0.75rem 1rem 0.5rem 1rem;
+        }
+
+        .chart-content {
+            padding: 0.75rem;
+        }
+
+        .filter-container {
+            padding: 0.4rem 0.6rem;
+        }
+
+        .period-filter {
+            min-width: 120px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .filter-container {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .header {
+            padding: 1rem 0 1.5rem 0;
+        }
+
+        .header-content {
+            padding: 0 1rem;
+        }
+
+        .stat-card {
+            padding: 0.75rem;
+            min-height: 75px;
+        }
+
+        .stat-card .mud-typography-h5 {
+            font-size: 1.25rem !important;
+        }
+    }
+
+    /* Activity Feed List Styles */
+    .activity-list-container {
+        padding: 0 !important;
+        min-height: 400px;
+        max-height: 500px;
+        overflow-y: auto;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .activity-list-item {
+        padding: 1rem 1.25rem !important;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        min-height: 60px;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .activity-list-item:hover {
+        background-color: #f8fafc;
+    }
+
+    .activity-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-content {
+        display: flex;
+        align-items: flex-start;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .activity-icon-wrapper {
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .activity-avatar {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .activity-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-title {
+        font-weight: 600;
+        flex: 1;
+        margin-right: 0.5rem;
+    }
+
+    .activity-timestamp {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .activity-description {
+        line-height: 1.4;
+        margin-top: 0.125rem;
+    }
+
+    .no-activity {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    /* Enhanced Chart Styling */
+    .user-growth-chart {
+        border-left: 4px solid #3b82f6;
+    }
+
+    .department-chart {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .activity-chart {
+        border-left: 4px solid #06b6d4;
+    }
+
+    .activity-feed {
+        border-left: 4px solid #10b981;
+    }
+
+    .activity-feed .chart-content {
+        min-height: 400px;
+        padding: 0 !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Additional performance optimizations */
+    * {
+        box-sizing: border-box;
+    }
+
+    .chart-card,
+    .stat-card {
+        will-change: transform;
+    }
+
+    /* Smooth scrolling for better UX */
+    html {
+        scroll-behavior: smooth;
     }
 </style>
 
 @code {
-    private decimal _totalRevenue;
-    private int _totalOrders;
-    private int _activeUsers;
-    private int _inventoryCount;
+    private DashboardStats? _dashboardStats;
+    private List<UserGrowthData> _userGrowthData = new();
+    private List<DepartmentStats> _departmentStats = new();
+    private List<RecentActivity> _recentActivities = new();
+    private SystemHealthStats? _systemHealth;
+    private bool _loading = true;
 
-    private List<ChartSeries> _salesSeries = new();
-    private string[] _days = Array.Empty<string>();
+    // Legacy variables (can be removed later)
+    private decimal _totalRevenue = 0;
+    private int _totalOrders = 0;
+    private int _activeUsers = 0;
+    private int _inventoryCount = 0;
 
-    private List<ChartSeries> _stockSeries = new();
-    private string[] _items = Array.Empty<string>();
-    
+    // User Management Charts
+    private List<ChartSeries> _userGrowthSeries = new List<ChartSeries>();
+    private string[] _growthMonths = Array.Empty<string>();
 
-    // Per-card privacy reveal states
-    private bool _showRevenue;
-    private bool _showOrders;
-    private bool _showUsers;
-    private bool _showInventory;
+    private List<ChartSeries> _departmentDistributionSeries = new List<ChartSeries>();
+    private string[] _departmentLabels = Array.Empty<string>();
+
+    private List<ChartSeries> _userStatusSeries = new List<ChartSeries>();
+    private string[] _statusLabels = Array.Empty<string>();
+
+    private string _selectedSalesPeriod = "30d";
+    private string _selectedStockView = "all";
+    private string _searchQuery = string.Empty;
+
+    // Chart options for better styling
+    private object _lineChartOptions = new
+    {
+        maintainAspectRatio = false,
+        plugins = new
+        {
+            legend = new
+            {
+                display = false
+            }
+        },
+        scales = new
+        {
+            y = new
+            {
+                beginAtZero = true,
+                grid = new
+                {
+                    drawBorder = false
+                }
+            },
+            x = new
+            {
+                grid = new
+                {
+                    display = false
+                }
+            }
+        }
+    };
+
+    private object _pieChartOptions = new
+    {
+        maintainAspectRatio = false,
+        plugins = new
+        {
+            legend = new
+            {
+                position = "right"
+            }
+        }
+    };
+
+    private object _barChartOptions = new
+    {
+        maintainAspectRatio = false,
+        plugins = new
+        {
+            legend = new
+            {
+                display = false
+            }
+        },
+        scales = new
+        {
+            y = new
+            {
+                beginAtZero = true,
+                grid = new
+                {
+                    drawBorder = false
+                }
+            },
+            x = new
+            {
+                grid = new
+                {
+                    display = false
+                }
+            }
+        }
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        var revenueTransactions = await RevenueService.GetAllAsync();
-        var salesOrders = await SalesOrderService.GetAllAsync();
-        var products = await ProductService.GetAllAsync();
-        var users = await UserService.GetAllAsync();
-
-        _totalRevenue = revenueTransactions.Sum(r => r.Amount);
-        _totalOrders = salesOrders.Count();
-        _inventoryCount = products.Sum(p => p.QuantityOnHand);
-        _activeUsers = users.Count;
-
-        // --- Sales: last 7 days ---
-        var today = DateTime.Today;
-        var last7Days = Enumerable.Range(0, 7)
-            .Select(i => today.AddDays(-6 + i)) // 7-day window
-            .ToList();
-
-        _salesSeries = new List<ChartSeries>
-        {
-            new ChartSeries
-            {
-                Name = "Sales",
-                Data = last7Days
-                    .Select(day => (double)salesOrders
-                        .Where(o => o.OrderDate.Date == day.Date)
-                        .Sum(o => o.TotalAmount))
-                    .ToArray()
-            }
-        };
-
-        _days = last7Days
-            .Select(d => d.ToString("ddd")) // Mon, Tue, etc.
-            .ToArray();
-
-        // --- Stock Chart ---
-        _stockSeries = new List<ChartSeries>
-        {
-            new ChartSeries
-            {
-                Name = "Stock",
-                Data = products.Select(p => (double)p.QuantityOnHand).ToArray()
-            }
-        };
-
-        _items = products.Select(p => p.Name).ToArray();
+        await LoadData();
     }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _loading = true;
+
+            // Load real dashboard analytics
+            _dashboardStats = await DashboardService.GetDashboardStatsAsync();
+            _userGrowthData = await DashboardService.GetUserGrowthDataAsync(12);
+            _departmentStats = await DashboardService.GetDepartmentStatsAsync();
+            _recentActivities = await DashboardService.GetRecentActivitiesAsync(10);
+            _systemHealth = await DashboardService.GetSystemHealthAsync();
+
+            // 1. User Growth Chart Data
+            _userGrowthSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Total Users",
+                    Data = _userGrowthData.Select(u => (double)u.TotalUsers).ToArray()
+                },
+                new ChartSeries
+                {
+                    Name = "New Users",
+                    Data = _userGrowthData.Select(u => (double)u.NewUsers).ToArray()
+                }
+            };
+            _growthMonths = _userGrowthData.Select(u => u.Month).ToArray();
+
+            // 2. Department Distribution (Donut Chart)
+            _departmentDistributionSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Users by Department",
+                    Data = _departmentStats.Select(d => (double)d.UserCount).ToArray()
+                }
+            };
+            _departmentLabels = _departmentStats.Select(d => d.DepartmentName).ToArray();
+
+            // 3. User Status Overview (Bar Chart)
+            var totalUsers = _dashboardStats?.TotalUsers ?? 0;
+            var activeUsers = _dashboardStats?.ActiveUsersToday ?? 0;
+            var inactiveUsers = totalUsers - activeUsers;
+            
+            _userStatusSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "User Status",
+                    Data = new double[] { activeUsers, inactiveUsers, _dashboardStats?.TotalRoles ?? 0 }
+                }
+            };
+            _statusLabels = new string[] { "Active Users", "Inactive Users", "Total Roles" };
+        }
+        catch (Exception ex)
+        {
+            // Initialize with empty data to prevent UI errors
+            _dashboardStats = new DashboardStats
+            {
+                TotalUsers = 0,
+                ActiveUsersToday = 0,
+                TotalDepartments = 0,
+                TotalRoles = 0,
+                UserGrowthPercentage = 0
+            };
+            _userGrowthData = new List<UserGrowthData>();
+            _departmentStats = new List<DepartmentStats>();
+            _recentActivities = new List<RecentActivity>();
+            
+            _userGrowthSeries = new List<ChartSeries>();
+            _growthMonths = Array.Empty<string>();
+            _departmentDistributionSeries = new List<ChartSeries>();
+            _departmentLabels = Array.Empty<string>();
+            _userStatusSeries = new List<ChartSeries>();
+            _statusLabels = Array.Empty<string>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task OnSalesPeriodChanged(string value)
+    {
+        _selectedSalesPeriod = value;
+        await LoadData();
+        StateHasChanged();
+    }
+
+    // Helper methods for activity feed
+    private string GetActivityIcon(string iconName) => iconName switch
+    {
+        "PersonAdd" => Icons.Material.Filled.PersonAdd,
+        "Edit" => Icons.Material.Filled.Edit,
+        "PlayArrow" => Icons.Material.Filled.PlayArrow,
+        "Delete" => Icons.Material.Filled.Delete,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private Color GetActivityColor(string colorName) => colorName switch
+    {
+        "Success" => Color.Success,
+        "Info" => Color.Info,
+        "Warning" => Color.Warning,
+        "Error" => Color.Error,
+        "Primary" => Color.Primary,
+        _ => Color.Default
+    };
+
 }

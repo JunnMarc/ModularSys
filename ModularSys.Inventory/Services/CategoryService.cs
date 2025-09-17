@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Inventory.Interface;
@@ -19,21 +19,22 @@ namespace ModularSys.Inventory.Services
             _contextFactory = contextFactory;
         }
 
-        public async Task<IEnumerable<Category>> GetAllAsync()
+        public async Task<IEnumerable<Category>> GetAllAsync(bool includeDeleted = false)
         {
             using var db = _contextFactory.CreateDbContext();
-            return await db.Categories
-                .AsNoTracking()
-                .OrderBy(c => c.CategoryName)
-                .ToListAsync();
+            var query = db.Categories.AsQueryable();
+            if (includeDeleted)
+                query = query.IgnoreQueryFilters();
+            return await query.AsNoTracking().OrderBy(c => c.CategoryName).ToListAsync();
         }
 
-        public async Task<Category?> GetByIdAsync(int id)
+        public async Task<Category?> GetByIdAsync(int id, bool includeDeleted = false)
         {
             using var db = _contextFactory.CreateDbContext();
-            return await db.Categories
-                .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.CategoryId == id);
+            var query = db.Categories.AsQueryable();
+            if (includeDeleted)
+                query = query.IgnoreQueryFilters();
+            return await query.AsNoTracking().FirstOrDefaultAsync(c => c.CategoryId == id);
         }
 
         public async Task CreateAsync(Category category)
@@ -50,15 +51,31 @@ namespace ModularSys.Inventory.Services
             await db.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int id, string deletedBy)
         {
             using var db = _contextFactory.CreateDbContext();
-            var existing = await db.Categories.FindAsync(id);
+            var existing = await db.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.CategoryId == id);
             if (existing != null)
             {
-                db.Categories.Remove(existing);
+                existing.IsDeleted = true;
+                existing.DeletedAt = DateTime.UtcNow;
+                existing.DeletedBy = deletedBy;
                 await db.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> RestoreAsync(int id, string restoredBy)
+        {
+            using var db = _contextFactory.CreateDbContext();
+            var existing = await db.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.CategoryId == id && c.IsDeleted);
+            if (existing == null) return false;
+            existing.IsDeleted = false;
+            existing.DeletedAt = null;
+            existing.DeletedBy = null;
+            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdatedBy = restoredBy;
+            await db.SaveChangesAsync();
+            return true;
         }
     }
 }

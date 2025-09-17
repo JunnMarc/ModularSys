@@ -1,16 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities;
+using ModularSys.Core.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
 public class UserService : IUserService
 {
     private readonly ModularSysDbContext _db;
+    private readonly IAuthService _authService;
 
-    public UserService(ModularSysDbContext db)
+    public UserService(ModularSysDbContext db, IAuthService authService)
     {
         _db = db;
+        _authService = authService;
     }
 
     public async Task<List<User>> GetAllAsync() =>
@@ -26,6 +29,7 @@ public class UserService : IUserService
     {
         user.PasswordHash = HashPassword(password);
         user.CreatedAt = DateTime.UtcNow;
+        user.CreatedBy = _authService.CurrentUser ?? "System";
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return user;
@@ -33,6 +37,8 @@ public class UserService : IUserService
 
     public async Task<bool> UpdateAsync(User user)
     {
+        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedBy = _authService.CurrentUser ?? "System";
         _db.Users.Update(user);
         return await _db.SaveChangesAsync() > 0;
     }
@@ -41,8 +47,58 @@ public class UserService : IUserService
     {
         var user = await _db.Users.FindAsync(id);
         if (user == null) return false;
-        _db.Users.Remove(user);
+        
+        // Soft delete manually
+        user.IsDeleted = true;
+        user.DeletedAt = DateTime.UtcNow;
+        user.DeletedBy = _authService.CurrentUser;
+        
         return await _db.SaveChangesAsync() > 0;
+    }
+
+    public async Task<bool> RestoreAsync(int id)
+    {
+        var user = await _db.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (user == null) return false;
+        
+        user.IsDeleted = false;
+        user.DeletedAt = null;
+        user.DeletedBy = null;
+        
+        return await _db.SaveChangesAsync() > 0;
+    }
+
+    public async Task<List<User>> GetDeletedUsersAsync() =>
+        await _db.Users.IgnoreQueryFilters()
+            .Where(u => u.IsDeleted)
+            .Include(u => u.Role)
+            .Include(u => u.Department)
+            .ToListAsync();
+
+    public async Task<(List<User> Users, int TotalCount)> GetPagedAsync(int page, int pageSize, string? searchTerm = null)
+    {
+        var query = _db.Users.Include(u => u.Role).Include(u => u.Department).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(u => u.Username.Contains(searchTerm) || 
+                                   u.FirstName.Contains(searchTerm) ||
+                                   u.LastName.Contains(searchTerm) ||
+                                   u.Email.Contains(searchTerm) ||
+                                   (u.ContactNumber != null && u.ContactNumber.Contains(searchTerm)) ||
+                                   u.Role.RoleName.Contains(searchTerm) ||
+                                   u.Department.DepartmentName.Contains(searchTerm));
+        }
+
+        var totalCount = await query.CountAsync();
+        var users = await query
+            .OrderBy(u => u.Username)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (users, totalCount);
     }
 
     public async Task<bool> SetRoleAsync(int userId, int roleId)

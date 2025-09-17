@@ -1,0 +1,675 @@
+@page "/permissions/matrix"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Security
+@using ModularSys.Data.Common.Entities
+@inject IRolePermissionService RolePermissionService
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject IAuthService AuthService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <!-- Enhanced Header -->
+    <div class="matrix-header">
+        <div class="header-content">
+            <MudText Typo="Typo.h4" Class="font-weight-bold">
+                <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2" />
+                Permission Matrix
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Manage role-permission assignments with advanced controls
+            </MudText>
+        </div>
+        <div class="header-stats">
+            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">
+                @FilteredRoles.Count Roles
+            </MudChip>
+            <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Text">
+                @FilteredPermissions.Count Permissions
+            </MudChip>
+            <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">
+                @GetTotalAssignments() Assignments
+            </MudChip>
+        </div>
+    </div>
+
+    <!-- Advanced Filters & Controls -->
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudGrid Spacing="3" AlignItems="AlignItems.Center">
+            <!-- Search & Filters -->
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="roleFilter" 
+                              Label="Filter Roles" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Group"
+                              Immediate="true" 
+                              DebounceInterval="300"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="permissionFilter" 
+                              Label="Filter Permissions" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              Immediate="true" 
+                              DebounceInterval="300"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect T="string" @bind-Value="selectedCategory" 
+                           Label="Permission Category" 
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    @foreach (var category in PermissionConstants.PermissionCategories.Keys)
+                    {
+                        <MudSelectItem T="string" Value="@category">@category</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudStack Direction="Row" Spacing="1">
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               OnClick="RefreshMatrix"
+                               Disabled="@isBusy">
+                        Refresh
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               Color="Color.Warning"
+                               StartIcon="@Icons.Material.Filled.Clear"
+                               OnClick="ClearAllFilters"
+                               Disabled="@(string.IsNullOrEmpty(roleFilter) && string.IsNullOrEmpty(permissionFilter) && string.IsNullOrEmpty(selectedCategory))">
+                        Clear
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Bulk Operations -->
+        <MudDivider Class="my-3" />
+        <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.subtitle2" Class="font-weight-medium">Bulk Operations:</MudText>
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Success"
+                       StartIcon="@Icons.Material.Filled.DoneAll"
+                       OnClick="GrantAllVisible"
+                       Disabled="@isBusy"
+                       Size="Size.Small">
+                Grant All Visible
+            </MudButton>
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Block"
+                       OnClick="RevokeAllVisible"
+                       Disabled="@isBusy"
+                       Size="Size.Small">
+                Revoke All Visible
+            </MudButton>
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Info"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="ExportMatrix"
+                       Size="Size.Small">
+                Export Matrix
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Enhanced Matrix Display -->
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Loading permission matrix...</MudText>
+        </div>
+    }
+    else if (!roles.Any() || !permissions.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="ma-4">
+            <MudText Typo="Typo.h6">No Data Available</MudText>
+            <MudText>No roles or permissions found. Please create some roles and permissions to get started.</MudText>
+        </MudAlert>
+    }
+    else
+    {
+        <!-- Category-Grouped Matrix -->
+        @if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@GetCategoryIcon(selectedCategory)" Class="mr-2" />
+                    @selectedCategory Permissions
+                </MudText>
+                @RenderPermissionMatrix(GetPermissionsForCategory(selectedCategory))
+            </MudPaper>
+        }
+        else
+        {
+            <!-- All Categories -->
+            @foreach (var category in PermissionConstants.PermissionCategories)
+            {
+                var categoryPermissions = GetPermissionsForCategory(category.Key);
+                if (categoryPermissions.Any())
+                {
+                    <MudPaper Class="pa-4 mb-4" Elevation="2">
+                        <MudExpansionPanels MultiExpansion="true" Elevation="0">
+                            <MudExpansionPanel IsInitiallyExpanded="true">
+                                <TitleContent>
+                                    <div class="category-header">
+                                        <MudIcon Icon="@GetCategoryIcon(category.Key)" Class="mr-2" />
+                                        <MudText Typo="Typo.h6">@category.Key</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">
+                                            @categoryPermissions.Count permissions
+                                        </MudChip>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    @RenderPermissionMatrix(categoryPermissions)
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudPaper>
+                }
+            }
+        }
+    }
+</MudContainer>
+
+@code {
+    private RenderFragment<List<Permission>> RenderPermissionMatrix => (categoryPermissions) => __builder =>
+    {
+        <div class="matrix-container">
+            <MudTable Items="@FilteredRoles" 
+                      Bordered="true" 
+                      Striped="true" 
+                      Elevation="0" 
+                      Dense="true"
+                      Class="permission-matrix-table">
+                <HeaderContent>
+                    <MudTh Class="sticky-first role-header">
+                        <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.subtitle2" Class="font-weight-bold">Role</MudText>
+                        </MudStack>
+                    </MudTh>
+                    @foreach (var perm in categoryPermissions)
+                    {
+                        <MudTh Class="sticky-header permission-header">
+                            <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                                <MudTooltip Text="@GetPermissionTooltip(perm)">
+                                    <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@GetPermissionIcon(perm.PermissionName)" Size="Size.Small" />
+                                        <MudText Typo="Typo.caption" Align="Align.Center" Class="permission-name">
+                                            @GetShortPermissionName(perm.PermissionName)
+                                        </MudText>
+                                    </MudStack>
+                                </MudTooltip>
+                                <MudStack Direction="Row" Spacing="1" JustifyContent="Justify.Center">
+                                    <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                                   Size="Size.Small"
+                                                   Disabled="@isBusy"
+                                                   Title="Grant to all roles"
+                                                   OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, true))"
+                                                   Class="bulk-action-btn grant-btn" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                                   Size="Size.Small"
+                                                   Disabled="@isBusy"
+                                                   Title="Revoke from all roles"
+                                                   OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, false))"
+                                                   Class="bulk-action-btn revoke-btn" />
+                                </MudStack>
+                            </MudStack>
+                        </MudTh>
+                    }
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd Class="sticky-first role-cell">
+                        <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudChip Value="@context.RoleName"
+                                     Color="@GetRoleColor(context.RoleName)"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small"
+                                     Class="role-chip">
+                                @context.RoleName
+                            </MudChip>
+                            <MudStack Direction="Row" Spacing="1">
+                                <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                               Size="Size.Small"
+                                               Disabled="@isBusy"
+                                               Title="Grant all permissions to this role"
+                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, true, categoryPermissions))"
+                                               Class="bulk-action-btn grant-btn" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                               Size="Size.Small"
+                                               Disabled="@isBusy"
+                                               Title="Revoke all permissions from this role"
+                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, false, categoryPermissions))"
+                                               Class="bulk-action-btn revoke-btn" />
+                            </MudStack>
+                        </MudStack>
+                    </MudTd>
+
+                    @foreach (var perm in categoryPermissions)
+                    {
+                        <MudTd Class="permission-cell">
+                            <MudCheckBox T="bool"
+                                         Value="@GetPermissionValue(context.RoleId, perm.PermissionId)"
+                                         ValueChanged="@(value => OnPermissionChanged(context.RoleId, perm.PermissionId, value))"
+                                         Color="Color.Primary"
+                                         DisableRipple="true"
+                                         Disabled="@isBusy"
+                                         Class="permission-checkbox"
+                                         AriaLabel="@($"{context.RoleName} — {perm.PermissionName}")" />
+                        </MudTd>
+                    }
+                </RowTemplate>
+            </MudTable>
+        </div>
+    };
+}
+
+<style>
+    .matrix-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .matrix-container {
+        overflow: auto;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .permission-matrix-table {
+        min-width: 800px;
+    }
+
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        z-index: 10;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .sticky-first {
+        position: sticky;
+        left: 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        z-index: 11;
+        border-right: 2px solid #e2e8f0;
+        min-width: 200px;
+    }
+
+    .role-header {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+    }
+
+    .permission-header {
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .permission-name {
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.2;
+        max-width: 80px;
+        word-break: break-word;
+    }
+
+    .role-cell {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .role-chip {
+        font-weight: 600;
+        min-width: 80px;
+    }
+
+    .permission-cell {
+        text-align: center;
+        padding: 0.5rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .permission-cell:hover {
+        background-color: #f1f5f9;
+    }
+
+    .permission-checkbox {
+        margin: 0 auto;
+    }
+
+    .bulk-action-btn {
+        opacity: 0.6;
+        transition: all 0.2s ease;
+    }
+
+    .bulk-action-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    .grant-btn:hover {
+        color: #10b981;
+    }
+
+    .revoke-btn:hover {
+        color: #ef4444;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem;
+        text-align: center;
+    }
+
+    @@media (max-width: 768px) {
+        .matrix-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .header-stats {
+            justify-content: center;
+        }
+
+        .sticky-first {
+            min-width: 150px;
+        }
+
+        .permission-header {
+            min-width: 100px;
+        }
+    }
+</style>
+
+@code {
+    // Data
+    private List<Role> roles = new();
+    private List<Permission> permissions = new();
+
+    // Filters
+    private string roleFilter = string.Empty;
+    private string permissionFilter = string.Empty;
+    private string selectedCategory = string.Empty;
+
+    // Matrix: RoleId → PermissionId → bool
+    private readonly Dictionary<int, Dictionary<int, bool>> permissionMatrix = new();
+
+    // UI State
+    private bool isLoading = true;
+    private bool isBusy = false;
+
+    // Computed Properties
+    private List<Role> FilteredRoles =>
+        string.IsNullOrWhiteSpace(roleFilter)
+            ? roles
+            : roles.Where(r => r.RoleName.Contains(roleFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private List<Permission> FilteredPermissions =>
+        string.IsNullOrWhiteSpace(permissionFilter)
+            ? permissions
+            : permissions.Where(p => p.PermissionName.Contains(permissionFilter, StringComparison.OrdinalIgnoreCase)
+                                  || (!string.IsNullOrWhiteSpace(p.Description) && p.Description.Contains(permissionFilter, StringComparison.OrdinalIgnoreCase)))
+                         .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMatrix();
+    }
+
+    private async Task LoadMatrix()
+    {
+        try
+        {
+            isLoading = true;
+
+            roles = await RoleService.GetAllAsync();
+            permissions = await PermissionService.GetAllAsync();
+
+            var rolePermissions = await RolePermissionService.GetAllAsync();
+
+            // Initialize matrix
+            foreach (var role in roles)
+            {
+                permissionMatrix[role.RoleId] = new Dictionary<int, bool>();
+                foreach (var perm in permissions)
+                {
+                    bool hasPermission = rolePermissions.Any(rp =>
+                        rp.RoleId == role.RoleId && rp.PermissionId == perm.PermissionId);
+                    permissionMatrix[role.RoleId][perm.PermissionId] = hasPermission;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load permission matrix: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private List<Permission> GetPermissionsForCategory(string category)
+    {
+        if (!PermissionConstants.PermissionCategories.TryGetValue(category, out var categoryPermissions))
+            return new List<Permission>();
+
+        return FilteredPermissions
+            .Where(p => categoryPermissions.Contains(p.PermissionName))
+            .OrderBy(p => p.DisplayOrder)
+            .ThenBy(p => p.PermissionName)
+            .ToList();
+    }
+
+    private bool GetPermissionValue(int roleId, int permissionId)
+    {
+        return permissionMatrix.TryGetValue(roleId, out var rolePerms) &&
+               rolePerms.TryGetValue(permissionId, out var hasPermission) &&
+               hasPermission;
+    }
+
+    private async Task OnPermissionChanged(int roleId, int permissionId, bool isGranted)
+    {
+        var previous = GetPermissionValue(roleId, permissionId);
+        permissionMatrix[roleId][permissionId] = isGranted;
+
+        try
+        {
+            await RolePermissionService.ToggleAsync(roleId, permissionId, isGranted);
+            
+            var role = roles.FirstOrDefault(r => r.RoleId == roleId);
+            var permission = permissions.FirstOrDefault(p => p.PermissionId == permissionId);
+            
+            Snackbar.Add($"Permission {(isGranted ? "granted to" : "revoked from")} {role?.RoleName}", Severity.Success);
+
+            _ = InvokeAsync(async () =>
+            {
+                await Task.Delay(100);
+                await AuthService.RefreshClaimsAsync();
+            });
+        }
+        catch (Exception ex)
+        {
+            permissionMatrix[roleId][permissionId] = previous;
+            Snackbar.Add($"Error updating permission: {ex.Message}", Severity.Error);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SetAllPermissionsForRole(int roleId, bool grant, List<Permission> categoryPermissions)
+    {
+        if (!permissionMatrix.TryGetValue(roleId, out var row)) return;
+
+        isBusy = true;
+        StateHasChanged();
+
+        var previous = row.ToDictionary(kv => kv.Key, kv => kv.Value);
+        try
+        {
+            foreach (var perm in categoryPermissions)
+            {
+                if (row[perm.PermissionId] == grant) continue;
+                row[perm.PermissionId] = grant;
+                await RolePermissionService.ToggleAsync(roleId, perm.PermissionId, grant);
+            }
+            
+            var role = roles.FirstOrDefault(r => r.RoleId == roleId);
+            Snackbar.Add($"{(grant ? "Granted" : "Revoked")} all permissions for {role?.RoleName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            foreach (var kv in previous) row[kv.Key] = kv.Value;
+            Snackbar.Add($"Bulk update failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetPermissionForAllRoles(int permissionId, bool grant)
+    {
+        isBusy = true;
+        StateHasChanged();
+
+        var prev = new Dictionary<int, bool>();
+        foreach (var role in FilteredRoles)
+            prev[role.RoleId] = permissionMatrix[role.RoleId][permissionId];
+
+        try
+        {
+            foreach (var role in FilteredRoles)
+            {
+                var current = permissionMatrix[role.RoleId][permissionId];
+                if (current == grant) continue;
+                permissionMatrix[role.RoleId][permissionId] = grant;
+                await RolePermissionService.ToggleAsync(role.RoleId, permissionId, grant);
+            }
+            
+            var permission = permissions.FirstOrDefault(p => p.PermissionId == permissionId);
+            Snackbar.Add($"{(grant ? "Granted" : "Revoked")} {permission?.PermissionName} for all roles", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            foreach (var role in FilteredRoles)
+                permissionMatrix[role.RoleId][permissionId] = prev[role.RoleId];
+            Snackbar.Add($"Bulk update failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    // Helper Methods
+    private Color GetRoleColor(string roleName) => roleName.ToLower() switch
+    {
+        var name when name.Contains("admin") => Color.Error,
+        var name when name.Contains("manager") => Color.Warning,
+        var name when name.Contains("user") => Color.Info,
+        _ => Color.Primary
+    };
+
+    private string GetCategoryIcon(string category) => category switch
+    {
+        "User Management" => Icons.Material.Filled.People,
+        "Role & Permission Management" => Icons.Material.Filled.Security,
+        "Department Management" => Icons.Material.Filled.Business,
+        "System Administration" => Icons.Material.Filled.Settings,
+        "Dashboard & Reports" => Icons.Material.Filled.Dashboard,
+        "Inventory Management" => Icons.Material.Filled.Inventory,
+        _ => Icons.Material.Filled.Lock
+    };
+
+    private string GetPermissionIcon(string permissionName) => permissionName switch
+    {
+        var p when p.Contains("View") => Icons.Material.Filled.Visibility,
+        var p when p.Contains("Create") => Icons.Material.Filled.Add,
+        var p when p.Contains("Edit") => Icons.Material.Filled.Edit,
+        var p when p.Contains("Delete") => Icons.Material.Filled.Delete,
+        var p when p.Contains("Export") => Icons.Material.Filled.Download,
+        var p when p.Contains("Import") => Icons.Material.Filled.Upload,
+        var p when p.Contains("Manage") => Icons.Material.Filled.Settings,
+        _ => Icons.Material.Filled.Lock
+    };
+
+    private string GetShortPermissionName(string permissionName)
+    {
+        var parts = permissionName.Split('.');
+        return parts.Length > 1 ? parts[1] : permissionName;
+    }
+
+    private string GetPermissionTooltip(Permission permission)
+    {
+        var description = PermissionConstants.PermissionDescriptions.GetValueOrDefault(permission.PermissionName, permission.Description);
+        return $"{permission.PermissionName}\n{description}";
+    }
+
+    private int GetTotalAssignments()
+    {
+        return permissionMatrix.Values.SelectMany(rolePerms => rolePerms.Values).Count(hasPermission => hasPermission);
+    }
+
+    // UI Actions
+    private async Task RefreshMatrix()
+    {
+        await LoadMatrix();
+        Snackbar.Add("Permission matrix refreshed", Severity.Success);
+    }
+
+    private void ClearAllFilters()
+    {
+        roleFilter = string.Empty;
+        permissionFilter = string.Empty;
+        selectedCategory = string.Empty;
+    }
+
+    private async Task GrantAllVisible()
+    {
+        // TODO: Implement bulk grant for all visible permissions
+        Snackbar.Add("Grant all visible permissions - Coming soon!", Severity.Info);
+    }
+
+    private async Task RevokeAllVisible()
+    {
+        // TODO: Implement bulk revoke for all visible permissions
+        Snackbar.Add("Revoke all visible permissions - Coming soon!", Severity.Info);
+    }
+
+    private async Task ExportMatrix()
+    {
+        // TODO: Implement matrix export
+        Snackbar.Add("Export permission matrix - Coming soon!", Severity.Info);
+    }
+}

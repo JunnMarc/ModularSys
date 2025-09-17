@@ -1,0 +1,336 @@
+@page "/users/create"
+@page "/users/edit/{Id:int}"
+@using System.ComponentModel.DataAnnotations
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Models
+@using ModularSys.Data.Common.Entities
+
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject IDepartmentService DepartmentService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
+    <MudPaper Class="pa-6" Elevation="2">
+        <!-- Header -->
+        <div class="d-flex align-center mb-6">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           OnClick="@(() => Nav.NavigateTo("/users"))" 
+                           Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.h4" Class="font-weight-bold">
+                    @(_model.IsEditMode ? "Edit User" : "Create New User")
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @(_model.IsEditMode ? "Update user information and permissions" : "Add a new user to the system")
+                </MudText>
+            </div>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="SaveUser">
+                <DataAnnotationsValidator />
+                
+                <MudGrid Spacing="4">
+                    <!-- Basic Information -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-3">Basic Information</MudText>
+                        <MudDivider Class="mb-4" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.FirstName"
+                                      Label="First Name"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      HelperText="User's first name" />
+                        <ValidationMessage For="@(() => _model.FirstName)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.LastName"
+                                      Label="Last Name"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      HelperText="User's last name" />
+                        <ValidationMessage For="@(() => _model.LastName)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.Username"
+                                      Label="Username"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.AccountCircle"
+                                      HelperText="Unique username for login" />
+                        <ValidationMessage For="@(() => _model.Username)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.Email"
+                                      Label="Email Address"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      HelperText="Valid email address" />
+                        <ValidationMessage For="@(() => _model.Email)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_model.ContactNumber"
+                                      Label="Contact Number"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Phone"
+                                      HelperText="Phone number (optional)" />
+                        <ValidationMessage For="@(() => _model.ContactNumber)" />
+                    </MudItem>
+
+                    <!-- Role and Department -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Class="mb-3 mt-4">Permissions & Access</MudText>
+                        <MudDivider Class="mb-4" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" @bind-Value="_model.RoleId"
+                                   Label="Role"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter">
+                            @if (_roles != null)
+                            {
+                                @foreach (var role in _roles)
+                                {
+                                    <MudSelectItem T="int" Value="role.RoleId">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-2" />
+                                            @role.RoleName
+                                        </div>
+                                    </MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                        <ValidationMessage For="@(() => _model.RoleId)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" @bind-Value="_model.DepartmentId"
+                                   Label="Department"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter">
+                            @if (_departments != null)
+                            {
+                                @foreach (var dept in _departments)
+                                {
+                                    <MudSelectItem T="int" Value="dept.DepartmentId">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Class="mr-2" />
+                                            @dept.DepartmentName
+                                        </div>
+                                    </MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                        <ValidationMessage For="@(() => _model.DepartmentId)" />
+                    </MudItem>
+
+                    <!-- Password Section -->
+                    @if (!_model.IsEditMode || _showPasswordFields)
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.h6" Class="mb-3 mt-4">
+                                @(_model.IsEditMode ? "Change Password" : "Set Password")
+                            </MudText>
+                            <MudDivider Class="mb-4" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.Password"
+                                          Label="Password"
+                                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                          Required="@_model.RequirePassword"
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                          OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                                          HelperText="Minimum 6 characters" />
+                            <ValidationMessage For="@(() => _model.Password)" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_model.ConfirmPassword"
+                                          Label="Confirm Password"
+                                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                          Required="@_model.RequirePassword"
+                                          Variant="Variant.Outlined"
+                                          HelperText="Must match password" />
+                            <ValidationMessage For="@(() => _model.ConfirmPassword)" />
+                        </MudItem>
+                    }
+                    else if (_model.IsEditMode)
+                    {
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Text" 
+                                       StartIcon="@Icons.Material.Filled.Lock"
+                                       OnClick="@(() => _showPasswordFields = true)"
+                                       Class="mt-2">
+                                Change Password
+                            </MudButton>
+                        </MudItem>
+                    }
+
+                    <!-- Actions -->
+                    <MudItem xs="12" Class="d-flex justify-end gap-2 mt-6">
+                        <MudButton Variant="Variant.Text" 
+                                   OnClick="@(() => Nav.NavigateTo("/users"))">
+                            Cancel
+                        </MudButton>
+                        <MudButton ButtonType="ButtonType.Submit" 
+                                   Variant="Variant.Filled" 
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Save"
+                                   Disabled="_saving">
+                            @if (_saving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <span class="ml-2">Saving...</span>
+                            }
+                            else
+                            {
+                                <span>@(_model.IsEditMode ? "Update User" : "Create User")</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private UserInputModel _model = new();
+    private List<Role>? _roles;
+    private List<Department>? _departments;
+    private bool _loading = true;
+    private bool _saving = false;
+    private bool _showPassword = false;
+    private bool _showPasswordFields = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLookupData();
+        
+        if (Id.HasValue)
+        {
+            await LoadUser(Id.Value);
+        }
+        
+        _loading = false;
+    }
+
+    private async Task LoadLookupData()
+    {
+        _roles = await RoleService.GetAllAsync();
+        _departments = await DepartmentService.GetAllAsync();
+    }
+
+    private async Task LoadUser(int id)
+    {
+        var user = await UserService.GetByIdAsync(id);
+        if (user != null)
+        {
+            _model = new UserInputModel
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                ContactNumber = user.ContactNumber,
+                RoleId = user.RoleId,
+                DepartmentId = user.DepartmentId
+            };
+        }
+        else
+        {
+            Snackbar.Add("User not found", Severity.Error);
+            Nav.NavigateTo("/users");
+        }
+    }
+
+    private async Task SaveUser()
+    {
+        _saving = true;
+        try
+        {
+            if (_model.IsEditMode)
+            {
+                var user = await UserService.GetByIdAsync(_model.Id);
+                if (user != null)
+                {
+                    user.Username = _model.Username;
+                    user.FirstName = _model.FirstName;
+                    user.LastName = _model.LastName;
+                    user.Email = _model.Email;
+                    user.ContactNumber = _model.ContactNumber;
+                    user.RoleId = _model.RoleId;
+                    user.DepartmentId = _model.DepartmentId;
+
+                    var success = await UserService.UpdateAsync(user);
+                    if (success)
+                    {
+                        Snackbar.Add("User updated successfully", Severity.Success);
+                        Nav.NavigateTo("/users");
+                    }
+                    else
+                    {
+                        Snackbar.Add("Failed to update user", Severity.Error);
+                    }
+                }
+            }
+            else
+            {
+                var user = new User
+                {
+                    Username = _model.Username,
+                    FirstName = _model.FirstName,
+                    LastName = _model.LastName,
+                    Email = _model.Email,
+                    ContactNumber = _model.ContactNumber,
+                    RoleId = _model.RoleId,
+                    DepartmentId = _model.DepartmentId
+                };
+
+                await UserService.CreateAsync(user, _model.Password!);
+                Snackbar.Add("User created successfully", Severity.Success);
+                Nav.NavigateTo("/users");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

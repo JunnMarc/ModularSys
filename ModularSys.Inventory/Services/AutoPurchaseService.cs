@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Inventory.Interface;
@@ -42,7 +42,7 @@ namespace ModularSys.Inventory.Services
                 });
             }
 
-            po.TotalAmount = po.Lines.Sum(l => l.LineTotal);
+            po.SubTotal = po.Lines.Sum(l => l.LineTotal);
             return po; // Not saved yet — UI can display for confirmation
         }
 

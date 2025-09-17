@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -14,7 +14,6 @@
   <ItemGroup>
 	  <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
 	  <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
-	  <PackageReference Include="Blazor-ApexCharts" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authorization" />
 	  <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
 	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" />

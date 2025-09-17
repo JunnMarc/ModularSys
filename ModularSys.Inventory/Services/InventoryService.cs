@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
@@ -26,15 +26,24 @@ namespace ModularSys.Inventory.Services
             if (product == null)
                 throw new KeyNotFoundException("Product not found.");
 
+            var quantityBefore = product.QuantityOnHand;
             product.QuantityOnHand += quantityChange;
+            var quantityAfter = product.QuantityOnHand;
 
             var transaction = new InventoryTransaction
             {
+                TransactionNumber = $"TXN-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
                 ProductId = productId,
-                QuantityChange = quantityChange,
-                Amount = amount,
+                TransactionDate = DateTime.UtcNow,
                 TransactionType = transactionType,
-                TransactionDate = DateTime.UtcNow
+                QuantityBefore = quantityBefore,
+                QuantityChange = quantityChange,
+                QuantityAfter = quantityAfter,
+                UnitCost = quantityChange != 0 ? Math.Abs(amount / quantityChange) : 0,
+                Amount = amount,
+                Reference = transactionType,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "System"
             };
 
             db.InventoryTransactions.Add(transaction);

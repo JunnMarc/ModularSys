@@ -1,4 +1,4 @@
-﻿using ApexCharts;
+using ApexCharts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +47,8 @@ namespace ModularSys
             // Database
             // 1) Scoped DbContext for normal page/services (optional but common)
             builder.Services.AddDbContext<ModularSysDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString)
+                       .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             builder.Services.AddDbContext<InventoryDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
@@ -78,6 +79,11 @@ namespace ModularSys
             builder.Services.AddScoped<IPermissionChecker, PermissionChecker>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRoleService, RoleService>();
+            builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IPermissionSeedingService, PermissionSeedingService>();
+            builder.Services.AddScoped<IStartupSeedingService, StartupSeedingService>();
+            builder.Services.AddScoped<ISoftDeleteService, SoftDeleteService>();
 
             // HttpClient (adjust BaseAddress to your API host/port)
             builder.Services.AddScoped(sp => new HttpClient
@@ -90,7 +96,25 @@ namespace ModularSys
             var logger = loggerFactory.CreateLogger("ModuleLoader");
             ModuleLoader.RegisterAllModules(builder.Services, logger);
 
-            return builder.Build();
+            var app = builder.Build();
+
+            // Seed initial data on startup
+            Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var seedingService = scope.ServiceProvider.GetRequiredService<IStartupSeedingService>();
+                    await seedingService.SeedInitialDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    var startupLogger = loggerFactory.CreateLogger("Startup");
+                    startupLogger.LogError(ex, "Failed to seed initial data");
+                }
+            });
+
+            return app;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 @using MudBlazor
 @using ModularSys.Core.Interfaces
@@ -42,14 +42,16 @@
                                     Class="nav-link-custom">
                             Dashboard
                         </MudNavLink>
-                        <MudNavLink Href="/users"
-                                    Icon="@Icons.Material.Filled.Group"
-                                    Class="nav-link-custom">
+                        <MudNavLink Href="/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.People">
                             Users
                         </MudNavLink>
-                        <MudNavLink Href="/permissions"
-                                    Icon="@Icons.Material.Filled.Settings"
-                                    Class="nav-link-custom">
+                        <MudNavLink Href="/roles" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Group">
+                            Roles
+                        </MudNavLink>
+                        <MudNavLink Href="/permissions/matrix" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Security">
+                            Permissions
+                        </MudNavLink>
+                        <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
                             Settings
                         </MudNavLink>
 
@@ -278,10 +280,12 @@
     protected override void OnInitialized()
     {
         AuthService.OnAuthStateChanged += HandleAuthChange;
-        HandleAuthChange();
-
+        
         // Update page title based on current route
         UpdatePageTitle();
+        
+        // Only handle auth change after initialization
+        HandleAuthChange();
 
         StateHasChanged();
     }
@@ -289,6 +293,7 @@
     protected override void OnParametersSet()
     {
         UpdatePageTitle();
+        // Don't call HandleAuthChange here to avoid redirect loops
     }
 
     private void UpdatePageTitle()

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Core.Interfaces;
 using ModularSys.Inventory.Interface;
 using ModularSys.Inventory.Services;
@@ -19,5 +19,6 @@ public class InventoryModule : ISubsystem
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
         services.AddScoped<ISalesOrderService, SalesOrderService>();
         services.AddScoped<IRevenueService, RevenueService>();
+        services.AddScoped<IInventoryDashboardService, InventoryDashboardService>();
     }
 }

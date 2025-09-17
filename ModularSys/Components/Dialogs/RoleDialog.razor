@@ -1,0 +1,379 @@
+@using MudBlazor
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Security
+@using ModularSys.Data.Common.Entities
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject IRolePermissionService RolePermissionService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer Style="max-width: 800px;">
+            <MudText Typo="Typo.h6" Class="mb-4">
+                <MudIcon Icon="@(IsEditMode ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-2" />
+                @(IsEditMode ? "Edit Role" : "Create New Role")
+            </MudText>
+
+            <MudForm @ref="form" @bind-IsValid="@_isFormValid">
+                <MudGrid Spacing="3">
+                    <!-- Basic Information -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium mb-2">Basic Information</MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="Model.RoleName"
+                                      Label="Role Name"
+                                      Required="true"
+                                      RequiredError="Role name is required"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Group" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string" @bind-Value="_selectedTemplate"
+                                   Label="Use Template (Optional)"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var template in PermissionConstants.RoleTemplates)
+                            {
+                                <MudSelectItem T="string" Value="@template.Key">
+                                    @template.Key (@template.Value.Count permissions)
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="Model.Description"
+                                      Label="Description"
+                                      Lines="3"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Description" />
+                    </MudItem>
+
+                    <!-- Permission Assignment -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium mb-2">Permission Assignment</MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.DoneAll"
+                                       OnClick="SelectAllPermissions"
+                                       Size="Size.Small">
+                                Select All
+                            </MudButton>
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Clear"
+                                       OnClick="ClearAllPermissions"
+                                       Size="Size.Small">
+                                Clear All
+                            </MudButton>
+                            @if (!string.IsNullOrEmpty(_selectedTemplate))
+                            {
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Assignment"
+                                           OnClick="ApplyTemplate"
+                                           Size="Size.Small">
+                                    Apply Template
+                                </MudButton>
+                            }
+                        </MudStack>
+                    </MudItem>
+
+                    <!-- Permission Categories -->
+                    @foreach (var category in PermissionConstants.PermissionCategories)
+                    {
+                        var categoryPermissions = _allPermissions.Where(p => category.Value.Contains(p.PermissionName)).ToList();
+                        if (categoryPermissions.Any())
+                        {
+                            <MudItem xs="12">
+                                <MudExpansionPanels MultiExpansion="true" Elevation="1">
+                                    <MudExpansionPanel IsInitiallyExpanded="true">
+                                        <TitleContent>
+                                            <div class="d-flex align-items-center">
+                                                <MudIcon Icon="@GetCategoryIcon(category.Key)" Class="mr-2" />
+                                                <MudText Typo="Typo.subtitle2">@category.Key</MudText>
+                                                <MudSpacer />
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">
+                                                    @GetSelectedCount(categoryPermissions)/@categoryPermissions.Count
+                                                </MudChip>
+                                            </div>
+                                        </TitleContent>
+                                        <ChildContent>
+                                            <MudGrid Spacing="2">
+                                                @foreach (var permission in categoryPermissions)
+                                                {
+                                                    <MudItem xs="12" sm="6" md="4">
+                                                        <MudCheckBox T="bool"
+                                                                     @bind-Value="@_selectedPermissions[permission.PermissionId]"
+                                                                     Label="@GetPermissionDisplayName(permission.PermissionName)"
+                                                                     Color="Color.Primary"
+                                                                     Dense="true">
+                                                            <MudTooltip Text="@GetPermissionDescription(permission.PermissionName)">
+                                                                <div class="d-flex align-items-center">
+                                                                    <MudIcon Icon="@GetPermissionIcon(permission.PermissionName)" 
+                                                                             Size="Size.Small" 
+                                                                             Class="mr-2" />
+                                                                    <span>@GetPermissionDisplayName(permission.PermissionName)</span>
+                                                                </div>
+                                                            </MudTooltip>
+                                                        </MudCheckBox>
+                                                    </MudItem>
+                                                }
+                                            </MudGrid>
+                                        </ChildContent>
+                                    </MudExpansionPanel>
+                                </MudExpansionPanels>
+                            </MudItem>
+                        }
+                    }
+                </MudGrid>
+            </MudForm>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Submit"
+                   Disabled="@(!_isFormValid || _isSaving)"
+                   StartIcon="@(IsEditMode ? Icons.Material.Filled.Save : Icons.Material.Filled.Add)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Saving...</MudText>
+            }
+            else
+            {
+                <MudText>@(IsEditMode ? "Update Role" : "Create Role")</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .permission-category {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .category-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+</style>
+
+@code {
+    [CascadingParameter] public IDialogReference MudDialog { get; set; } = null!;
+
+    [Parameter] public Role? ExistingRole { get; set; }
+    [Parameter] public string? TemplateToApply { get; set; }
+
+    private MudForm form = null!;
+    private bool _isFormValid;
+    private bool _isSaving;
+    private string _selectedTemplate = string.Empty;
+
+    private Role Model = new() { RoleName = string.Empty };
+    private List<Permission> _allPermissions = new();
+    private Dictionary<int, bool> _selectedPermissions = new();
+
+    private bool IsEditMode => ExistingRole != null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load all permissions
+        _allPermissions = await PermissionService.GetAllAsync();
+        
+        // Initialize permission selection dictionary
+        foreach (var permission in _allPermissions)
+        {
+            _selectedPermissions[permission.PermissionId] = false;
+        }
+
+        if (IsEditMode && ExistingRole != null)
+        {
+            // Edit mode - load existing role
+            Model = new Role
+            {
+                RoleId = ExistingRole.RoleId,
+                RoleName = ExistingRole.RoleName,
+                Description = ExistingRole.Description ?? string.Empty
+            };
+
+            // Load existing permissions
+            var existingPermissions = await RolePermissionService.GetPermissionsForRoleAsync(ExistingRole.RoleId);
+            foreach (var permission in existingPermissions)
+            {
+                if (_selectedPermissions.ContainsKey(permission.PermissionId))
+                {
+                    _selectedPermissions[permission.PermissionId] = true;
+                }
+            }
+        }
+        else if (!string.IsNullOrEmpty(TemplateToApply))
+        {
+            // Create mode with template
+            _selectedTemplate = TemplateToApply;
+            ApplyTemplate();
+        }
+    }
+
+    private void ApplyTemplate()
+    {
+        if (string.IsNullOrEmpty(_selectedTemplate) || 
+            !PermissionConstants.RoleTemplates.TryGetValue(_selectedTemplate, out var templatePermissions))
+            return;
+
+        // Clear all selections first
+        foreach (var key in _selectedPermissions.Keys.ToList())
+        {
+            _selectedPermissions[key] = false;
+        }
+
+        // Apply template permissions
+        foreach (var permissionName in templatePermissions)
+        {
+            var permission = _allPermissions.FirstOrDefault(p => p.PermissionName == permissionName);
+            if (permission != null)
+            {
+                _selectedPermissions[permission.PermissionId] = true;
+            }
+        }
+
+        // Set role name if creating new role
+        if (!IsEditMode && string.IsNullOrEmpty(Model.RoleName))
+        {
+            Model.RoleName = _selectedTemplate;
+        }
+    }
+
+    private void SelectAllPermissions()
+    {
+        foreach (var key in _selectedPermissions.Keys.ToList())
+        {
+            _selectedPermissions[key] = true;
+        }
+    }
+
+    private void ClearAllPermissions()
+    {
+        foreach (var key in _selectedPermissions.Keys.ToList())
+        {
+            _selectedPermissions[key] = false;
+        }
+    }
+
+    private int GetSelectedCount(List<Permission> categoryPermissions)
+    {
+        return categoryPermissions.Count(p => _selectedPermissions.GetValueOrDefault(p.PermissionId, false));
+    }
+
+    private async Task Submit()
+    {
+        if (!_isFormValid) return;
+
+        try
+        {
+            _isSaving = true;
+
+            Role savedRole;
+            if (IsEditMode)
+            {
+                // Update existing role
+                ExistingRole!.RoleName = Model.RoleName;
+                ExistingRole.Description = Model.Description;
+                await RoleService.UpdateAsync(ExistingRole);
+                savedRole = ExistingRole;
+            }
+            else
+            {
+                // Create new role
+                savedRole = await RoleService.CreateAsync(Model);
+            }
+
+            // Update role permissions
+            var currentPermissions = await RolePermissionService.GetPermissionsForRoleAsync(savedRole.RoleId);
+            var currentPermissionIds = currentPermissions.Select(p => p.PermissionId).ToHashSet();
+            var selectedPermissionIds = _selectedPermissions.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet();
+
+            // Remove permissions that are no longer selected
+            foreach (var permissionId in currentPermissionIds.Except(selectedPermissionIds))
+            {
+                await RolePermissionService.ToggleAsync(savedRole.RoleId, permissionId, false);
+            }
+
+            // Add new permissions
+            foreach (var permissionId in selectedPermissionIds.Except(currentPermissionIds))
+            {
+                await RolePermissionService.ToggleAsync(savedRole.RoleId, permissionId, true);
+            }
+
+            Snackbar.Add($"Role '{savedRole.RoleName}' {(IsEditMode ? "updated" : "created")} successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(savedRole));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving role: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+
+    // Helper methods
+    private string GetCategoryIcon(string category) => category switch
+    {
+        "User Management" => Icons.Material.Filled.People,
+        "Role & Permission Management" => Icons.Material.Filled.Security,
+        "Department Management" => Icons.Material.Filled.Business,
+        "System Administration" => Icons.Material.Filled.Settings,
+        "Dashboard & Reports" => Icons.Material.Filled.Dashboard,
+        "Inventory Management" => Icons.Material.Filled.Inventory,
+        _ => Icons.Material.Filled.Lock
+    };
+
+    private string GetPermissionIcon(string permissionName) => permissionName switch
+    {
+        var p when p.Contains("View") => Icons.Material.Filled.Visibility,
+        var p when p.Contains("Create") => Icons.Material.Filled.Add,
+        var p when p.Contains("Edit") => Icons.Material.Filled.Edit,
+        var p when p.Contains("Delete") => Icons.Material.Filled.Delete,
+        var p when p.Contains("Export") => Icons.Material.Filled.Download,
+        var p when p.Contains("Import") => Icons.Material.Filled.Upload,
+        var p when p.Contains("Manage") => Icons.Material.Filled.Settings,
+        _ => Icons.Material.Filled.Lock
+    };
+
+    private string GetPermissionDisplayName(string permissionName)
+    {
+        var parts = permissionName.Split('.');
+        return parts.Length > 1 ? parts[1] : permissionName;
+    }
+
+    private string GetPermissionDescription(string permissionName)
+    {
+        return PermissionConstants.PermissionDescriptions.GetValueOrDefault(permissionName, $"Permission for {permissionName}");
+    }
+}

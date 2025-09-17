@@ -1,75 +1,379 @@
-﻿@page "/products"
+@page "/products"
 @using MudBlazor
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
 @inject IProductService ProductService
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
-<MudStack Spacing="2" Class="h-100">
-    <!-- Header Row -->
-    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">Products</MudText>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="CreateProduct">
-            Add Product
-        </MudButton>
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header Section -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h4">Product Management</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Manage your product catalog and inventory
+                    </MudText>
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" 
+                          StartIcon="@Icons.Material.Filled.Refresh" 
+                          OnClick="RefreshData"
+                          Loading="_loading">
+                    Refresh
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="CreateProduct">
+                    Add Product
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <!-- Stats Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_products.Count</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetTotalValue().ToString("C0")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Value</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetLowStockCount()</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Low Stock</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetActiveCount()</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Active Products</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Search and Filters -->
+        <MudCard Elevation="1" Class="pa-4">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="4">
+                <MudTextField @bind-Value="_searchText" 
+                             Label="Search Products" 
+                             Variant="Variant.Outlined" 
+                             Adornment="Adornment.Start" 
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             OnKeyUp="OnSearchChanged"
+                             Style="min-width: 300px;" />
+                <MudSelect T="int?" @bind-Value="_selectedCategoryId" 
+                          Label="Category Filter" 
+                          Variant="Variant.Outlined"
+                          Style="min-width: 200px;">
+                    <MudSelectItem T="int?" Value="@((int?)null)">All Categories</MudSelectItem>
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem T="int?" Value="@category.CategoryId">@category.CategoryName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" @bind-Value="_stockFilter" 
+                          Label="Stock Status" 
+                          Variant="Variant.Outlined"
+                          Style="min-width: 150px;">
+                    <MudSelectItem Value="@("All")">All Stock</MudSelectItem>
+                    <MudSelectItem Value="@("InStock")">In Stock</MudSelectItem>
+                    <MudSelectItem Value="@("LowStock")">Low Stock</MudSelectItem>
+                    <MudSelectItem Value="@("OutOfStock")">Out of Stock</MudSelectItem>
+                </MudSelect>
+            </MudStack>
+        </MudCard>
+
+        <!-- Products Table -->
+        <MudCard Elevation="2" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Products (@_filteredProducts.Count())</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_loading)
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText>Loading products...</MudText>
+                    </MudStack>
+                }
+                else if (_filteredProducts.Any())
+                {
+                    <MudTable Items="_filteredProducts" Hover="true" Dense="false" Breakpoint="Breakpoint.Sm" Class="w-100">
+                        <HeaderContent>
+                            <MudTh>Product</MudTh>
+                            <MudTh>Category</MudTh>
+                            <MudTh Style="text-align: right">Price</MudTh>
+                            <MudTh Style="text-align: right">Cost</MudTh>
+                            <MudTh Style="text-align: right">Stock</MudTh>
+                            <MudTh Style="text-align: center">Status</MudTh>
+                            <MudTh Style="text-align: center">Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.body1">@context.Name</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        SKU: @context.SKU
+                                        @if (!string.IsNullOrEmpty(context.Description))
+                                        {
+                                            <br />@context.Description
+                                        }
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small" 
+                                        Color="Color.Default" 
+                                        Icon="@(context.Category?.Icon ?? Icons.Material.Filled.Category)">
+                                    @(context.Category?.CategoryName ?? "Uncategorized")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudText Typo="Typo.body1">@context.UnitPrice.ToString("C")</MudText>
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@context.CostPrice.ToString("C")</MudText>
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudStack AlignItems="@AlignItems.End" Spacing="1">
+                                    <MudText Typo="Typo.body1">@context.QuantityOnHand</MudText>
+                                    @if (context.ReorderLevel > 0)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            Reorder: @context.ReorderLevel
+                                        </MudText>
+                                    }
+                                </MudStack>
+                            </MudTd>
+                            <MudTd Style="text-align: center">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStockStatusColor(context)">
+                                    @GetStockStatus(context)
+                                </MudChip>
+                            </MudTd>
+                            <MudTd Style="text-align: center">
+                                <MudStack Row="true" Spacing="1" Justify="@Justify.Center">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                   Color="Color.Info"
+                                                   Size="Size.Small"
+                                                   Title="View Details"
+                                                   OnClick="@(() => ViewProduct(context.ProductId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   Title="Edit Product"
+                                                   OnClick="@(() => EditProduct(context.ProductId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   Title="Delete Product"
+                                                   OnClick="@(() => ConfirmDelete(context.ProductId))" />
+                                </MudStack>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+                                <MudText Typo="Typo.h6" Color="Color.Secondary">No products found</MudText>
+                                <MudText Color="Color.Secondary">Try adjusting your search or filters</MudText>
+                            </MudStack>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6" Color="Color.Secondary">No products yet</MudText>
+                        <MudText Color="Color.Secondary">Get started by adding your first product</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateProduct" Class="mt-4">
+                            Add First Product
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
     </MudStack>
-
-    <!-- Scrollable Table Area -->
-    <div style="flex:1; overflow:auto;">
-        <MudTable Items="@_products" Hover="true" Dense="true" Class="w-100">
-            <HeaderContent>
-                <MudTh>Name</MudTh>
-                <MudTh>Category</MudTh>
-                <MudTh align="right">Price</MudTh>
-                <MudTh align="right">Stock</MudTh>
-                <MudTh>Action</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.Name</MudTd>
-                <MudTd>@context.Category?.CategoryName</MudTd>
-                <MudTd Align="Align.Right">@context.UnitPrice.ToString("C")</MudTd>
-                <MudTd Align="Align.Right">@context.QuantityOnHand</MudTd>
-                <MudTd>
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                   Color="Color.Primary"
-                                   Size="Size.Small"
-                                   OnClick="@(() => EditProduct(context.ProductId))" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   OnClick="@(() => ConfirmDelete(context.ProductId))" />
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <MudText Color="Color.Secondary">No products found.</MudText>
-            </NoRecordsContent>
-        </MudTable>
-    </div>
-</MudStack>
+</MudContainer>
 
 @code {
     private List<Product> _products = new();
+    private List<Category> _categories = new();
+    private IEnumerable<Product> _filteredProducts = new List<Product>();
+    private bool _loading = true;
+    private string _searchText = string.Empty;
+    private int? _selectedCategoryId;
+    private string _stockFilter = "All";
+
+    [Inject] private ICategoryService CategoryService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        _products = (await ProductService.GetAllAsync()).ToList();
+        await LoadData();
+    }
+
+    protected override void OnParametersSet()
+    {
+        FilterProducts();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var productsTask = ProductService.GetAllAsync();
+            var categoriesTask = CategoryService.GetAllAsync();
+
+            await Task.WhenAll(productsTask, categoriesTask);
+
+            _products = productsTask.Result.ToList();
+            _categories = categoriesTask.Result.ToList();
+            
+            FilterProducts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+        Snackbar.Add("Data refreshed successfully", Severity.Success);
+    }
+
+    private void FilterProducts()
+    {
+        var filtered = _products.AsEnumerable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            filtered = filtered.Where(p => 
+                p.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                p.SKU.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (p.Description?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        // Category filter
+        if (_selectedCategoryId.HasValue)
+        {
+            filtered = filtered.Where(p => p.CategoryId == _selectedCategoryId.Value);
+        }
+
+        // Stock filter
+        filtered = _stockFilter switch
+        {
+            "InStock" => filtered.Where(p => p.QuantityOnHand > p.ReorderLevel),
+            "LowStock" => filtered.Where(p => p.QuantityOnHand <= p.ReorderLevel && p.QuantityOnHand > 0),
+            "OutOfStock" => filtered.Where(p => p.QuantityOnHand == 0),
+            _ => filtered
+        };
+
+        _filteredProducts = filtered.OrderBy(p => p.Name);
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        FilterProducts();
+    }
+
+    private decimal GetTotalValue()
+    {
+        return _products.Sum(p => p.QuantityOnHand * p.CostPrice);
+    }
+
+    private int GetLowStockCount()
+    {
+        return _products.Count(p => p.QuantityOnHand <= p.ReorderLevel && p.QuantityOnHand > 0);
+    }
+
+    private int GetActiveCount()
+    {
+        return _products.Count(p => p.IsActive);
+    }
+
+    private Color GetStockStatusColor(Product product)
+    {
+        if (product.QuantityOnHand == 0) return Color.Error;
+        if (product.QuantityOnHand <= product.ReorderLevel) return Color.Warning;
+        return Color.Success;
+    }
+
+    private string GetStockStatus(Product product)
+    {
+        if (product.QuantityOnHand == 0) return "Out of Stock";
+        if (product.QuantityOnHand <= product.ReorderLevel) return "Low Stock";
+        return "In Stock";
     }
 
     private async Task CreateProduct()
     {
         var dialog = DialogService.Show<ProductForm>(
             "Add Product",
-            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true }
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true }
         );
 
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _products = (await ProductService.GetAllAsync()).ToList();
+            await LoadData();
+            Snackbar.Add("Product created successfully", Severity.Success);
         }
+    }
+
+    private async Task ViewProduct(int id)
+    {
+        var parameters = new DialogParameters { ["Id"] = id, ["ReadOnly"] = true };
+
+        DialogService.Show<ProductForm>(
+            "Product Details",
+            parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true }
+        );
     }
 
     private async Task EditProduct(int id)
@@ -79,27 +383,39 @@
         var dialog = DialogService.Show<ProductForm>(
             "Edit Product",
             parameters,
-            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true }
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true }
         );
 
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _products = (await ProductService.GetAllAsync()).ToList();
+            await LoadData();
+            Snackbar.Add("Product updated successfully", Severity.Success);
         }
     }
 
     private async Task ConfirmDelete(int id)
     {
+        var product = _products.FirstOrDefault(p => p.ProductId == id);
+        if (product == null) return;
+
         bool? result = await DialogService.ShowMessageBox(
             "Confirm Delete",
-            "Are you sure you want to delete this product?",
+            $"Are you sure you want to delete '{product.Name}'? This action cannot be undone.",
             yesText: "Delete", cancelText: "Cancel");
 
         if (result == true)
         {
-            await ProductService.DeleteAsync(id);
-            _products = (await ProductService.GetAllAsync()).ToList();
+            try
+            {
+                await ProductService.DeleteAsync(id, "System");
+                await LoadData();
+                Snackbar.Add($"Product '{product.Name}' deleted successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting product: {ex.Message}", Severity.Error);
+            }
         }
     }
 }

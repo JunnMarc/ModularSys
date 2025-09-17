@@ -1,4 +1,4 @@
-﻿@page "/inventory"
+@page "/inventory"
 @using ModularSys.Data.Common.Entities.Inventory
 @using MudBlazor
 @using ModularSys.Data.Common.Entities
@@ -16,6 +16,12 @@
                      Dense="true"
                      ScrollButtons="ScrollButtons.Auto"
                      KeepPanelsAlive="true">
+
+                <!-- Dashboard Tab -->
+                <MudTabPanel Text="Dashboard" Icon="@Icons.Material.Filled.Dashboard">
+                    <MudDivider Class="mb-4" />
+                    <InventoryDashboard />
+                </MudTabPanel>
 
                 <!-- Products Tab -->
                 <MudTabPanel Text="Products" Icon="@Icons.Material.Filled.Inventory2">
@@ -47,15 +53,16 @@
                     <InventoryTransactionIndex />
                 </MudTabPanel>
 
+                <!-- Stock Alerts Tab -->
+                <MudTabPanel Text="Stock Alerts" Icon="@Icons.Material.Filled.NotificationsActive">
+                    <MudDivider Class="mb-4" />
+                    <StockAlerts />
+                </MudTabPanel>
+
                 <!-- Reports Tab -->
                 <MudTabPanel Text="Reports" Icon="@Icons.Material.Filled.Assessment">
-                    <MudText Typo="Typo.h6" GutterBottom="true">Reports</MudText>
                     <MudDivider Class="mb-4" />
-                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
-                            Reports and analytics coming soon...
-                        </MudAlert>
-                    </MudStack>
+                    <InventoryReports />
                 </MudTabPanel>
 
                 <!-- Settings Tab -->

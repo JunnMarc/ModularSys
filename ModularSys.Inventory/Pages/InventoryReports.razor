@@ -1,0 +1,379 @@
+@page "/inventory/reports"
+@using ModularSys.Inventory.Interface
+@using ModularSys.Data.Common.Entities.Inventory
+@using MudBlazor
+@inject IInventoryDashboardService DashboardService
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudText Typo="Typo.h4">
+                <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
+                Inventory Reports & Analytics
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudDateRangePicker @bind-DateRange="_dateRange" Label="Date Range" />
+                <MudButton Variant="Variant.Outlined" 
+                          StartIcon="@Icons.Material.Filled.Refresh" 
+                          OnClick="RefreshReports"
+                          Loading="_loading">
+                    Refresh
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.Download" 
+                          OnClick="ExportReports">
+                    Export
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                <MudProgressCircular Indeterminate="true" Size="Size.Large" />
+                <MudText>Loading reports...</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <!-- Report Cards -->
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
+                            <MudText Typo="Typo.h5">@_revenueAnalytics?.TotalRevenue.ToString("C0")</MudText>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Revenue</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Large" />
+                            <MudText Typo="Typo.h5">@_revenueAnalytics?.TotalCosts.ToString("C0")</MudText>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Costs</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
+                            <MudText Typo="Typo.h5">@_revenueAnalytics?.GrossProfit.ToString("C0")</MudText>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Gross Profit</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
+                            <MudText Typo="Typo.h5">@_revenueAnalytics?.ProfitMargin.ToString("F1")%</MudText>
+                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Profit Margin</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Charts Row -->
+            <MudGrid>
+                <!-- Revenue Trend Chart -->
+                <MudItem xs="12" lg="8">
+                    <MudCard Elevation="2" Class="pa-4" Style="height: 450px;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Revenue & Profit Trend</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (_revenueAnalytics?.DailyRevenues?.Any() == true)
+                            {
+                                <MudTable Items="_revenueAnalytics.DailyRevenues.TakeLast(10)" Dense="true" Hover="true">
+                                    <HeaderContent>
+                                        <MudTh>Date</MudTh>
+                                        <MudTh Style="text-align: right">Revenue</MudTh>
+                                        <MudTh Style="text-align: right">Costs</MudTh>
+                                        <MudTh Style="text-align: right">Profit</MudTh>
+                                        <MudTh>Trend</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.Date.ToString("MMM dd")</MudTd>
+                                        <MudTd Style="text-align: right">@context.Revenue.ToString("C")</MudTd>
+                                        <MudTd Style="text-align: right">@context.Costs.ToString("C")</MudTd>
+                                        <MudTd Style="text-align: right">
+                                            <MudText Color="@(context.Profit >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                                                @context.Profit.ToString("C")
+                                            </MudText>
+                                        </MudTd>
+                                        <MudTd>
+                                            <MudProgressLinear Value="@GetProfitPercentage(context)" 
+                                                             Color="@(context.Profit >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" 
+                                                             Size="MudBlazor.Size.Small" />
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+                            else
+                            {
+                                <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No revenue data available</MudText>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Category Performance -->
+                <MudItem xs="12" lg="4">
+                    <MudCard Elevation="2" Class="pa-4" Style="height: 450px;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Category Performance</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (_categoryData?.Any() == true)
+                            {
+                                <MudStack Spacing="3">
+                                    @foreach (var category in _categoryData.Take(6))
+                                    {
+                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@(category.Icon ?? Icons.Material.Filled.Category)" 
+                                                        Style="@($"color: {category.Color ?? "#1976d2"}")" />
+                                                <MudStack Spacing="0">
+                                                    <MudText Typo="Typo.body1">@category.CategoryName</MudText>
+                                                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                        @category.ProductCount products
+                                                    </MudText>
+                                                </MudStack>
+                                            </MudStack>
+                                            <MudStack Spacing="0" AlignItems="@AlignItems.End">
+                                                <MudText Typo="Typo.body1">@category.TotalValue.ToString("C0")</MudText>
+                                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                    @category.TotalStock units
+                                                </MudText>
+                                            </MudStack>
+                                        </MudStack>
+                                        @if (category != _categoryData.Take(6).Last())
+                                        {
+                                            <MudDivider />
+                                        }
+                                    }
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No category data available</MudText>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Inventory Movement Chart -->
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Inventory Movement Analysis</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (_movementData?.Any() == true)
+                    {
+                        <MudTable Items="_movementData.TakeLast(15)" Dense="true" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Date</MudTh>
+                                <MudTh Style="text-align: right">Stock In</MudTh>
+                                <MudTh Style="text-align: right">Stock Out</MudTh>
+                                <MudTh Style="text-align: right">Net Movement</MudTh>
+                                <MudTh>Activity</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.Date.ToString("MMM dd")</MudTd>
+                                <MudTd Style="text-align: right">
+                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success">
+                                        +@context.StockIn
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align: right">
+                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">
+                                        -@context.StockOut
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align: right">
+                                    @{
+                                        var netMovement = context.StockIn - context.StockOut;
+                                    }
+                                    <MudText Color="@(netMovement >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
+                                        @(netMovement >= 0 ? "+" : "")@netMovement
+                                    </MudText>
+                                </MudTd>
+                                <MudTd>
+                                    <MudProgressLinear Value="@GetMovementActivity(context)" 
+                                                     Color="MudBlazor.Color.Primary" 
+                                                     Size="MudBlazor.Size.Small" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No movement data available</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Top Products Table -->
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Top Performing Products</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (_topProducts?.Any() == true)
+                    {
+                        <MudTable Items="_topProducts" Dense="true" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Rank</MudTh>
+                                <MudTh>Product</MudTh>
+                                <MudTh>SKU</MudTh>
+                                <MudTh Style="text-align: right">Qty Sold</MudTh>
+                                <MudTh Style="text-align: right">Revenue</MudTh>
+                                <MudTh Style="text-align: right">Avg Price</MudTh>
+                                <MudTh Style="text-align: right">Current Stock</MudTh>
+                                <MudTh Style="text-align: right">Stock Status</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetRankColor(context.Item1)">
+                                        #@context.Item1
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd>@context.Item2.ProductName</MudTd>
+                                <MudTd>@context.Item2.SKU</MudTd>
+                                <MudTd Style="text-align: right">@context.Item2.QuantitySold.ToString("N0")</MudTd>
+                                <MudTd Style="text-align: right">@context.Item2.Revenue.ToString("C")</MudTd>
+                                <MudTd Style="text-align: right">@context.Item2.UnitPrice.ToString("C")</MudTd>
+                                <MudTd Style="text-align: right">@context.Item2.CurrentStock</MudTd>
+                                <MudTd Style="text-align: right">
+                                    <MudChip T="string" Size="MudBlazor.Size.Small" 
+                                            Color="@GetStockStatusColor(context.Item2.CurrentStock)">
+                                        @GetStockStatus(context.Item2.CurrentStock)
+                                    </MudChip>
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="MudBlazor.Color.Secondary">No sales data available</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No sales data available</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private DateRange? _dateRange = new DateRange(DateTime.Today.AddDays(-30), DateTime.Today);
+    
+    private RevenueAnalytics? _revenueAnalytics;
+    private IEnumerable<CategoryStockSummary>? _categoryData;
+    private IEnumerable<InventoryMovementData>? _movementData;
+    private IEnumerable<(int, TopSellingProduct)>? _topProducts;
+
+    private double GetProfitPercentage(DailyRevenue revenue)
+    {
+        if (revenue.Revenue == 0) return 0;
+        var percentage = Math.Abs((double)(revenue.Profit / revenue.Revenue)) * 100;
+        return Math.Min(percentage, 100);
+    }
+
+    private double GetMovementActivity(InventoryMovementData movement)
+    {
+        var totalActivity = movement.StockIn + movement.StockOut;
+        if (totalActivity == 0) return 0;
+        return Math.Min((double)totalActivity / 100 * 100, 100);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReports();
+    }
+
+    private async Task LoadReports()
+    {
+        try
+        {
+            _loading = true;
+            StateHasChanged();
+
+            var days = _dateRange?.End != null && _dateRange?.Start != null 
+                ? (_dateRange.End.Value - _dateRange.Start.Value).Days 
+                : 30;
+
+            _revenueAnalytics = await DashboardService.GetRevenueAnalyticsAsync(days);
+            _categoryData = await DashboardService.GetCategoryStockSummaryAsync();
+            _movementData = await DashboardService.GetInventoryMovementDataAsync(days);
+            
+            var topProductsData = await DashboardService.GetTopSellingProductsAsync(days, 10);
+            _topProducts = topProductsData.Select((product, index) => (index + 1, product));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading reports: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshReports()
+    {
+        await LoadReports();
+        Snackbar.Add("Reports refreshed", Severity.Success);
+    }
+
+    private async Task ExportReports()
+    {
+        Snackbar.Add("Export functionality coming soon", Severity.Info);
+    }
+
+    private MudBlazor.Color GetRankColor(int rank) => rank switch
+    {
+        1 => MudBlazor.Color.Warning,
+        2 => MudBlazor.Color.Secondary,
+        3 => MudBlazor.Color.Tertiary,
+        _ => MudBlazor.Color.Default
+    };
+
+    private MudBlazor.Color GetStockStatusColor(int stock) => stock switch
+    {
+        0 => MudBlazor.Color.Error,
+        <= 10 => MudBlazor.Color.Warning,
+        <= 50 => MudBlazor.Color.Info,
+        _ => MudBlazor.Color.Success
+    };
+
+    private string GetStockStatus(int stock) => stock switch
+    {
+        0 => "Out of Stock",
+        <= 10 => "Low Stock",
+        <= 50 => "Medium Stock",
+        _ => "Good Stock"
+    };
+}

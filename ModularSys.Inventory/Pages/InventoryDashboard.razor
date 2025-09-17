@@ -1,0 +1,406 @@
+@page "/inventory/dashboard"
+@using ModularSys.Inventory.Interface
+@using ModularSys.Data.Common.Entities.Inventory
+@using MudBlazor
+@inject IInventoryDashboardService DashboardService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudText Typo="Typo.h4" GutterBottom="false">
+                <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+                Inventory Dashboard
+            </MudText>
+            <MudButton Variant="Variant.Outlined" 
+                      StartIcon="@Icons.Material.Filled.Refresh" 
+                      OnClick="RefreshData"
+                      Loading="_loading">
+                Refresh
+            </MudButton>
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                <MudProgressCircular Indeterminate="true" Size="Size.Large" />
+                <MudText>Loading dashboard data...</MudText>
+            </MudStack>
+        }
+        else if (_dashboardData != null)
+        {
+            <!-- KPI Cards Row -->
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" 
+                                    Color="Color.Primary" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h4">@_dashboardData.TotalProducts.ToString("N0")</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" 
+                                    Color="Color.Success" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h4">@_dashboardData.TotalInventoryValue.ToString("C0")</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Value</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="@Icons.Material.Filled.Warning" 
+                                    Color="Color.Warning" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h4">@_dashboardData.LowStockCount.ToString("N0")</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Low Stock Items</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="2" Class="pa-4">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" 
+                                    Color="Color.Info" Size="Size.Large" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h4">@_dashboardData.ProfitMargin.ToString("F1")%</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Profit Margin</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Stock Alerts Section -->
+            @if (_stockAlerts?.Any() == true)
+            {
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">
+                                <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Class="mr-2" />
+                                Stock Alerts (@_stockAlerts.Count())
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="2">
+                            @foreach (var alert in _stockAlerts.Take(5))
+                            {
+                                <MudAlert Severity="@GetAlertSeverity(alert.Severity)" 
+                                         Variant="Variant.Outlined" 
+                                         Dense="true">
+                                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                        <MudText>@alert.Message</MudText>
+                                        <MudChip T="string" Size="Size.Small" Color="@GetAlertColor(alert.AlertType)">
+                                            @alert.AlertType
+                                        </MudChip>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                            @if (_stockAlerts.Count() > 5)
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                                    And @(_stockAlerts.Count() - 5) more alerts...
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            }
+
+            <!-- Charts Row -->
+            <MudGrid>
+                <!-- Category Stock Summary -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Class="pa-4" Style="height: 400px; display: flex; flex-direction: column;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Stock by Category</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent Style="flex: 1; overflow: hidden; padding: 0;">
+                            @if (_categoryData?.Any() == true)
+                            {
+                                <div style="height: 100%; overflow-y: auto; padding: 16px;">
+                                    <MudStack Spacing="3">
+                                        @foreach (var category in _categoryData)
+                                        {
+                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                                <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2" Style="flex: 1; min-width: 0;">
+                                                    <MudIcon Icon="@(category.Icon ?? Icons.Material.Filled.Category)" 
+                                                            Style="@($"color: {category.Color ?? "#1976d2"}; flex-shrink: 0;")" />
+                                                    <MudStack Spacing="0" Style="min-width: 0; flex: 1;">
+                                                        <MudText Typo="Typo.body1" Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                            @category.CategoryName
+                                                        </MudText>
+                                                        <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                            @category.ProductCount products
+                                                        </MudText>
+                                                    </MudStack>
+                                                </MudStack>
+                                                <MudStack Spacing="0" AlignItems="@AlignItems.End" Style="flex-shrink: 0; min-width: 120px;">
+                                                    <MudText Typo="Typo.body2" Style="white-space: nowrap;">
+                                                        @category.TotalStock.ToString("N0") units
+                                                    </MudText>
+                                                    <MudProgressLinear Value="@GetCategoryProgress(category)" 
+                                                                     Color="MudBlazor.Color.Primary" 
+                                                                     Size="MudBlazor.Size.Small" 
+                                                                     Style="width: 100px;" />
+                                                </MudStack>
+                                            </MudStack>
+                                            @if (category != _categoryData.Last())
+                                            {
+                                                <MudDivider />
+                                            }
+                                        }
+                                    </MudStack>
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No category data available</MudText>
+                                </div>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Revenue Analytics -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Class="pa-4" Style="height: 400px; display: flex; flex-direction: column;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Revenue Trend (30 Days)</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent Style="flex: 1; overflow: hidden; padding: 0;">
+                            @if (_revenueAnalytics?.DailyRevenues?.Any() == true)
+                            {
+                                <div style="height: 100%; overflow-y: auto; padding: 16px;">
+                                    <MudStack Spacing="2">
+                                        <MudGrid>
+                                            <MudItem xs="6">
+                                                <MudStack AlignItems="@AlignItems.Center" Spacing="1">
+                                                    <MudText Typo="Typo.h5" Color="MudBlazor.Color.Success" Style="white-space: nowrap;">
+                                                        @_revenueAnalytics.TotalRevenue.ToString("C0")
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Revenue</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                            <MudItem xs="6">
+                                                <MudStack AlignItems="@AlignItems.Center" Spacing="1">
+                                                    <MudText Typo="Typo.h5" Color="MudBlazor.Color.Error" Style="white-space: nowrap;">
+                                                        @_revenueAnalytics.TotalCosts.ToString("C0")
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Costs</MudText>
+                                                </MudStack>
+                                            </MudItem>
+                                        </MudGrid>
+                                        <MudDivider />
+                                        <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Recent Performance (Last 10 Days)</MudText>
+                                        @foreach (var day in _revenueAnalytics.DailyRevenues.TakeLast(10))
+                                        {
+                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                                <MudText Typo="Typo.body2" Style="min-width: 60px;">@day.Date.ToString("MMM dd")</MudText>
+                                                <MudStack Row="true" Spacing="1" Style="flex-shrink: 0;">
+                                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success" Style="font-size: 0.75rem;">
+                                                        @day.Revenue.ToString("C0")
+                                                    </MudChip>
+                                                    <MudChip T="string" Size="MudBlazor.Size.Small" 
+                                                            Color="@(day.Profit >= 0 ? MudBlazor.Color.Info : MudBlazor.Color.Error)"
+                                                            Style="font-size: 0.75rem;">
+                                                        @(day.Profit >= 0 ? "+" : "")@day.Profit.ToString("C0")
+                                                    </MudChip>
+                                                </MudStack>
+                                            </MudStack>
+                                        }
+                                    </MudStack>
+                                </div>
+                            }
+                            else
+                            {
+                                <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                                    <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No revenue data available</MudText>
+                                </div>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Top Selling Products -->
+            <MudCard Elevation="2" Class="pa-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-2" />
+                            Top Selling Products (30 Days)
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (_topProducts?.Any() == true)
+                    {
+                        <MudTable Items="_topProducts" Dense="true" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Product</MudTh>
+                                <MudTh>SKU</MudTh>
+                                <MudTh Style="text-align: right">Qty Sold</MudTh>
+                                <MudTh Style="text-align: right">Revenue</MudTh>
+                                <MudTh Style="text-align: right">Current Stock</MudTh>
+                                <MudTh Style="text-align: right">Unit Price</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.ProductName</MudTd>
+                                <MudTd>@context.SKU</MudTd>
+                                <MudTd Style="text-align: right">@context.QuantitySold.ToString("N0")</MudTd>
+                                <MudTd Style="text-align: right">@context.Revenue.ToString("C")</MudTd>
+                                <MudTd Style="text-align: right">
+                                    <MudChip T="string" Size="Size.Small" 
+                                            Color="@(context.CurrentStock <= 10 ? MudBlazor.Color.Error : MudBlazor.Color.Success)">
+                                        @context.CurrentStock
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align: right">@context.UnitPrice.ToString("C")</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Color="Color.Secondary">No sales data available</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudText Color="Color.Secondary" Align="Align.Center">No sales data available</MudText>
+                    }
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Additional Metrics Row -->
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="1" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Info" Size="Size.Large" />
+                            <MudText Typo="Typo.h5">@_dashboardData.TotalCategories</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Categories</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="1" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Warning" Size="Size.Large" />
+                            <MudText Typo="Typo.h5">@_dashboardData.PendingPurchaseOrders</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Pending POs</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="1" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Success" Size="Size.Large" />
+                            <MudText Typo="Typo.h5">@_dashboardData.PendingSalesOrders</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Pending SOs</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="1" Class="pa-4">
+                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Color="Color.Primary" Size="Size.Large" />
+                            <MudText Typo="Typo.h5">@_dashboardData.TotalTransactions</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Transactions</MudText>
+                        </MudStack>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private InventoryDashboardData? _dashboardData;
+    private IEnumerable<StockAlert>? _stockAlerts;
+    private IEnumerable<CategoryStockSummary>? _categoryData;
+    private IEnumerable<TopSellingProduct>? _topProducts;
+    private RevenueAnalytics? _revenueAnalytics;
+
+    private double GetCategoryProgress(CategoryStockSummary category)
+    {
+        if (_categoryData == null) return 0;
+        var maxStock = _categoryData.Max(c => c.TotalStock);
+        if (maxStock == 0) return 0;
+        return (double)category.TotalStock / maxStock * 100;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            _loading = true;
+            StateHasChanged();
+
+            _dashboardData = await DashboardService.GetDashboardDataAsync();
+            _stockAlerts = await DashboardService.GetStockAlertsAsync();
+            _categoryData = await DashboardService.GetCategoryStockSummaryAsync();
+            _topProducts = await DashboardService.GetTopSellingProductsAsync();
+            _revenueAnalytics = await DashboardService.GetRevenueAnalyticsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading dashboard data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadDashboardData();
+        Snackbar.Add("Dashboard data refreshed", Severity.Success);
+    }
+
+    private Severity GetAlertSeverity(string severity) => severity switch
+    {
+        "Critical" => Severity.Error,
+        "Error" => Severity.Error,
+        "Warning" => Severity.Warning,
+        _ => Severity.Info
+    };
+
+    private MudBlazor.Color GetAlertColor(string alertType) => alertType switch
+    {
+        "OutOfStock" => MudBlazor.Color.Error,
+        "LowStock" => MudBlazor.Color.Warning,
+        "Expiring" => MudBlazor.Color.Info,
+        _ => MudBlazor.Color.Default
+    };
+}

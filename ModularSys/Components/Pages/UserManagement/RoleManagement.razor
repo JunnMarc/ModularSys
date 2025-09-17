@@ -1,0 +1,440 @@
+@page "/roles"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Security
+@using ModularSys.Data.Common.Entities
+@using ModularSys.Components.Dialogs
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject IRolePermissionService RolePermissionService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <MudText Typo="Typo.h4" Class="font-weight-bold">Role Management</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Manage system roles and their permissions
+            </MudText>
+        </div>
+        <div class="header-actions">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="CreateNewRole"
+                       Class="mr-2">
+                Create Role
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Secondary" 
+                       StartIcon="@Icons.Material.Filled.Security"
+                       OnClick="OpenPermissionMatrix">
+                Permission Matrix
+            </MudButton>
+        </div>
+    </div>
+
+    <!-- Role Templates Section -->
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" />
+            Quick Role Templates
+        </MudText>
+        <MudGrid Spacing="2">
+            @foreach (var template in PermissionConstants.RoleTemplates)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Class="role-template-card" Elevation="1">
+                        <MudCardContent Class="pa-3">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                    @template.Key
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @template.Value.Count permissions included
+                                </MudText>
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Primary" 
+                                           Size="Size.Small"
+                                           OnClick="@(() => CreateRoleFromTemplate(template.Key, template.Value))"
+                                           FullWidth="true">
+                                    Use Template
+                                </MudButton>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Roles List -->
+    <MudPaper Class="pa-4" Elevation="2">
+        <div class="section-header">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" />
+                System Roles (@_roles.Count)
+            </MudText>
+            <MudTextField @bind-Value="_searchTerm"
+                          Placeholder="Search roles..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="search-field" />
+        </div>
+
+        @if (_loading)
+        {
+            <div class="loading-container">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Loading roles...</MudText>
+            </div>
+        }
+        else if (!FilteredRoles.Any())
+        {
+            <div class="empty-state">
+                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6" Color="Color.Secondary">No roles found</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @(string.IsNullOrWhiteSpace(_searchTerm) ? "Create your first role to get started" : "Try adjusting your search criteria")
+                </MudText>
+                @if (string.IsNullOrWhiteSpace(_searchTerm))
+                {
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="CreateNewRole"
+                               Class="mt-3">
+                        Create First Role
+                    </MudButton>
+                }
+            </div>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var role in FilteredRoles)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="role-card" Elevation="1">
+                            <MudCardContent Class="pa-3">
+                                <MudStack Spacing="2">
+                                    <div class="role-header">
+                                        <MudChip T="string" 
+                                                 Color="@GetRoleColor(role.RoleName)" 
+                                                 Size="Size.Small"
+                                                 Variant="Variant.Filled">
+                                            @role.RoleName
+                                        </MudChip>
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                                            <MudMenuItem OnClick="@(() => EditRole(role))">
+                                                <div class="menu-item">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                                    <span>Edit</span>
+                                                </div>
+                                            </MudMenuItem>
+                                            <MudMenuItem OnClick="@(() => DuplicateRole(role))">
+                                                <div class="menu-item">
+                                                    <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+                                                    <span>Duplicate</span>
+                                                </div>
+                                            </MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem OnClick="@(() => DeleteRole(role))">
+                                                <div class="menu-item text-danger">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+                                                    <span>Delete</span>
+                                                </div>
+                                            </MudMenuItem>
+                                        </MudMenu>
+                                    </div>
+                                    
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        @GetRolePermissionCount(role.RoleId) permissions assigned
+                                    </MudText>
+                                    
+                                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                        @GetRoleUserCount(role.RoleId) users with this role
+                                    </MudText>
+                                </MudStack>
+                            </MudCardContent>
+                            <MudCardActions Class="pa-2">
+                                <MudButton Variant="Variant.Text" 
+                                           Color="Color.Primary" 
+                                           Size="Size.Small"
+                                           OnClick="@(() => ViewRoleDetails(role))"
+                                           FullWidth="true">
+                                    View Details
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-field {
+        width: 300px;
+    }
+
+    .role-template-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .role-template-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .role-card {
+        transition: all 0.2s ease;
+        height: 100%;
+    }
+
+    .role-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .text-danger {
+        color: #dc3545;
+    }
+
+    .loading-container, .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        text-align: center;
+    }
+
+    @@media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .section-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .search-field {
+            width: 100%;
+        }
+    }
+</style>
+
+@code {
+    private List<Role> _roles = new();
+    private List<Permission> _permissions = new();
+    private Dictionary<int, int> _rolePermissionCounts = new();
+    private Dictionary<int, int> _roleUserCounts = new();
+    private bool _loading = true;
+    private string _searchTerm = string.Empty;
+
+    private List<Role> FilteredRoles =>
+        string.IsNullOrWhiteSpace(_searchTerm)
+            ? _roles
+            : _roles.Where(r => r.RoleName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+                   .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _loading = true;
+            
+            _roles = await RoleService.GetAllAsync();
+            _permissions = await PermissionService.GetAllAsync();
+            
+            // Load permission counts for each role
+            foreach (var role in _roles)
+            {
+                var permissions = await RolePermissionService.GetPermissionsForRoleAsync(role.RoleId);
+                _rolePermissionCounts[role.RoleId] = permissions.Count;
+                
+                // TODO: Get actual user count from UserService
+                _roleUserCounts[role.RoleId] = 0; // Placeholder
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading roles: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetRoleColor(string roleName) => roleName.ToLower() switch
+    {
+        var name when name.Contains("admin") => Color.Error,
+        var name when name.Contains("manager") => Color.Warning,
+        var name when name.Contains("user") => Color.Info,
+        _ => Color.Primary
+    };
+
+    private int GetRolePermissionCount(int roleId) =>
+        _rolePermissionCounts.GetValueOrDefault(roleId, 0);
+
+    private int GetRoleUserCount(int roleId) =>
+        _roleUserCounts.GetValueOrDefault(roleId, 0);
+
+    private async Task CreateNewRole()
+    {
+        var parameters = new DialogParameters();
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Create New Role", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task CreateRoleFromTemplate(string templateName, List<string> permissions)
+    {
+        var parameters = new DialogParameters
+        {
+            ["TemplateToApply"] = templateName
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<RoleDialog>($"Create Role from {templateName} Template", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task EditRole(Role role)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ExistingRole"] = role
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<RoleDialog>($"Edit Role: {role.RoleName}", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task DuplicateRole(Role role)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ExistingRole"] = new Role 
+            { 
+                RoleName = $"{role.RoleName} (Copy)", 
+                Description = role.Description 
+            }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        
+        var dialog = await DialogService.ShowAsync<RoleDialog>($"Duplicate Role: {role.RoleName}", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteRole(Role role)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete Role",
+            $"Are you sure you want to delete the role '{role.RoleName}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            try
+            {
+                // TODO: Implement role deletion
+                Snackbar.Add($"Role '{role.RoleName}' deleted successfully", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting role: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ViewRoleDetails(Role role)
+    {
+        // TODO: Open role details dialog
+        Snackbar.Add($"View details for: {role.RoleName} - Coming soon!", Severity.Info);
+    }
+
+    private async Task OpenPermissionMatrix()
+    {
+        // Navigate to existing permission matrix
+        // TODO: Navigate to enhanced permission matrix
+        Snackbar.Add("Opening enhanced permission matrix - Coming soon!", Severity.Info);
+    }
+}

@@ -1,4 +1,4 @@
-﻿@page "/purchases"
+@page "/purchases"
 @using MudBlazor
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
@@ -6,117 +6,403 @@
 @inject IDialogService Dialogs
 @inject ISnackbar Snack
 
-<MudStack Spacing="2" Class="h-100">
-    <!-- Header Row -->
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">Purchase Orders</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@Create">
-            New Purchase
-        </MudButton>
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="4">
+        <!-- Header Section -->
+        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h4">Purchase Orders</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Manage supplier orders and inventory procurement
+                    </MudText>
+                </MudStack>
+            </MudStack>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" 
+                          StartIcon="@Icons.Material.Filled.Refresh" 
+                          OnClick="RefreshData"
+                          Loading="_loading">
+                    Refresh
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="Create">
+                    New Purchase Order
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <!-- Stats Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@_orders.Count</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Orders</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetTotalCost().ToString("C0")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Cost</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetPendingCount()</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Pending Orders</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Large" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h4">@GetReceivedCount()</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Received Orders</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Filters -->
+        <MudCard Elevation="1" Class="pa-4">
+            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="4">
+                <MudTextField @bind-Value="_searchText" 
+                             Label="Search Orders" 
+                             Variant="Variant.Outlined" 
+                             Adornment="Adornment.Start" 
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             OnKeyUp="OnSearchChanged"
+                             Style="min-width: 300px;" />
+                <MudSelect T="string" @bind-Value="_statusFilter" 
+                          Label="Status Filter" 
+                          Variant="Variant.Outlined"
+                          Style="min-width: 150px;">
+                    <MudSelectItem Value="@("All")">All Status</MudSelectItem>
+                    <MudSelectItem Value="@("Pending")">Pending</MudSelectItem>
+                    <MudSelectItem Value="@("Received")">Received</MudSelectItem>
+                    <MudSelectItem Value="@("Cancelled")">Cancelled</MudSelectItem>
+                </MudSelect>
+                <MudDatePicker @bind-Date="_dateFilter" 
+                              Label="Date Filter" 
+                              Variant="Variant.Outlined"
+                              Clearable="true" />
+            </MudStack>
+        </MudCard>
+
+        <!-- Orders Table -->
+        <MudCard Elevation="2" Class="pa-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Purchase Orders (@_filteredOrders.Count())</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_loading)
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText>Loading orders...</MudText>
+                    </MudStack>
+                }
+                else if (_filteredOrders.Any())
+                {
+                    <MudTable Items="_filteredOrders" Hover="true" Dense="false" Breakpoint="Breakpoint.Sm" Class="w-100">
+                        <HeaderContent>
+                            <MudTh>Order Details</MudTh>
+                            <MudTh>Supplier</MudTh>
+                            <MudTh Style="text-align: right">Amount</MudTh>
+                            <MudTh Style="text-align: center">Status</MudTh>
+                            <MudTh Style="text-align: center">Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.body1">Order #@context.OrderNumber</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @context.OrderDate.ToString("MMM dd, yyyy")
+                                        @if (context.ExpectedDeliveryDate.HasValue)
+                                        {
+                                            <br />@($"Expected: {context.ExpectedDeliveryDate.Value.ToString("MMM dd, yyyy")}")
+                                        }
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.body2">@(context.SupplierName ?? "Unknown Supplier")</MudText>
+                                    @if (!string.IsNullOrEmpty(context.SupplierEmail))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.SupplierEmail</MudText>
+                                    }
+                                </MudStack>
+                            </MudTd>
+                            <MudTd Style="text-align: right">
+                                <MudStack AlignItems="@AlignItems.End" Spacing="1">
+                                    <MudText Typo="Typo.body1">@context.GrandTotal.ToString("C")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        Subtotal: @context.SubTotal.ToString("C")
+                                    </MudText>
+                                </MudStack>
+                            </MudTd>
+                            <MudTd Style="text-align: center">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                                    @context.Status
+                                </MudChip>
+                            </MudTd>
+                            <MudTd Style="text-align: center">
+                                <MudStack Row="true" Spacing="1" Justify="@Justify.Center">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                   Color="Color.Info"
+                                                   Size="Size.Small"
+                                                   Title="View Details"
+                                                   OnClick="@(() => ViewOrder(context.PurchaseOrderId))" />
+                                    @if (context.Status == "Pending")
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       Title="Edit Order"
+                                                       OnClick="@(() => Edit(context))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                                       Color="Color.Success"
+                                                       Size="Size.Small"
+                                                       Title="Mark as Received"
+                                                       OnClick="@(() => Receive(context.PurchaseOrderId))" />
+                                    }
+                                    <MudIconButton Icon="@Icons.Material.Filled.Print"
+                                                   Color="Color.Secondary"
+                                                   Size="Size.Small"
+                                                   Title="Print Order"
+                                                   OnClick="@(() => PrintOrder(context.PurchaseOrderId))" />
+                                </MudStack>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                                <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+                                <MudText Typo="Typo.h6" Color="Color.Secondary">No orders found</MudText>
+                                <MudText Color="Color.Secondary">Try adjusting your search or filters</MudText>
+                            </MudStack>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Large" Color="Color.Secondary" />
+                        <MudText Typo="Typo.h6" Color="Color.Secondary">No purchase orders yet</MudText>
+                        <MudText Color="Color.Secondary">Create your first purchase order to get started</MudText>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create" Class="mt-4">
+                            Create First Order
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
     </MudStack>
-
-    <!-- Search -->
-    <MudTextField @bind-Value="_search" Placeholder="Search by status..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-2" />
-
-    <!-- Scrollable Table Area -->
-    <div style="flex:1; overflow:auto;">
-        <MudTable Items="@_view" Hover="true" Dense="true" Class="w-100">
-            <HeaderContent>
-                <MudTh>Order #</MudTh>
-                <MudTh>Date</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh align="right">Total</MudTh>
-                <MudTh align="right">Tax</MudTh>
-                <MudTh align="right">Grand Total</MudTh>
-                <MudTh>Action</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.PurchaseOrderId</MudTd>
-                <MudTd>@context.OrderDate.ToShortDateString()</MudTd>
-                <MudTd>@context.Status</MudTd>
-                <MudTd Align="Align.Right">@context.TotalAmount.ToString("₱#,##0.00")</MudTd>
-                <MudTd Align="Align.Right">@(@context.TotalAmount * 0.12m).ToString("₱#,##0.00")</MudTd>
-                <MudTd Align="Align.Right">@(@context.TotalAmount * 1.12m).ToString("₱#,##0.00")</MudTd>
-                <MudTd Align="Align.Right">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => Edit(context))" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
-                    @if (context.Status == "Pending")
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" OnClick="@(() => Receive(context.PurchaseOrderId))" />
-                    }
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <MudText Color="Color.Secondary">No purchase orders found.</MudText>
-            </NoRecordsContent>
-        </MudTable>
-    </div>
-</MudStack>
+</MudContainer>
 
 @code {
     private List<PurchaseOrder> _orders = new();
-    private string _search = "";
+    private IEnumerable<PurchaseOrder> _filteredOrders = new List<PurchaseOrder>();
+    private bool _loading = true;
+    private string _searchText = string.Empty;
+    private string _statusFilter = "All";
+    private DateTime? _dateFilter;
 
+    // Legacy properties for compatibility
+    private string _search = "";
     private IEnumerable<PurchaseOrder> _view => string.IsNullOrWhiteSpace(_search)
         ? _orders
         : _orders.Where(o => (o.Status ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadOrdersAsync();
+        await LoadData();
     }
 
-    private async Task LoadOrdersAsync()
+    protected override void OnParametersSet()
     {
+        FilterOrders();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        StateHasChanged();
+
         try
         {
             var orders = await PurchaseOrderService.GetAllAsync();
-            _orders = orders.ToList(); // Avoid chaining directly
+            _orders = orders.OrderByDescending(o => o.OrderDate).ToList();
+            FilterOrders();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading purchase orders: {ex.Message}");
+            Snack.Add($"Error loading orders: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
         }
     }
 
+    private async Task RefreshData()
+    {
+        await LoadData();
+        Snack.Add("Data refreshed successfully", Severity.Success);
+    }
+
+    private void FilterOrders()
+    {
+        var filtered = _orders.AsEnumerable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            filtered = filtered.Where(o => 
+                o.OrderNumber.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ||
+                (o.SupplierName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (o.SupplierEmail?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        // Status filter
+        if (_statusFilter != "All")
+        {
+            filtered = filtered.Where(o => o.Status == _statusFilter);
+        }
+
+        // Date filter
+        if (_dateFilter.HasValue)
+        {
+            filtered = filtered.Where(o => o.OrderDate.Date == _dateFilter.Value.Date);
+        }
+
+        _filteredOrders = filtered;
+        StateHasChanged();
+    }
+
+    private void OnSearchChanged()
+    {
+        FilterOrders();
+    }
+
+    private decimal GetTotalCost()
+    {
+        return _orders.Sum(o => o.GrandTotal);
+    }
+
+    private int GetPendingCount()
+    {
+        return _orders.Count(o => o.Status == "Pending");
+    }
+
+    private int GetReceivedCount()
+    {
+        return _orders.Count(o => o.Status == "Received");
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Pending" => Color.Warning,
+        "Received" => Color.Success,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
+
     private async Task Create()
     {
-        var dialog = Dialogs.Show<PurchaseOrderForm>("New Purchase Order", new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var dialog = Dialogs.Show<PurchaseOrderForm>("New Purchase Order", 
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true });
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
-            Snack.Add("Purchase order created.", Severity.Success);
+            await LoadData();
+            Snack.Add("Purchase order created successfully", Severity.Success);
         }
+    }
+
+    private async Task ViewOrder(int id)
+    {
+        var parameters = new DialogParameters { ["Id"] = id, ["ReadOnly"] = true };
+
+        Dialogs.Show<PurchaseOrderForm>(
+            "Purchase Order Details",
+            parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true }
+        );
     }
 
     private async Task Edit(PurchaseOrder order)
     {
         var parameters = new DialogParameters { ["Id"] = order.PurchaseOrderId };
-        var dialog = Dialogs.Show<PurchaseOrderForm>("Edit Purchase Order", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var dialog = Dialogs.Show<PurchaseOrderForm>("Edit Purchase Order", parameters, 
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true });
+        
         var result = await dialog.Result;
         if (!result.Canceled)
         {
-            _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
-            Snack.Add("Purchase order updated.", Severity.Success);
+            await LoadData();
+            Snack.Add("Purchase order updated successfully", Severity.Success);
         }
     }
 
-    // private async Task Remove(PurchaseOrder order)
-    // {
-    //     bool? confirm = await Dialogs.ShowMessageBox("Delete purchase order?", $"This will remove order #{order.PurchaseOrderId}.", yesText: "Delete", cancelText: "Cancel");
-    //     if (confirm == true)
-    //     {
-    //         await PurchaseOrderService.DeleteAsync(order.PurchaseOrderId);
-    //         _orders.Remove(order);
-    //         Snack.Add("Purchase order deleted.", Severity.Info);
-    //     }
-    // }
-
     private async Task Receive(int id)
     {
-        await PurchaseOrderService.ReceiveAsync(id);
-        _orders = (await PurchaseOrderService.GetAllAsync()).ToList();
-        Snack.Add("Purchase order marked as received.", Severity.Success);
+        var order = _orders.FirstOrDefault(o => o.PurchaseOrderId == id);
+        if (order == null) return;
+
+        bool? result = await Dialogs.ShowMessageBox(
+            "Receive Order",
+            $"Are you sure you want to mark order #{order.OrderNumber} as received?",
+            yesText: "Receive", cancelText: "Cancel");
+
+        if (result == true)
+        {
+            try
+            {
+                await PurchaseOrderService.ReceiveAsync(id);
+                await LoadData();
+                Snack.Add($"Order #{order.OrderNumber} marked as received", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snack.Add($"Error receiving order: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task PrintOrder(int id)
+    {
+        // TODO: Implement order printing
+        Snack.Add("Order printing feature coming soon", Severity.Info);
+    }
+
+    // Legacy method for compatibility
+    private async Task LoadOrdersAsync()
+    {
+        await LoadData();
     }
 }

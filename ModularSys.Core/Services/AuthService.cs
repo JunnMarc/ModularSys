@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Core.Interfaces;
 using ModularSys.Core.Security; // for SessionAuthStateProvider
 using ModularSys.Data.Common.Db;
@@ -27,6 +27,24 @@ namespace ModularSys.Core.Services
             _storage = storage;
             _rolePermissionService = rolePermissionService;
             _authStateProvider = authStateProvider;
+            
+            // Initialize authentication state from session storage
+            InitializeAuthState();
+        }
+
+        private void InitializeAuthState()
+        {
+            var currentUser = _storage.Get("current_user");
+            if (!string.IsNullOrEmpty(currentUser))
+            {
+                IsAuthenticated = true;
+                CurrentUser = currentUser;
+            }
+            else
+            {
+                IsAuthenticated = false;
+                CurrentUser = null;
+            }
         }
 
         public bool IsAuthenticated { get; private set; }
