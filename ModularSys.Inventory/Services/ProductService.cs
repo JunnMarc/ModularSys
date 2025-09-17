@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Inventory.Interface;
@@ -9,12 +10,15 @@ namespace ModularSys.Inventory.Services
 {
     public class ProductService : IProductService
     {
-        private readonly InventoryDbContext _db;
-        public ProductService(InventoryDbContext db) => _db = db;
+        private readonly IServiceScopeFactory _scopeFactory;
+        public ProductService(IServiceScopeFactory scopeFactory) => _scopeFactory = scopeFactory;
 
         public async Task<IEnumerable<Product>> GetAllAsync(bool includeDeleted = false)
         {
-            var query = _db.Products.Include(p => p.Category).AsQueryable();
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            
+            var query = db.Products.Include(p => p.Category).AsQueryable();
             if (includeDeleted)
                 query = query.IgnoreQueryFilters();
             return await query.AsNoTracking().ToListAsync();
@@ -22,7 +26,10 @@ namespace ModularSys.Inventory.Services
 
         public async Task<Product?> GetByIdAsync(int id, bool includeDeleted = false)
         {
-            var query = _db.Products.Include(p => p.Category).AsQueryable();
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            
+            var query = db.Products.Include(p => p.Category).AsQueryable();
             if (includeDeleted)
                 query = query.IgnoreQueryFilters();
             return await query.FirstOrDefaultAsync(p => p.ProductId == id);
@@ -31,6 +38,9 @@ namespace ModularSys.Inventory.Services
         public async Task CreateAsync(ProductInputModel model)
         {
             ValidateProduct(model);
+
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
 
             var entity = new Product
             {
@@ -53,15 +63,18 @@ namespace ModularSys.Inventory.Services
                 CreatedBy = "System"
             };
 
-            _db.Products.Add(entity);
-            await _db.SaveChangesAsync();
+            db.Products.Add(entity);
+            await db.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(ProductInputModel model)
         {
             ValidateProduct(model);
 
-            var existing = await _db.Products.FindAsync(model.ProductId);
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var existing = await db.Products.FindAsync(model.ProductId);
             if (existing == null)
                 throw new KeyNotFoundException("Product not found.");
 
@@ -80,35 +93,45 @@ namespace ModularSys.Inventory.Services
             existing.BatchNumber = model.BatchNumber;
             existing.Supplier = model.Supplier;
 
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id, string deletedBy)
         {
-            var entity = await _db.Products.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.ProductId == id);
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var entity = await db.Products.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.ProductId == id);
             if (entity != null)
             {
                 entity.IsDeleted = true;
                 entity.DeletedAt = DateTime.UtcNow;
                 entity.DeletedBy = deletedBy;
-                await _db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
         }
 
         public async Task<bool> RestoreAsync(int id, string restoredBy)
         {
-            var entity = await _db.Products.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.ProductId == id && p.IsDeleted);
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var entity = await db.Products.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.ProductId == id && p.IsDeleted);
             if (entity == null) return false;
             entity.IsDeleted = false;
             entity.DeletedAt = null;
             entity.DeletedBy = null;
             entity.UpdatedAt = DateTime.UtcNow;
             entity.UpdatedBy = restoredBy;
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             return true;
         }
-        public async Task<IEnumerable<Category>> GetCategoriesAsync() =>
-            await _db.Categories.AsNoTracking().ToListAsync();
+        public async Task<IEnumerable<Category>> GetCategoriesAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            return await db.Categories.AsNoTracking().ToListAsync();
+        }
 
         private void ValidateProduct(ProductInputModel model)
         {

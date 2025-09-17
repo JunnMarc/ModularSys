@@ -93,6 +93,11 @@ namespace ModularSys.Inventory.Services
                 reference: $"SO-{order.SalesOrderId}"
             );
 
+            // Update order status to completed
+            order.Status = "Completed";
+            order.UpdatedAt = DateTime.UtcNow;
+            order.UpdatedBy = "System";
+
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
         }

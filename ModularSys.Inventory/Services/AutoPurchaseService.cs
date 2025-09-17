@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Inventory.Interface;
@@ -7,11 +8,11 @@ namespace ModularSys.Inventory.Services
 {
     public class AutoPurchaseService : IAutoPurchaseService
     {
-        private readonly InventoryDbContext _db;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public AutoPurchaseService(InventoryDbContext db)
+        public AutoPurchaseService(IServiceScopeFactory scopeFactory)
         {
-            _db = db;
+            _scopeFactory = scopeFactory;
         }
 
         /// <summary>
@@ -19,7 +20,10 @@ namespace ModularSys.Inventory.Services
         /// </summary>
         public async Task<PurchaseOrder> PrepareLowStockPurchaseOrderAsync()
         {
-            var lowStockItems = await _db.Products
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var lowStockItems = await db.Products
                 .Include(p => p.Category)
                 .Where(p => p.QuantityOnHand < p.ReorderLevel && p.Category.IsRevenueCritical)
                 .ToListAsync();
@@ -51,13 +55,16 @@ namespace ModularSys.Inventory.Services
         /// </summary>
         public async Task<int> ConfirmPurchaseOrderAsync(PurchaseOrder purchaseOrder)
         {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
             // Attach products to context to avoid duplicate tracking
             foreach (var line in purchaseOrder.Lines)
             {
-                var product = await _db.Products.FindAsync(line.ProductId);
+                var product = await db.Products.FindAsync(line.ProductId);
                 if (product != null)
                 {
-                    _db.InventoryTransactions.Add(new InventoryTransaction
+                    db.InventoryTransactions.Add(new InventoryTransaction
                     {
                         ProductId = product.ProductId,
                         TransactionDate = DateTime.UtcNow,
@@ -68,8 +75,8 @@ namespace ModularSys.Inventory.Services
                 }
             }
 
-            _db.PurchaseOrders.Add(purchaseOrder);
-            return await _db.SaveChangesAsync();
+            db.PurchaseOrders.Add(purchaseOrder);
+            return await db.SaveChangesAsync();
         }
     }
 }
