@@ -1,4 +1,5 @@
 @page "/sales"
+@using ModularSys.Inventory.Components
 @using MudBlazor
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
@@ -197,6 +198,17 @@
                                                        Size="Size.Small"
                                                        Title="Complete Order"
                                                        OnClick="@(() => CompleteOrder(context.SalesOrderId))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       Title="Cancel Order"
+                                                       OnClick="@(() => CancelOrder(context.SalesOrderId))" />
+                                    }
+                                    @if (context.Status == "Cancelled")
+                                    {
+                                        <MudTooltip Text="@($"Cancelled: {context.CancellationReason}")">
+                                            <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Warning" Size="Size.Small" />
+                                        </MudTooltip>
                                     }
                                     <MudIconButton Icon="@Icons.Material.Filled.Print"
                                                    Color="Color.Secondary"
@@ -408,6 +420,51 @@
             catch (Exception ex)
             {
                 Snackbar.Add($"Error completing order: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task CancelOrder(int id)
+    {
+        var order = _orders.FirstOrDefault(o => o.SalesOrderId == id);
+        if (order == null) return;
+
+        var cancellationReasons = new[]
+        {
+            "Customer requested cancellation",
+            "Out of stock",
+            "Payment issues",
+            "Shipping problems",
+            "Product quality concerns",
+            "Duplicate order",
+            "Customer changed mind",
+            "Technical issues",
+            "Other"
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Title"] = $"Cancel Order #{order.OrderNumber}",
+            ["Message"] = "Please select a reason for cancelling this order:",
+            ["Options"] = cancellationReasons,
+            ["AllowCustomReason"] = true
+        };
+
+        var dialog = DialogService.Show<CancellationReasonDialog>("Cancel Order", parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is string cancellationReason && !string.IsNullOrEmpty(cancellationReason))
+        {
+            try
+            {
+                await SalesOrderService.CancelAsync(id, cancellationReason, "System");
+                await LoadData();
+                Snackbar.Add($"Order #{order.OrderNumber} cancelled successfully", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error cancelling order: {ex.Message}", Severity.Error);
             }
         }
     }

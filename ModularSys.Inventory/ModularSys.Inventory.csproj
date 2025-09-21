@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+	  <PackageReference Include="QuestPDF" />
 	  <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
 	  <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authorization" />

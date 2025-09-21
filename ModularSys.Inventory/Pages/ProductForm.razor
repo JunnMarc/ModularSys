@@ -20,16 +20,40 @@
 
     <MudForm @ref="_form" Model="_model">
         <MudStack Spacing="3">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.SKU"
+                                  Label="SKU (Stock Keeping Unit)"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Unique product identifier" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Barcode"
+                                  Label="Barcode"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Product barcode for scanning" />
+                </MudItem>
+            </MudGrid>
+
             <MudTextField @bind-Value="_model.Name"
                           Label="Product Name"
-                          Required="true"
-                          FullWidth="true"
+                          Required
+                          FullWidth
                           Margin="Margin.Normal" />
+
+            <MudTextField @bind-Value="_model.Description"
+                          Label="Description"
+                          Lines="3"
+                          FullWidth
+                          Margin="Margin.Normal"
+                          HelperText="Detailed product description" />
 
             <MudSelect T="int" @bind-Value="_model.CategoryId"
                        Label="Category"
-                       Required="true"
-                       FullWidth="true"
+                       Required
+                       FullWidth
                        Margin="Margin.Normal">
                 <MudSelectItem T="int" Value="0" Disabled="true">Select a category...</MudSelectItem>
                 @foreach (var cat in _categories)
@@ -38,35 +62,97 @@
                 }
             </MudSelect>
 
-            <MudNumericField T="decimal" @bind-Value="_model.UnitPrice"
-                             Label="Unit Price"
-                             Required="true"
-                             FullWidth="true"
-                             Margin="Margin.Normal"
-                             Min="0"
-                             Adornment="Adornment.Start"
-                             AdornmentText="₱" />
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal" @bind-Value="_model.UnitPrice"
+                                     Label="Unit Price (Selling)"
+                                     Required
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="₱" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_model.CostPrice"
+                                     Label="Cost Price (Purchase)"
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="₱" />
+                </MudItem>
+            </MudGrid>
 
-            <MudNumericField T="int" @bind-Value="_model.QuantityOnHand"
-                             Label="Quantity On Hand"
-                             Required="true"
-                             FullWidth="true"
-                             Margin="Margin.Normal"
-                             Min="0" />
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="_model.QuantityOnHand"
+                                     Label="Quantity On Hand"
+                                     Required
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" @bind-Value="_model.ReorderLevel"
+                                     Label="Reorder Level"
+                                     Required
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     HelperText="Low stock alert threshold" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int?" @bind-Value="_model.MinStockLevel"
+                                     Label="Min Stock Level"
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     HelperText="Critical stock level" />
+                </MudItem>
+            </MudGrid>
 
-            <MudNumericField T="int" @bind-Value="_model.ReorderLevel"
-                             Label="Reorder Level"
-                             Required="true"
-                             FullWidth="true"
-                             Margin="Margin.Normal"
-                             Min="0" />
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int?" @bind-Value="_model.MaxStockLevel"
+                                     Label="Max Stock Level"
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     HelperText="Maximum optimal stock" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_model.ExpiryDate"
+                                   Label="Expiry Date"
+                                   FullWidth
+                                   Margin="Margin.Normal"
+                                   HelperText="Product expiration date (if applicable)" />
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.BatchNumber"
+                                  Label="Batch Number"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Manufacturing batch identifier" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Supplier"
+                                  Label="Supplier"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Primary supplier name" />
+                </MudItem>
+            </MudGrid>
         </MudStack>
     </MudForm>
 </MudDialogContent>
 
 <MudDialogActions Class="justify-end pa-3">
     <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@(Id.HasValue ? "Update Product" : "Add Product")</MudButton>
 </MudDialogActions>
 
 @code {

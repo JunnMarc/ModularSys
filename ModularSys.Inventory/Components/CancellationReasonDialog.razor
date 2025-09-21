@@ -1,0 +1,111 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudText>@Message</MudText>
+            
+            <MudRadioGroup @bind-Value="_selectedReason" T="string">
+                @foreach (var option in Options)
+                {
+                    <MudRadio Value="@option" T="string" Color="Color.Primary">@option</MudRadio>
+                }
+            </MudRadioGroup>
+
+            @if (!string.IsNullOrEmpty(_selectedReason))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Success">Selected: @_selectedReason</MudText>
+            }
+
+            @if (AllowCustomReason && _selectedReason == "Other")
+            {
+                <MudTextField @bind-Value="_customReason"
+                             Label="Please specify the reason"
+                             Variant="Variant.Outlined"
+                             Lines="3"
+                             Required="true"
+                             HelperText="Please provide a detailed reason for cancellation" />
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel">
+            Cancel Order
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string Title { get; set; } = "Cancel Order";
+    [Parameter] public string Message { get; set; } = "Please select a reason:";
+    [Parameter] public string[] Options { get; set; } = Array.Empty<string>();
+    [Parameter] public bool AllowCustomReason { get; set; } = true;
+
+    private string? _selectedReason;
+    private string _customReason = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Console.WriteLine($"Dialog initialized with {Options?.Length ?? 0} options");
+        if (Options != null)
+        {
+            foreach (var option in Options)
+            {
+                Console.WriteLine($"Option: {option}");
+            }
+        }
+    }
+
+    private void Submit()
+    {
+        _errorMessage = string.Empty;
+        Console.WriteLine($"Submit called. Selected reason: '{_selectedReason}'");
+
+        if (string.IsNullOrEmpty(_selectedReason))
+        {
+            _errorMessage = "Please select a reason for cancellation.";
+            Console.WriteLine("No reason selected, showing error");
+            StateHasChanged();
+            return;
+        }
+
+        if (_selectedReason == "Other" && AllowCustomReason)
+        {
+            if (string.IsNullOrWhiteSpace(_customReason))
+            {
+                _errorMessage = "Please provide a custom reason for cancellation.";
+                StateHasChanged();
+                return;
+            }
+            MudDialog?.Close(DialogResult.Ok(_customReason.Trim()));
+        }
+        else
+        {
+            MudDialog?.Close(DialogResult.Ok(_selectedReason));
+        }
+    }
+
+    private void Cancel()
+    {
+        try
+        {
+            MudDialog?.Cancel();
+        }
+        catch (Exception ex)
+        {
+            // Handle any potential errors gracefully
+            Console.WriteLine($"Error closing dialog: {ex.Message}");
+        }
+    }
+}

@@ -15,6 +15,9 @@ namespace ModularSys.Data.Common.Entities.Inventory
         public DateTime OrderDate { get; set; }
         public DateTime? DeliveryDate { get; set; }
         public string Status { get; set; } = "Pending"; // Pending, Processing, Shipped, Delivered, Cancelled
+        public string? CancellationReason { get; set; } // Reason for cancellation if status is Cancelled
+        public DateTime? CancelledAt { get; set; } // When the order was cancelled
+        public string? CancelledBy { get; set; } // Who cancelled the order
         public string? CustomerName { get; set; }
         public string? CustomerEmail { get; set; }
         public string? CustomerPhone { get; set; }

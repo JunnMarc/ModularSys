@@ -1,0 +1,296 @@
+@using MudBlazor
+@using ModularSys.Inventory.Models
+@using ModularSys.Inventory.Services
+@inject IAccountingReportService AccountingReportService
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
+            <MudPaper Class="pa-6" Style="min-height: 800px; background: white;">
+                
+                <!-- Report Header -->
+                <MudStack Spacing="4">
+                    <MudGrid>
+                        <MudItem xs="8">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 600;">
+                                    @ReportData.CompanyName
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    @ReportData.CompanyAddress
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Phone: @ReportData.CompanyPhone | Email: @ReportData.CompanyEmail
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Tax ID: @ReportData.TaxId
+                                </MudText>
+                            </MudStack>
+                        </MudItem>
+                        <MudItem xs="4" Class="text-right">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
+                                    @ReportData.ReportType
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    Report Date: @ReportData.ReportDate.ToString("MMMM dd, yyyy")
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    Period: @ReportData.PeriodStart.ToString("MMM dd") - @ReportData.PeriodEnd.ToString("MMM dd, yyyy")
+                                </MudText>
+                                <MudText Typo="Typo.body2">
+                                    Prepared by: @ReportData.PreparedBy
+                                </MudText>
+                            </MudStack>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider />
+
+                    <!-- Executive Summary -->
+                    <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
+                        Executive Summary
+                    </MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                <MudCardContent Class="pa-0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Revenue</MudText>
+                                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                                            ₱@ReportData.Summary.TotalRevenue.ToString("N2")
+                                        </MudText>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                <MudCardContent Class="pa-0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Costs</MudText>
+                                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                                            ₱@ReportData.Summary.TotalCosts.ToString("N2")
+                                        </MudText>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
+                                <MudCardContent Class="pa-0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Gross Profit</MudText>
+                                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                                            ₱@ReportData.Summary.GrossProfit.ToString("N2")
+                                        </MudText>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
+                                <MudCardContent Class="pa-0">
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.body2" Style="opacity: 0.9;">Profit Margin</MudText>
+                                        <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                                            @ReportData.Summary.GrossProfitMargin.ToString("F1")%
+                                        </MudText>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Financial Performance Table -->
+                    <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                        Financial Performance
+                    </MudText>
+
+                    <MudTable Items="@GetFinancialPerformanceRows()" Dense Hover Class="mb-4">
+                        <HeaderContent>
+                            <MudTh Style="font-weight: 600;">Metric</MudTh>
+                            <MudTh Style="font-weight: 600; text-align: right;">Amount (₱)</MudTh>
+                            <MudTh Style="font-weight: 600; text-align: right;">Percentage</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd Style="font-weight: 500;">@context.Metric</MudTd>
+                            <MudTd Style="text-align: right;">@context.Amount.ToString("N2")</MudTd>
+                            <MudTd Style="text-align: right;">@context.Percentage.ToString("F1")%</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+
+                    <!-- Category Performance -->
+                    @if (ReportData.CategoryPerformance.Any())
+                    {
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                            Category Performance
+                        </MudText>
+
+                        <MudTable Items="@ReportData.CategoryPerformance.Take(10)" Dense Hover Class="mb-4">
+                            <HeaderContent>
+                                <MudTh Style="font-weight: 600;">Category</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Revenue</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Profit</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Margin</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Units Sold</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd Style="font-weight: 500;">@context.CategoryName</MudTd>
+                                <MudTd Style="text-align: right;">₱@context.Revenue.ToString("N2")</MudTd>
+                                <MudTd Style="text-align: right;" Class="@(context.Profit >= 0 ? "mud-success-text" : "mud-error-text")">
+                                    ₱@context.Profit.ToString("N2")
+                                </MudTd>
+                                <MudTd Style="text-align: right;">@context.ProfitMargin.ToString("F1")%</MudTd>
+                                <MudTd Style="text-align: right;">@context.UnitsSold.ToString("N0")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+
+                    <!-- Inventory Valuation -->
+                    @if (ReportData.InventoryValuation.Any())
+                    {
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                            Top Inventory Items by Value
+                        </MudText>
+
+                        <MudTable Items="@ReportData.InventoryValuation.Take(10)" Dense Hover Class="mb-4">
+                            <HeaderContent>
+                                <MudTh Style="font-weight: 600;">Product</MudTh>
+                                <MudTh Style="font-weight: 600;">SKU</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Qty on Hand</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Unit Cost</MudTh>
+                                <MudTh Style="font-weight: 600; text-align: right;">Total Value</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd Style="font-weight: 500;">@context.ProductName</MudTd>
+                                <MudTd>@context.SKU</MudTd>
+                                <MudTd Style="text-align: right;">@context.QuantityOnHand.ToString("N0")</MudTd>
+                                <MudTd Style="text-align: right;">₱@context.UnitCost.ToString("N2")</MudTd>
+                                <MudTd Style="text-align: right; font-weight: 600;">₱@context.TotalValue.ToString("N2")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+
+                    <!-- Compliance Notes -->
+                    @if (ReportData.ComplianceNotes.Any())
+                    {
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                            Compliance Notes
+                        </MudText>
+                        <MudList T="string" Dense>
+                            @foreach (var note in ReportData.ComplianceNotes)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                    <MudText Typo="Typo.body2">@note</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+
+                    <!-- Recommendations -->
+                    @if (ReportData.Recommendations.Any())
+                    {
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
+                            Management Recommendations
+                        </MudText>
+                        <MudList T="string" Dense>
+                            @foreach (var recommendation in ReportData.Recommendations)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb" IconColor="Color.Warning">
+                                    <MudText Typo="Typo.body2">@recommendation</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+
+                    <!-- Footer -->
+                    <MudDivider Class="my-4" />
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Generated on @DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt")
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="6" Class="text-right">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                ModuERP Inventory Management System
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            </MudPaper>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Close Preview</MudButton>
+        <MudButton OnClick="ExportToPdf" Variant="Variant.Filled" Color="Color.Primary" 
+                   StartIcon="@Icons.Material.Filled.PictureAsPdf" Disabled="@_exporting">
+            @if (_exporting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate />
+                <span class="ml-2">Exporting...</span>
+            }
+            else
+            {
+                <span>Export to PDF</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AccountingReportData ReportData { get; set; } = new();
+    [Parameter] public ReportExportRequest ExportRequest { get; set; } = new();
+
+    private bool _exporting = false;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ExportToPdf()
+    {
+        _exporting = true;
+        StateHasChanged();
+
+        try
+        {
+            // Call the actual export service
+            var result = await AccountingReportService.ExportReportToPdfAsync(ReportData, ExportRequest);
+            var message = System.Text.Encoding.UTF8.GetString(result);
+            
+            MudDialog.Close(DialogResult.Ok(message));
+        }
+        catch (Exception ex)
+        {
+            MudDialog.Close(DialogResult.Cancel());
+        }
+        finally
+        {
+            _exporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private List<FinancialMetric> GetFinancialPerformanceRows()
+    {
+        var totalRevenue = ReportData.Summary.TotalRevenue;
+        
+        return new List<FinancialMetric>
+        {
+            new FinancialMetric { Metric = "Total Revenue", Amount = ReportData.Summary.TotalRevenue, Percentage = 100 },
+            new FinancialMetric { Metric = "Total Costs", Amount = ReportData.Summary.TotalCosts, Percentage = totalRevenue > 0 ? (ReportData.Summary.TotalCosts / totalRevenue) * 100 : 0 },
+            new FinancialMetric { Metric = "Gross Profit", Amount = ReportData.Summary.GrossProfit, Percentage = ReportData.Summary.GrossProfitMargin },
+            new FinancialMetric { Metric = "Net Profit", Amount = ReportData.Summary.NetProfit, Percentage = ReportData.Summary.NetProfitMargin },
+            new FinancialMetric { Metric = "Inventory Value", Amount = ReportData.Summary.TotalInventoryValue, Percentage = totalRevenue > 0 ? (ReportData.Summary.TotalInventoryValue / totalRevenue) * 100 : 0 }
+        };
+    }
+
+    private class FinancialMetric
+    {
+        public string Metric { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+    }
+}

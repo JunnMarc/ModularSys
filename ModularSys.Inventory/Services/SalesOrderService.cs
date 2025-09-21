@@ -102,6 +102,33 @@ namespace ModularSys.Inventory.Services
             await transaction.CommitAsync();
         }
 
+        public async Task CancelAsync(int salesOrderId, string cancellationReason, string cancelledBy)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var order = await db.SalesOrders
+                .FirstOrDefaultAsync(o => o.SalesOrderId == salesOrderId);
+
+            if (order == null)
+                throw new KeyNotFoundException("Sales order not found.");
+
+            if (order.Status == "Completed")
+                throw new InvalidOperationException("Cannot cancel a completed order.");
+
+            if (order.Status == "Cancelled")
+                throw new InvalidOperationException("Order is already cancelled.");
+
+            // Update order status and cancellation details
+            order.Status = "Cancelled";
+            order.CancellationReason = cancellationReason;
+            order.CancelledAt = DateTime.UtcNow;
+            order.CancelledBy = cancelledBy;
+            order.UpdatedAt = DateTime.UtcNow;
+            order.UpdatedBy = cancelledBy;
+
+            await db.SaveChangesAsync();
+        }
 
         public async Task<SalesOrder?> GetByIdAsync(int id, bool includeDeleted = false)
         {

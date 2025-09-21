@@ -1,32 +1,48 @@
 @page "/inventory/reports"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
+@using ModularSys.Inventory.Models
+@using ModularSys.Inventory.Services
+@using ModularSys.Inventory.Components
 @using MudBlazor
+@using Microsoft.JSInterop
+@inject IBusinessAnalyticsService BusinessAnalyticsService
+@inject IAccountingReportService AccountingReportService
 @inject IInventoryDashboardService DashboardService
-@inject IProductService ProductService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
     <MudStack Spacing="4">
-        <!-- Header -->
+        <!-- Enhanced Header -->
         <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-            <MudText Typo="Typo.h4">
-                <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
-                Inventory Reports & Analytics
-            </MudText>
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4" Style="font-weight: 600;">
+                    <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
+                    Enterprise Analytics & Reports
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Professional business intelligence with comprehensive profit/loss analysis and export capabilities
+                </MudText>
+            </MudStack>
             <MudStack Row="true" Spacing="2">
-                <MudDateRangePicker @bind-DateRange="_dateRange" Label="Date Range" />
+                <MudDateRangePicker @bind-DateRange="_dateRange" 
+                                   Label="Analysis Period" 
+                                   Variant="Variant.Outlined"
+                                   Style="min-width: 300px;" />
                 <MudButton Variant="Variant.Outlined" 
                           StartIcon="@Icons.Material.Filled.Refresh" 
                           OnClick="RefreshReports"
                           Loading="_loading">
-                    Refresh
+                    Refresh Data
                 </MudButton>
                 <MudButton Variant="Variant.Filled" 
                           Color="Color.Primary"
-                          StartIcon="@Icons.Material.Filled.Download" 
-                          OnClick="ExportReports">
-                    Export
+                          StartIcon="@Icons.Material.Filled.PictureAsPdf" 
+                          OnClick="ExportAccountingReport"
+                          Disabled="_loading">
+                    Export PDF
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -35,305 +51,196 @@
         {
             <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
                 <MudProgressCircular Indeterminate="true" Size="Size.Large" />
-                <MudText>Loading reports...</MudText>
+                <MudText>Loading enterprise analytics...</MudText>
             </MudStack>
+        }
+        else if (_errorMessage != null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+                @_errorMessage
+            </MudAlert>
         }
         else
         {
-            <!-- Report Cards -->
+            <!-- Enterprise Charts Section -->
+            <MudText Typo="Typo.h5" Style="font-weight: 600;" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-2" />
+                Executive Dashboard
+            </MudText>
+
+            <!-- KPI Cards -->
             <MudGrid>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" />
-                            <MudText Typo="Typo.h5">@_revenueAnalytics?.TotalRevenue.ToString("C0")</MudText>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Revenue</MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Large" />
-                            <MudText Typo="Typo.h5">@_revenueAnalytics?.TotalCosts.ToString("C0")</MudText>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Total Costs</MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="MudBlazor.Color.Info" Size="MudBlazor.Size.Large" />
-                            <MudText Typo="Typo.h5">@_revenueAnalytics?.GrossProfit.ToString("C0")</MudText>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Gross Profit</MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" />
-                            <MudText Typo="Typo.h5">@_revenueAnalytics?.ProfitMargin.ToString("F1")%</MudText>
-                            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">Profit Margin</MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
-
-            <!-- Charts Row -->
-            <MudGrid>
-                <!-- Revenue Trend Chart -->
-                <MudItem xs="12" lg="8">
-                    <MudCard Elevation="2" Class="pa-4" Style="height: 450px;">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h6">Revenue & Profit Trend</MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
-                            @if (_revenueAnalytics?.DailyRevenues?.Any() == true)
-                            {
-                                <MudTable Items="_revenueAnalytics.DailyRevenues.TakeLast(10)" Dense="true" Hover="true">
-                                    <HeaderContent>
-                                        <MudTh>Date</MudTh>
-                                        <MudTh Style="text-align: right">Revenue</MudTh>
-                                        <MudTh Style="text-align: right">Costs</MudTh>
-                                        <MudTh Style="text-align: right">Profit</MudTh>
-                                        <MudTh>Trend</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        <MudTd>@context.Date.ToString("MMM dd")</MudTd>
-                                        <MudTd Style="text-align: right">@context.Revenue.ToString("C")</MudTd>
-                                        <MudTd Style="text-align: right">@context.Costs.ToString("C")</MudTd>
-                                        <MudTd Style="text-align: right">
-                                            <MudText Color="@(context.Profit >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
-                                                @context.Profit.ToString("C")
-                                            </MudText>
-                                        </MudTd>
-                                        <MudTd>
-                                            <MudProgressLinear Value="@GetProfitPercentage(context)" 
-                                                             Color="@(context.Profit >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)" 
-                                                             Size="MudBlazor.Size.Small" />
-                                        </MudTd>
-                                    </RowTemplate>
-                                </MudTable>
-                            }
-                            else
-                            {
-                                <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No revenue data available</MudText>
-                            }
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-
-                <!-- Category Performance -->
-                <MudItem xs="12" lg="4">
-                    <MudCard Elevation="2" Class="pa-4" Style="height: 450px;">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h6">Category Performance</MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
-                            @if (_categoryData?.Any() == true)
-                            {
-                                <MudStack Spacing="3">
-                                    @foreach (var category in _categoryData.Take(6))
-                                    {
-                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@(category.Icon ?? Icons.Material.Filled.Category)" 
-                                                        Style="@($"color: {category.Color ?? "#1976d2"}")" />
-                                                <MudStack Spacing="0">
-                                                    <MudText Typo="Typo.body1">@category.CategoryName</MudText>
-                                                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                                        @category.ProductCount products
-                                                    </MudText>
-                                                </MudStack>
-                                            </MudStack>
-                                            <MudStack Spacing="0" AlignItems="@AlignItems.End">
-                                                <MudText Typo="Typo.body1">@category.TotalValue.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                                    @category.TotalStock units
-                                                </MudText>
-                                            </MudStack>
-                                        </MudStack>
-                                        @if (category != _categoryData.Take(6).Last())
-                                        {
-                                            <MudDivider />
-                                        }
-                                    }
-                                </MudStack>
-                            }
-                            else
-                            {
-                                <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No category data available</MudText>
-                            }
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
-
-            <!-- Inventory Movement Chart -->
-            <MudCard Elevation="2" Class="pa-4">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Inventory Movement Analysis</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (_movementData?.Any() == true)
-                    {
-                        <MudTable Items="_movementData.TakeLast(15)" Dense="true" Hover="true">
-                            <HeaderContent>
-                                <MudTh>Date</MudTh>
-                                <MudTh Style="text-align: right">Stock In</MudTh>
-                                <MudTh Style="text-align: right">Stock Out</MudTh>
-                                <MudTh Style="text-align: right">Net Movement</MudTh>
-                                <MudTh>Activity</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd>@context.Date.ToString("MMM dd")</MudTd>
-                                <MudTd Style="text-align: right">
-                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success">
-                                        +@context.StockIn
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd Style="text-align: right">
-                                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error">
-                                        -@context.StockOut
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd Style="text-align: right">
-                                    @{
-                                        var netMovement = context.StockIn - context.StockOut;
-                                    }
-                                    <MudText Color="@(netMovement >= 0 ? MudBlazor.Color.Success : MudBlazor.Color.Error)">
-                                        @(netMovement >= 0 ? "+" : "")@netMovement
+                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; min-height: 120px;">
+                        <MudCardContent Class="pa-0">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Style="opacity: 0.8;" />
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                                        ₱@(_analyticsData?.TotalRevenue.ToString("N0") ?? "0")
                                     </MudText>
-                                </MudTd>
-                                <MudTd>
-                                    <MudProgressLinear Value="@GetMovementActivity(context)" 
-                                                     Color="MudBlazor.Color.Primary" 
-                                                     Size="MudBlazor.Size.Small" />
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    }
-                    else
-                    {
-                        <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No movement data available</MudText>
-                    }
-                </MudCardContent>
-            </MudCard>
+                                </MudStack>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Total Revenue</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    @(_analyticsData?.TotalOrders ?? 0) transactions
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
 
-            <!-- Top Products Table -->
-            <MudCard Elevation="2" Class="pa-4">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Top Performing Products</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (_topProducts?.Any() == true)
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; min-height: 120px;">
+                        <MudCardContent Class="pa-0">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Style="opacity: 0.8;" />
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                                        ₱@(_analyticsData?.GrossProfit.ToString("N0") ?? "0")
+                                    </MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Gross Profit</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    @(_analyticsData?.ProfitMargin.ToString("F1") ?? "0")% margin
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; min-height: 120px;">
+                        <MudCardContent Class="pa-0">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Style="opacity: 0.8;" />
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                                        @(_dashboardData?.TotalProducts.ToString("N0") ?? "0")
+                                    </MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Active Products</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    @(_dashboardData?.LowStockCount ?? 0) alerts
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; min-height: 120px;">
+                        <MudCardContent Class="pa-0">
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Large" Style="opacity: 0.8;" />
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                                        @(_analyticsData?.CancellationRate.ToString("F1") ?? "0")%
+                                    </MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Cancellation Rate</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    @(_analyticsData?.CancelledOrders ?? 0) cancelled
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+            <!-- Enterprise Charts Grid -->
+            @if (_enterpriseCharts.Any())
+            {
+                <MudText Typo="Typo.h5" Style="font-weight: 600;" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.BarChart" Class="mr-2" />
+                    Business Intelligence Charts
+                </MudText>
+
+                <MudGrid Spacing="4">
+                    @foreach (var chart in _enterpriseCharts)
                     {
-                        <MudTable Items="_topProducts" Dense="true" Hover="true">
-                            <HeaderContent>
-                                <MudTh>Rank</MudTh>
-                                <MudTh>Product</MudTh>
-                                <MudTh>SKU</MudTh>
-                                <MudTh Style="text-align: right">Qty Sold</MudTh>
-                                <MudTh Style="text-align: right">Revenue</MudTh>
-                                <MudTh Style="text-align: right">Avg Price</MudTh>
-                                <MudTh Style="text-align: right">Current Stock</MudTh>
-                                <MudTh Style="text-align: right">Stock Status</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd>
-                                    <MudChip T="string" Size="Size.Small" Color="@GetRankColor(context.Item1)">
-                                        #@context.Item1
-                                    </MudChip>
-                                </MudTd>
-                                <MudTd>@context.Item2.ProductName</MudTd>
-                                <MudTd>@context.Item2.SKU</MudTd>
-                                <MudTd Style="text-align: right">@context.Item2.QuantitySold.ToString("N0")</MudTd>
-                                <MudTd Style="text-align: right">@context.Item2.Revenue.ToString("C")</MudTd>
-                                <MudTd Style="text-align: right">@context.Item2.UnitPrice.ToString("C")</MudTd>
-                                <MudTd Style="text-align: right">@context.Item2.CurrentStock</MudTd>
-                                <MudTd Style="text-align: right">
-                                    <MudChip T="string" Size="MudBlazor.Size.Small" 
-                                            Color="@GetStockStatusColor(context.Item2.CurrentStock)">
-                                        @GetStockStatus(context.Item2.CurrentStock)
-                                    </MudChip>
-                                </MudTd>
-                            </RowTemplate>
-                            <NoRecordsContent>
-                                <MudText Color="MudBlazor.Color.Secondary">No sales data available</MudText>
-                            </NoRecordsContent>
-                        </MudTable>
+                        <MudItem xs="12" lg="6">
+                            <MudCard Elevation="2" Class="enterprise-chart-card">
+                                <MudCardHeader Class="chart-header">
+                                    <CardHeaderContent>
+                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                            <MudStack Spacing="1">
+                                                <MudText Typo="Typo.h6" Style="font-weight: 600; color: #1976D2;">
+                                                    @chart.Title
+                                                </MudText>
+                                                @if (!string.IsNullOrEmpty(chart.Subtitle))
+                                                {
+                                                    <MudText Typo="Typo.body2" Style="color: #666; font-size: 0.875rem;">
+                                                        @chart.Subtitle
+                                                    </MudText>
+                                                }
+                                            </MudStack>
+                                            <MudIcon Icon="@GetChartIcon(chart.ChartType)" Style="color: #1976D2; font-size: 1.5rem;" />
+                                        </MudStack>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent Class="chart-content">
+                                    <div class="chart-container">
+                                        <SimpleChart ChartConfig="chart" />
+                                    </div>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
                     }
-                    else
-                    {
-                        <MudText Color="MudBlazor.Color.Secondary" Align="MudBlazor.Align.Center">No sales data available</MudText>
-                    }
-                </MudCardContent>
-            </MudCard>
+                </MudGrid>
+            }
         }
     </MudStack>
 </MudContainer>
 
 @code {
+    private DateRange? _dateRange = new DateRange(DateTime.Now.AddDays(-30), DateTime.Now);
     private bool _loading = true;
-    private DateRange? _dateRange = new DateRange(DateTime.Today.AddDays(-30), DateTime.Today);
+    private string? _errorMessage;
     
-    private RevenueAnalytics? _revenueAnalytics;
-    private IEnumerable<CategoryStockSummary>? _categoryData;
-    private IEnumerable<InventoryMovementData>? _movementData;
-    private IEnumerable<(int, TopSellingProduct)>? _topProducts;
-
-    private double GetProfitPercentage(DailyRevenue revenue)
-    {
-        if (revenue.Revenue == 0) return 0;
-        var percentage = Math.Abs((double)(revenue.Profit / revenue.Revenue)) * 100;
-        return Math.Min(percentage, 100);
-    }
-
-    private double GetMovementActivity(InventoryMovementData movement)
-    {
-        var totalActivity = movement.StockIn + movement.StockOut;
-        if (totalActivity == 0) return 0;
-        return Math.Min((double)totalActivity / 100 * 100, 100);
-    }
+    // Data models
+    private BusinessAnalyticsData? _analyticsData;
+    private InventoryDashboardData? _dashboardData;
+    private List<EnterpriseChartConfig> _enterpriseCharts = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadReports();
+        // Load the chart.js script
+        await JSRuntime.InvokeVoidAsync("eval", @"
+            if (!window.chartJsLoaded) {
+                var script = document.createElement('script');
+                script.src = '_content/ModularSys.Inventory/js/chart.min.js';
+                script.onload = function() { window.chartJsLoaded = true; };
+                document.head.appendChild(script);
+            }
+        ");
+
+        await LoadReportsAsync();
     }
 
-    private async Task LoadReports()
+    private async Task LoadReportsAsync()
     {
         try
         {
             _loading = true;
+            _errorMessage = null;
             StateHasChanged();
 
-            var days = _dateRange?.End != null && _dateRange?.Start != null 
-                ? (_dateRange.End.Value - _dateRange.Start.Value).Days 
-                : 30;
+            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
+            var endDate = _dateRange?.End ?? DateTime.Now;
 
-            _revenueAnalytics = await DashboardService.GetRevenueAnalyticsAsync(days);
-            _categoryData = await DashboardService.GetCategoryStockSummaryAsync();
-            _movementData = await DashboardService.GetInventoryMovementDataAsync(days);
+            // Load analytics data
+            _analyticsData = await BusinessAnalyticsService.GetBusinessAnalyticsAsync(startDate, endDate);
             
-            var topProductsData = await DashboardService.GetTopSellingProductsAsync(days, 10);
-            _topProducts = topProductsData.Select((product, index) => (index + 1, product));
+            // Load dashboard data
+            _dashboardData = await DashboardService.GetDashboardDataAsync();
+            
+            // Load enterprise charts
+            _enterpriseCharts = await AccountingReportService.GetEnterpriseChartsAsync(startDate, endDate);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading reports: {ex.Message}", Severity.Error);
+            _errorMessage = $"Error loading reports: {ex.Message}";
+            Snackbar.Add(_errorMessage, Severity.Error);
         }
         finally
         {
@@ -344,36 +251,305 @@
 
     private async Task RefreshReports()
     {
-        await LoadReports();
-        Snackbar.Add("Reports refreshed", Severity.Success);
+        await LoadReportsAsync();
+        Snackbar.Add("Reports refreshed successfully", Severity.Success);
     }
 
-    private async Task ExportReports()
+    private async Task PreviewAccountingReport()
     {
-        Snackbar.Add("Export functionality coming soon", Severity.Info);
+        try
+        {
+            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
+            var endDate = _dateRange?.End ?? DateTime.Now;
+
+            var exportRequest = new ReportExportRequest
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                ReportTitle = "Inventory Financial Report",
+                PreparedBy = "System Administrator",
+                IncludeCharts = true,
+                IncludeDetailedBreakdown = true,
+                IncludeCashFlow = true,
+                IncludeInventoryValuation = true
+            };
+
+            var reportData = await AccountingReportService.PreviewReportAsync(exportRequest);
+
+            var parameters = new DialogParameters
+            {
+                ["ReportData"] = reportData,
+                ["ExportRequest"] = exportRequest
+            };
+
+            var dialog = DialogService.Show<ReportPreviewDialog>("Accounting Report Preview", parameters,
+                new DialogOptions 
+                { 
+                    CloseButton = true, 
+                    MaxWidth = MaxWidth.ExtraLarge, 
+                    FullWidth = true
+                });
+
+            var result = await dialog.Result;
+            if (!result.Canceled && result.Data is string message)
+            {
+                Snackbar.Add(message, Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error generating report preview: {ex.Message}", Severity.Error);
+        }
     }
 
-    private MudBlazor.Color GetRankColor(int rank) => rank switch
+    private async Task ExportAccountingReport()
     {
-        1 => MudBlazor.Color.Warning,
-        2 => MudBlazor.Color.Secondary,
-        3 => MudBlazor.Color.Tertiary,
-        _ => MudBlazor.Color.Default
-    };
+        try
+        {
+            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
+            var endDate = _dateRange?.End ?? DateTime.Now;
 
-    private MudBlazor.Color GetStockStatusColor(int stock) => stock switch
-    {
-        0 => MudBlazor.Color.Error,
-        <= 10 => MudBlazor.Color.Warning,
-        <= 50 => MudBlazor.Color.Info,
-        _ => MudBlazor.Color.Success
-    };
+            var exportRequest = new ReportExportRequest
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                ReportTitle = "Inventory Financial Report",
+                PreparedBy = "System Administrator",
+                IncludeCharts = true,
+                IncludeDetailedBreakdown = true,
+                IncludeCashFlow = true,
+                IncludeInventoryValuation = true,
+                ExportFormat = "PDF"
+            };
 
-    private string GetStockStatus(int stock) => stock switch
+            // First show preview, then export
+            await PreviewAccountingReport();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error exporting report: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string GetChartIcon(string chartType)
     {
-        0 => "Out of Stock",
-        <= 10 => "Low Stock",
-        <= 50 => "Medium Stock",
-        _ => "Good Stock"
-    };
+        return chartType switch
+        {
+            "Line" => Icons.Material.Filled.ShowChart,
+            "Bar" => Icons.Material.Filled.BarChart,
+            "Pie" => Icons.Material.Filled.PieChart,
+            "Doughnut" => Icons.Material.Filled.DonutSmall,
+            "Area" => Icons.Material.Filled.AreaChart,
+            _ => Icons.Material.Filled.Analytics
+        };
+    }
 }
+
+<style>
+    /* Enterprise Chart Card Styling */
+    .enterprise-chart-card {
+        border-radius: 12px !important;
+        border: 1px solid #E0E7FF !important;
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%) !important;
+        box-shadow: 0 4px 20px rgba(25, 118, 210, 0.08) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        overflow: hidden !important;
+    }
+
+    .enterprise-chart-card:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 30px rgba(25, 118, 210, 0.15) !important;
+        border-color: #1976D2 !important;
+    }
+
+    .chart-header {
+        background: linear-gradient(135deg, #F8FAFF 0%, #EEF4FF 100%) !important;
+        border-bottom: 1px solid #E3F2FD !important;
+        padding: 20px 24px 16px 24px !important;
+    }
+
+    .chart-content {
+        padding: 0 !important;
+        background: #FFFFFF !important;
+    }
+
+    .chart-container {
+        height: 400px;
+        padding: 20px;
+        position: relative;
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%);
+        border-radius: 0 0 12px 12px;
+    }
+
+    .chart-container canvas {
+        border-radius: 8px;
+        background: #FFFFFF;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Modern KPI Cards */
+    .kpi-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFF 100%) !important;
+        border: 1px solid #E3F2FD !important;
+        border-radius: 16px !important;
+        box-shadow: 0 2px 12px rgba(25, 118, 210, 0.06) !important;
+        transition: all 0.3s ease !important;
+        overflow: hidden !important;
+        position: relative !important;
+    }
+
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #1976D2, #42A5F5);
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 20px rgba(25, 118, 210, 0.12) !important;
+    }
+
+    .kpi-value {
+        font-size: 2rem !important;
+        font-weight: 700 !important;
+        background: linear-gradient(135deg, #1976D2, #1565C0) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        background-clip: text !important;
+    }
+
+    .kpi-label {
+        color: #546E7A !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    .kpi-icon {
+        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+        color: #1976D2 !important;
+    }
+
+    /* Enhanced Header Styling */
+    .reports-header {
+        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+        color: white !important;
+        border-radius: 16px !important;
+        padding: 32px !important;
+        margin-bottom: 32px !important;
+        box-shadow: 0 8px 32px rgba(25, 118, 210, 0.3) !important;
+    }
+
+    .reports-title {
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 8px !important;
+    }
+
+    .reports-subtitle {
+        font-size: 1.125rem !important;
+        opacity: 0.9 !important;
+        font-weight: 400 !important;
+    }
+
+    /* Section Headers */
+    .section-header {
+        color: #1976D2 !important;
+        font-weight: 600 !important;
+        font-size: 1.5rem !important;
+        margin-bottom: 24px !important;
+        padding-bottom: 8px !important;
+        border-bottom: 2px solid #E3F2FD !important;
+        position: relative !important;
+    }
+
+    .section-header::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: linear-gradient(90deg, #1976D2, #42A5F5);
+    }
+
+    /* Loading States */
+    .loading-overlay {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(4px) !important;
+        border-radius: 12px !important;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 960px) {
+        .chart-container {
+            height: 320px;
+            padding: 16px;
+        }
+        
+        .reports-title {
+            font-size: 2rem !important;
+        }
+        
+        .kpi-value {
+            font-size: 1.5rem !important;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .chart-container {
+            height: 280px;
+            padding: 12px;
+        }
+        
+        .enterprise-chart-card {
+            margin-bottom: 16px !important;
+        }
+        
+        .chart-header {
+            padding: 16px !important;
+        }
+    }
+
+    /* Animation for chart loading */
+    @@keyframes chartFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .chart-container {
+        animation: chartFadeIn 0.6s ease-out;
+    }
+
+    /* Custom scrollbar for better UX */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #F5F5F5;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #1976D2, #42A5F5);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #1565C0, #1976D2);
+    }
+</style>

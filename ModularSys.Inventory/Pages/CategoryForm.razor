@@ -1,4 +1,4 @@
-﻿@using MudBlazor
+@using MudBlazor
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
 
@@ -9,15 +9,73 @@
         <MudStack Spacing="3">
             <MudTextField @bind-Value="_model.CategoryName"
                           Label="Category Name"
-                          Required="true"
-                          FullWidth="true"
+                          Required
+                          FullWidth
                           Margin="Margin.Normal" />
 
             <MudTextField @bind-Value="_model.Description"
                           Label="Description"
                           Lines="3"
-                          FullWidth="true"
-                          Margin="Margin.Normal" />
+                          FullWidth
+                          Margin="Margin.Normal"
+                          HelperText="Detailed category description" />
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Icon"
+                                  Label="Icon"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Material Design icon name (e.g., Category, ShoppingCart)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Color"
+                                  Label="Color"
+                                  FullWidth
+                                  Margin="Margin.Normal"
+                                  HelperText="Hex color code (e.g., #1976d2)"
+                                  Placeholder="#1976d2" />
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudSwitch @bind-Value="_model.IsRevenueCritical"
+                               Label="Revenue Critical"
+                               Color="Color.Warning">
+                        Revenue Critical Category
+                    </MudSwitch>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Low stock in this category impacts revenue and triggers urgent restocking
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" @bind-Value="_model.DefaultMinThreshold"
+                                     Label="Default Min Threshold"
+                                     FullWidth
+                                     Margin="Margin.Normal"
+                                     Min="0"
+                                     HelperText="Default reorder threshold for products in this category" />
+                </MudItem>
+            </MudGrid>
+
+            <MudSelect T="int?" @bind-Value="_model.ParentCategoryId"
+                       Label="Parent Category"
+                       FullWidth
+                       Margin="Margin.Normal"
+                       Clearable="true">
+                <MudSelectItem T="int?" Value="null">No Parent (Top Level)</MudSelectItem>
+                @foreach (var cat in _parentCategories)
+                {
+                    <MudSelectItem T="int?" Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSwitch @bind-Value="_model.IsActive"
+                       Label="Active"
+                       Color="Color.Success">
+                Active Category
+            </MudSwitch>
         </MudStack>
     </MudForm>
 </MudDialogContent>
@@ -31,7 +89,7 @@
     <MudButton Variant="Variant.Filled"
                Color="Color.Primary"
                OnClick="Save">
-        Save
+        @(Id.HasValue ? "Update Category" : "Add Category")
     </MudButton>
 </MudDialogActions>
 
@@ -41,14 +99,46 @@
 
     private MudForm _form;
     private Category _model = new();
+    private List<Category> _parentCategories = new();
 
     protected override async Task OnInitializedAsync()
     {
+        // Load all categories for parent selection (excluding current category if editing)
+        var allCategories = await CategoryService.GetAllAsync();
+        _parentCategories = allCategories.Where(c => Id == null || c.CategoryId != Id.Value).ToList();
+
         if (Id is int id)
         {
             var existing = await CategoryService.GetByIdAsync(id);
-            if (existing is not null) _model = existing;
+            if (existing is not null) 
+            {
+                _model = existing;
+                // Remove current category and its descendants from parent options to prevent circular references
+                _parentCategories = _parentCategories.Where(c => c.CategoryId != id && 
+                    !IsDescendantOf(c, id)).ToList();
+            }
         }
+        else
+        {
+            // Set defaults for new category
+            _model.Icon = "Category";
+            _model.Color = "#1976d2";
+            _model.IsActive = true;
+            _model.DefaultMinThreshold = 10;
+        }
+    }
+
+    private bool IsDescendantOf(Category category, int ancestorId)
+    {
+        var current = category;
+        while (current.ParentCategoryId.HasValue)
+        {
+            if (current.ParentCategoryId.Value == ancestorId)
+                return true;
+            current = _parentCategories.FirstOrDefault(c => c.CategoryId == current.ParentCategoryId.Value);
+            if (current == null) break;
+        }
+        return false;
     }
 
     private async Task Save()

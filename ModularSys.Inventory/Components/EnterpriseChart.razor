@@ -1,0 +1,216 @@
+@using ModularSys.Inventory.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+
+<div class="modern-chart-wrapper" style="height: @ChartConfig.Height; width: 100%; position: relative;">
+    @if (_isLoading)
+    {
+        <div class="chart-loading-overlay">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+            <MudText Typo="Typo.body2" Class="mt-2" Style="color: #1976D2;">Loading chart data...</MudText>
+        </div>
+    }
+    else if (ChartConfig.Data == null || !ChartConfig.Data.Any())
+    {
+        <div class="chart-no-data-overlay">
+            <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Large" Style="color: #9E9E9E;" />
+            <MudText Typo="Typo.h6" Class="mt-2" Style="color: #9E9E9E;">No Data Available</MudText>
+            <MudText Typo="Typo.body2" Style="color: #BDBDBD;">Chart data is not available for the selected period</MudText>
+        </div>
+    }
+    else
+    {
+        <canvas id="@canvasId" class="modern-chart-canvas" style="width: 100%; height: 100%; border-radius: 8px;"></canvas>
+    }
+</div>
+
+<style>
+    .modern-chart-wrapper {
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .modern-chart-canvas {
+        transition: all 0.3s ease;
+        background: #FFFFFF;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .modern-chart-canvas:hover {
+        box-shadow: inset 0 2px 6px rgba(25, 118, 210, 0.05);
+    }
+
+    .chart-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(4px);
+        z-index: 10;
+    }
+
+    .chart-no-data-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.95);
+        z-index: 10;
+    }
+</style>
+
+@code {
+    [Parameter] public EnterpriseChartConfig ChartConfig { get; set; } = new();
+    
+    private string canvasId = Guid.NewGuid().ToString("N");
+    private bool _isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await RenderChart();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(canvasId))
+        {
+            _isLoading = true;
+            StateHasChanged();
+            await Task.Delay(100); // Brief delay for loading animation
+            await RenderChart();
+        }
+    }
+
+    private async Task RenderChart()
+    {
+        try
+        {
+            // Add debugging
+            Console.WriteLine($"Rendering chart: {ChartConfig.Title}, Type: {ChartConfig.ChartType}, Data Count: {ChartConfig.Data?.Count ?? 0}");
+            
+            if (ChartConfig.Data == null || !ChartConfig.Data.Any())
+            {
+                Console.WriteLine("No chart data available");
+                return;
+            }
+
+            var chartData = PrepareChartData();
+            var chartOptions = GetChartOptions();
+            
+            Console.WriteLine($"Chart data prepared: {System.Text.Json.JsonSerializer.Serialize(chartData)}");
+            
+            await JSRuntime.InvokeVoidAsync("renderChart", canvasId, ChartConfig.ChartType.ToLower(), chartData, chartOptions);
+            
+            // Add a small delay to show the loading state
+            await Task.Delay(300);
+        }
+        catch (Exception ex)
+        {
+            // Handle chart rendering errors gracefully
+            Console.WriteLine($"Chart rendering error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private object PrepareChartData()
+    {
+        if (ChartConfig.ChartType == "Line" || ChartConfig.ChartType == "Bar")
+        {
+            var seriesGroups = ChartConfig.Data.GroupBy(d => d.Series).ToList();
+            var labels = ChartConfig.Data.Select(d => d.Label).Distinct().ToList();
+            
+            var datasets = seriesGroups.Select((group, index) => new
+            {
+                label = group.Key,
+                data = labels.Select(label => 
+                    group.FirstOrDefault(d => d.Label == label)?.Value ?? 0).ToArray(),
+                backgroundColor = GetColorByIndex(index),
+                borderColor = GetColorByIndex(index),
+                fill = ChartConfig.ChartType == "Line" ? false : true
+            }).ToArray();
+
+            return new
+            {
+                labels = labels.ToArray(),
+                datasets = datasets
+            };
+        }
+        else // Pie, Doughnut
+        {
+            return new
+            {
+                labels = ChartConfig.Data.Select(d => d.Label).ToArray(),
+                datasets = new[]
+                {
+                    new
+                    {
+                        data = ChartConfig.Data.Select(d => d.Value).ToArray(),
+                        backgroundColor = ChartConfig.Data.Select((d, i) => GetColorByIndex(i)).ToArray()
+                    }
+                }
+            };
+        }
+    }
+
+    private object GetChartOptions()
+    {
+        return new
+        {
+            responsive = true,
+            maintainAspectRatio = false,
+            plugins = new
+            {
+                title = new
+                {
+                    display = !string.IsNullOrEmpty(ChartConfig.Title),
+                    text = ChartConfig.Title
+                },
+                legend = new
+                {
+                    display = ChartConfig.ShowLegend
+                }
+            },
+            scales = ChartConfig.ChartType == "Line" || ChartConfig.ChartType == "Bar" ? new
+            {
+                y = new
+                {
+                    beginAtZero = true
+                }
+            } : null
+        };
+    }
+
+    private string GetColorByIndex(int index)
+    {
+        var colors = new[]
+        {
+            "#1976D2", "#388E3C", "#F57C00", "#7B1FA2", "#C62828",
+            "#00796B", "#5D4037", "#455A64", "#E65100", "#AD1457"
+        };
+
+        return colors[index % colors.Length];
+    }
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+}
