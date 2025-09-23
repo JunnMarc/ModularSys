@@ -40,7 +40,7 @@ namespace ModularSys.Inventory.Services
                 PeriodStart = startDate,
                 PeriodEnd = endDate,
                 CompanyName = "ModuERP Solutions",
-                CompanyAddress = "123 Business District, Metro Manila, Philippines",
+                CompanyAddress = "123 Matina District, Davao City, Philippines",
                 CompanyPhone = "+63 2 8123 4567",
                 CompanyEmail = "info@moduerp.com",
                 TaxId = "123-456-789-000",
@@ -86,32 +86,39 @@ namespace ModularSys.Inventory.Services
 
         private async Task<InventoryAccountingMetrics> CalculateInventoryAccountingMetricsAsync(InventoryDbContext db, DateTime startDate, DateTime endDate)
         {
-            // Beginning Inventory (at start of period)
-            var beginningInventoryValue = await CalculateInventoryValueAtDate(db, startDate.AddDays(-1));
+            // FIXED: Calculate COGS based on actual sales, not inventory formula
+            var salesOrderLines = await db.SalesOrderLines
+                .Include(sol => sol.Product)
+                .Include(sol => sol.SalesOrder)
+                .Where(sol => sol.SalesOrder.OrderDate >= startDate && 
+                             sol.SalesOrder.OrderDate <= endDate &&
+                             sol.SalesOrder.Status == "Completed" &&
+                             !sol.SalesOrder.IsDeleted)
+                .ToListAsync();
+
+            // Calculate actual COGS from sales
+            var costOfGoodsSold = salesOrderLines.Sum(sol => sol.Quantity * (sol.Product?.CostPrice ?? 0));
             
-            // Purchases during period (using FIFO method)
+            // Purchases during period (for cash flow analysis, not COGS)
             var purchasesDuringPeriod = await db.PurchaseOrders
-                .Where(po => po.OrderDate >= startDate && po.OrderDate <= endDate && po.Status == "Received")
+                .Where(po => po.OrderDate >= startDate && po.OrderDate <= endDate && 
+                           po.Status == "Received" && !po.IsDeleted)
                 .Select(po => new { po.SubTotal, po.TaxRate, po.DiscountAmount, po.ShippingCost })
                 .ToListAsync();
             
             var totalPurchases = purchasesDuringPeriod.Sum(po => 
                 (po.SubTotal - po.DiscountAmount) + ((po.SubTotal - po.DiscountAmount) * po.TaxRate) + po.ShippingCost);
 
-            // Ending Inventory (current value using weighted average cost)
+            // Inventory values for balance sheet purposes
+            var beginningInventoryValue = await CalculateInventoryValueAtDate(db, startDate.AddDays(-1));
             var endingInventoryValue = await CalculateInventoryValueAtDate(db, endDate);
 
-            // Cost of Goods Sold (COGS) = Beginning Inventory + Purchases - Ending Inventory
-            var costOfGoodsSold = beginningInventoryValue + totalPurchases - endingInventoryValue;
-
-            // Net Sales (Revenue after returns and discounts)
-            var salesData = await db.SalesOrders
-                .Where(so => so.OrderDate >= startDate && so.OrderDate <= endDate && so.Status == "Completed")
-                .Select(so => new { so.SubTotal, so.TaxRate, so.DiscountAmount, so.ShippingCost })
-                .ToListAsync();
-
-            var grossSales = salesData.Sum(so => so.SubTotal);
-            var salesDiscounts = salesData.Sum(so => so.DiscountAmount);
+            // FIXED: Net Sales calculation from actual sales order lines
+            var grossSales = salesOrderLines.Sum(sol => sol.LineTotal);
+            var salesDiscounts = await db.SalesOrders
+                .Where(so => so.OrderDate >= startDate && so.OrderDate <= endDate && 
+                           so.Status == "Completed" && !so.IsDeleted)
+                .SumAsync(so => so.DiscountAmount);
             var netSales = grossSales - salesDiscounts;
 
             // Gross Profit = Net Sales - COGS
@@ -132,16 +139,21 @@ namespace ModularSys.Inventory.Services
             // Days Sales in Inventory = 365 / Inventory Turnover Ratio
             var daysSalesInInventory = inventoryTurnoverRatio > 0 ? 365 / inventoryTurnoverRatio : 0;
 
-            // Additional metrics
-            var totalTransactions = await db.SalesOrders.CountAsync(so => so.OrderDate >= startDate && so.OrderDate <= endDate);
+            // FIXED: Additional metrics with proper soft delete filtering
+            var totalTransactions = await db.SalesOrders
+                .CountAsync(so => so.OrderDate >= startDate && so.OrderDate <= endDate && !so.IsDeleted);
             var activeProducts = await db.Products.CountAsync(p => !p.IsDeleted && p.IsActive);
-            var lowStockItems = await db.Products.CountAsync(p => !p.IsDeleted && p.QuantityOnHand <= p.ReorderLevel);
+            var lowStockItems = await db.Products
+                .CountAsync(p => !p.IsDeleted && p.IsActive && p.QuantityOnHand <= p.ReorderLevel);
             
-            var cancelledOrders = await db.SalesOrders.CountAsync(so => so.OrderDate >= startDate && so.OrderDate <= endDate && so.Status == "Cancelled");
+            var cancelledOrders = await db.SalesOrders
+                .CountAsync(so => so.OrderDate >= startDate && so.OrderDate <= endDate && 
+                               so.Status == "Cancelled" && !so.IsDeleted);
             var cancellationRate = totalTransactions > 0 ? (decimal)cancelledOrders / totalTransactions * 100 : 0;
             
             var cancellationImpact = await db.SalesOrders
-                .Where(so => so.OrderDate >= startDate && so.OrderDate <= endDate && so.Status == "Cancelled")
+                .Where(so => so.OrderDate >= startDate && so.OrderDate <= endDate && 
+                           so.Status == "Cancelled" && !so.IsDeleted)
                 .SumAsync(so => so.SubTotal);
 
             return new InventoryAccountingMetrics
@@ -172,15 +184,24 @@ namespace ModularSys.Inventory.Services
 
         private async Task<decimal> CalculateInventoryValueAtDate(InventoryDbContext db, DateTime date)
         {
-            // Use weighted average cost method for inventory valuation
+            // FIXED: More accurate inventory valuation with better cost tracking
             var products = await db.Products
-                .Where(p => !p.IsDeleted && p.IsActive)
+                .Where(p => !p.IsDeleted && p.IsActive && p.QuantityOnHand > 0)
                 .Select(p => new { p.ProductId, p.QuantityOnHand, p.CostPrice })
                 .ToListAsync();
 
-            // In a real system, you would track inventory movements and calculate weighted average cost
-            // For now, using current cost price as approximation
-            return products.Sum(p => p.QuantityOnHand * p.CostPrice);
+            decimal totalInventoryValue = 0;
+
+            foreach (var product in products)
+            {
+                // In a real system, this would use weighted average cost from inventory transactions
+                // For now, using current cost price but with better validation
+                var costPerUnit = product.CostPrice > 0 ? product.CostPrice : 0;
+                var productValue = product.QuantityOnHand * costPerUnit;
+                totalInventoryValue += productValue;
+            }
+
+            return totalInventoryValue;
         }
 
         public async Task<List<EnterpriseChartConfig>> GetEnterpriseChartsAsync(DateTime startDate, DateTime endDate)

@@ -23,39 +23,47 @@ namespace ModularSys.Inventory.Services
             var now = DateTime.UtcNow;
             var monthStart = new DateTime(now.Year, now.Month, 1);
 
-            // Get basic counts
-            var totalProducts = await db.Products.CountAsync();
-            var totalCategories = await db.Categories.CountAsync();
+            // FIXED: Get basic counts with soft delete filtering
+            var totalProducts = await db.Products.CountAsync(p => !p.IsDeleted && p.IsActive);
+            var totalCategories = await db.Categories.CountAsync(c => !c.IsDeleted);
             
-            // Get products with stock info
-            var products = await db.Products.Include(p => p.Category).ToListAsync();
+            // FIXED: Get products with stock info and soft delete filtering
+            var products = await db.Products
+                .Include(p => p.Category)
+                .Where(p => !p.IsDeleted && p.IsActive)
+                .ToListAsync();
+                
             var lowStockProducts = products.Where(p => p.QuantityOnHand <= p.ReorderLevel).ToList();
             var outOfStockProducts = products.Where(p => p.QuantityOnHand == 0).ToList();
             var expiringProducts = products.Where(p => p.ExpiryDate.HasValue && 
                 p.ExpiryDate.Value <= now.AddDays(30)).ToList();
 
-            // Calculate inventory value
-            var totalInventoryValue = products.Sum(p => p.QuantityOnHand * p.CostPrice);
+            // FIXED: Calculate inventory value with validation
+            var totalInventoryValue = products.Sum(p => p.QuantityOnHand * (p.CostPrice > 0 ? p.CostPrice : 0));
 
-            // Get order counts
+            // FIXED: Get order counts with soft delete filtering
             var pendingSalesOrders = await db.SalesOrders
-                .CountAsync(so => so.Status == "Pending");
+                .CountAsync(so => so.Status == "Pending" && !so.IsDeleted);
             var pendingPurchaseOrders = await db.PurchaseOrders
-                .CountAsync(po => po.Status == "Pending");
+                .CountAsync(po => po.Status == "Pending" && !po.IsDeleted);
 
-            // Get revenue data
-            var monthlyRevenue = await db.RevenueTransactions
-                .Where(rt => rt.Timestamp >= monthStart && rt.Amount > 0)
-                .SumAsync(rt => rt.Amount);
+            // FIXED: Calculate revenue and costs from actual sales order lines
+            var completedSalesOrderLines = await db.SalesOrderLines
+                .Include(sol => sol.Product)
+                .Include(sol => sol.SalesOrder)
+                .Where(sol => sol.SalesOrder.OrderDate >= monthStart &&
+                             sol.SalesOrder.Status == "Completed" &&
+                             !sol.SalesOrder.IsDeleted)
+                .ToListAsync();
 
-            var monthlyCosts = await db.RevenueTransactions
-                .Where(rt => rt.Timestamp >= monthStart && rt.Amount < 0)
-                .SumAsync(rt => Math.Abs(rt.Amount));
+            var monthlyRevenue = completedSalesOrderLines.Sum(sol => sol.LineTotal);
+            var monthlyCosts = completedSalesOrderLines.Sum(sol => sol.Quantity * (sol.Product?.CostPrice ?? 0));
+            var grossProfit = monthlyRevenue - monthlyCosts;
+            var profitMargin = monthlyRevenue > 0 ? (grossProfit / monthlyRevenue) * 100 : 0;
 
-            var profitMargin = monthlyRevenue > 0 ? ((monthlyRevenue - monthlyCosts) / monthlyRevenue) * 100 : 0;
-
+            // FIXED: Get transaction count with soft delete filtering
             var totalTransactions = await db.InventoryTransactions
-                .CountAsync(it => it.TransactionDate >= monthStart);
+                .CountAsync(it => it.TransactionDate >= monthStart && !it.IsDeleted);
 
             return new InventoryDashboardData
             {
@@ -81,7 +89,7 @@ namespace ModularSys.Inventory.Services
 
             return await db.Products
                 .Include(p => p.Category)
-                .Where(p => p.QuantityOnHand <= p.ReorderLevel)
+                .Where(p => !p.IsDeleted && p.IsActive && p.QuantityOnHand <= p.ReorderLevel)
                 .OrderBy(p => p.QuantityOnHand)
                 .ToListAsync();
         }

@@ -22,5 +22,6 @@ public class InventoryModule : ISubsystem
         services.AddScoped<IInventoryDashboardService, InventoryDashboardService>();
         services.AddScoped<IBusinessAnalyticsService, BusinessAnalyticsService>();
         services.AddScoped<IAccountingReportService, AccountingReportService>();
+        services.AddScoped<IAnalyticalReportService, AnalyticalReportService>();
     }
 }
