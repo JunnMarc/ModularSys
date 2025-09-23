@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Entities;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Data.Common.Entities.Finance;
+using ModularSys.Data.Common.Entities.CRM;
 using System;
 using ModularSys.Data.Common.Interfaces;
 
@@ -27,6 +28,12 @@ namespace ModularSys.Data.Common.Db
         
         // Finance
         public DbSet<RevenueTransaction> RevenueTransactions => Set<RevenueTransaction>();
+        
+        // CRM Management
+        public DbSet<Customer> Customers => Set<Customer>();
+        public DbSet<Contact> Contacts => Set<Contact>();
+        public DbSet<Lead> Leads => Set<Lead>();
+        public DbSet<Opportunity> Opportunities => Set<Opportunity>();
 
         public ModularSysDbContext(DbContextOptions<ModularSysDbContext> options)
             : base(options) { }
@@ -89,6 +96,12 @@ namespace ModularSys.Data.Common.Db
             modelBuilder.Entity<SalesOrderLine>().HasQueryFilter(sol => !sol.IsDeleted);
             modelBuilder.Entity<PurchaseOrderLine>().HasQueryFilter(pol => !pol.IsDeleted);
             modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
+            
+            // CRM soft delete filters
+            modelBuilder.Entity<Customer>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<Contact>().HasQueryFilter(c => !c.IsDeleted);
+            modelBuilder.Entity<Lead>().HasQueryFilter(l => !l.IsDeleted);
+            modelBuilder.Entity<Opportunity>().HasQueryFilter(o => !o.IsDeleted);
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

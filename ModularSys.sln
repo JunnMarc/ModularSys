@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36414.22
@@ -20,6 +20,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.EFHost", "ModularSys.EFHost\ModularSys.EFHost.csproj", "{D38F4242-BEE7-1E66-A2EA-CA4D52382E4D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.Inventory", "ModularSys.Inventory\ModularSys.Inventory.csproj", "{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModularSys.CRM", "ModularSys.CRM\ModularSys.CRM.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,6 +50,10 @@ Global
 		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33DF95B2-31B5-4BD7-8A2C-C4A8C10AF45F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

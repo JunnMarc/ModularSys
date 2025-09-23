@@ -1,0 +1,430 @@
+@page "/crm"
+@using ModularSys.CRM.Interface
+@using ModularSys.CRM.Models
+@inject ICRMDashboardService CRMDashboardService
+@inject NavigationManager Navigation
+
+<PageTitle>CRM Dashboard - ModularSys</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <!-- Header Section -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 mb-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <MudGrid AlignItems="Center">
+                    <MudItem xs="12" md="8">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="mr-4" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="mb-2">Customer Relationship Management</MudText>
+                                <MudText Typo="Typo.subtitle1" Style="opacity: 0.9;">
+                                    Manage customers, leads, opportunities, and sales pipeline
+                                </MudText>
+                            </div>
+                        </div>
+                    </MudItem>
+                    <MudItem xs="12" md="4" Class="text-right">
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Surface"
+                                  StartIcon="@Icons.Material.Filled.Refresh" 
+                                  OnClick="RefreshData"
+                                  Disabled="_loading"
+                                  Class="mr-2">
+                            @if (_loading)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            }
+                            else
+                            {
+                                <span>Refresh Data</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_loading)
+    {
+        <MudGrid>
+            <MudItem xs="12" Class="text-center pa-8">
+                <MudProgressCircular Size="Size.Large" Indeterminate="true" />
+                <MudText Typo="Typo.h6" Class="mt-4">Loading CRM Dashboard...</MudText>
+            </MudItem>
+        </MudGrid>
+    }
+    else if (_dashboardData != null)
+    {
+        <!-- KPI Cards -->
+        <MudGrid Class="mb-4">
+            <!-- Customer Metrics -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="height: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <MudCardContent Class="pa-0">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h4" Class="mb-1">@_dashboardData.TotalCustomers.ToString("N0")</MudText>
+                                <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Customers</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.7;">@_dashboardData.ActiveCustomers Active</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Style="opacity: 0.7;" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Lead Metrics -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="height: 140px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <MudCardContent Class="pa-0">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h4" Class="mb-1">@_dashboardData.TotalLeads.ToString("N0")</MudText>
+                                <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Leads</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.7;">@_dashboardData.QualifiedLeads Qualified</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.ContactPage" Size="Size.Large" Style="opacity: 0.7;" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Opportunity Metrics -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="height: 140px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <MudCardContent Class="pa-0">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h4" Class="mb-1">@_dashboardData.TotalOpportunities.ToString("N0")</MudText>
+                                <MudText Typo="Typo.body2" Style="opacity: 0.9;">Opportunities</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.7;">@_dashboardData.TotalOpportunityValue.ToString("C0") Value</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Style="opacity: 0.7;" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Revenue Metrics -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4" Style="height: 140px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                    <MudCardContent Class="pa-0">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.h4" Class="mb-1">@_dashboardData.MonthlyRevenue.ToString("C0")</MudText>
+                                <MudText Typo="Typo.body2" Style="opacity: 0.9;">Monthly Revenue</MudText>
+                                <MudText Typo="Typo.caption" Style="opacity: 0.7;">@_dashboardData.ConversionRate.ToString("F1")% Conversion</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" Style="opacity: 0.7;" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Navigation Cards -->
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4 cursor-pointer hover-card" @onclick="@(() => NavigateTo("/crm/customers"))" Style="height: 120px;">
+                    <MudCardContent Class="pa-0 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Customers</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer database</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4 cursor-pointer hover-card" @onclick="@(() => NavigateTo("/crm/leads"))" Style="height: 120px;">
+                    <MudCardContent Class="pa-0 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                        <MudText Typo="Typo.h6" Color="Color.Secondary">Leads</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Track and qualify leads</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4 cursor-pointer hover-card" @onclick="@(() => NavigateTo("/crm/opportunities"))" Style="height: 120px;">
+                    <MudCardContent Class="pa-0 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Handshake" Size="Size.Large" Color="Color.Tertiary" Class="mb-2" />
+                        <MudText Typo="Typo.h6" Color="Color.Tertiary">Opportunities</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Manage sales pipeline</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-4 cursor-pointer hover-card" @onclick="@(() => NavigateTo("/crm/reports"))" Style="height: 120px;">
+                    <MudCardContent Class="pa-0 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Color="Color.Info" Class="mb-2" />
+                        <MudText Typo="Typo.h6" Color="Color.Info">Reports</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Analytics and insights</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Performance Summary -->
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudCard Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Sales Performance</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Pipeline Value</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Primary">@_dashboardData.PipelineValue.ToString("C0")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Win Rate</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Success">@_dashboardData.WinRate.ToString("F1")%</MudText>
+                                <MudProgressLinear Value="@_dashboardData.WinRate" Color="Color.Success" Class="mt-2" />
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Avg Deal Size</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Info">@_dashboardData.AverageOpportunityValue.ToString("C0")</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Sales Cycle</MudText>
+                                <MudText Typo="Typo.h5" Color="Color.Warning">@_dashboardData.AverageSalesCycle days</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCard Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Recent Activity</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">New Customers This Month</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Success" Class="mb-4">@_dashboardData.NewCustomersThisMonth</MudText>
+                        
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Active Leads</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">@_dashboardData.ActiveLeads</MudText>
+                        
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Quarterly Revenue</MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Info">@_dashboardData.QuarterlyRevenue.ToString("C0")</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Visual Analytics Section -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12" md="8">
+                <MudCard Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Sales Pipeline Overview</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="text-center pa-3">
+                                    <MudProgressCircular Size="Size.Large" Value="@GetLeadConversionRate()" Color="Color.Primary" />
+                                    <MudText Typo="Typo.body2" Class="mt-2">Lead Conversion</MudText>
+                                    <MudText Typo="Typo.caption">@GetLeadConversionRate().ToString("F1")%</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="text-center pa-3">
+                                    <MudProgressCircular Size="Size.Large" Value="@_dashboardData.WinRate" Color="Color.Success" />
+                                    <MudText Typo="Typo.body2" Class="mt-2">Win Rate</MudText>
+                                    <MudText Typo="Typo.caption">@_dashboardData.WinRate.ToString("F1")%</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="text-center pa-3">
+                                    <MudProgressCircular Size="Size.Large" Value="@GetCustomerRetentionRate()" Color="Color.Info" />
+                                    <MudText Typo="Typo.body2" Class="mt-2">Customer Retention</MudText>
+                                    <MudText Typo="Typo.caption">@GetCustomerRetentionRate().ToString("F1")%</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" sm="6" md="3">
+                                <div class="text-center pa-3">
+                                    <MudProgressCircular Size="Size.Large" Value="@GetPipelineProgress()" Color="Color.Warning" />
+                                    <MudText Typo="Typo.body2" Class="mt-2">Pipeline Progress</MudText>
+                                    <MudText Typo="Typo.caption">@GetPipelineProgress().ToString("F1")%</MudText>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCard Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Quick Stats</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="mb-4">
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudText Typo="Typo.body2">Active Customers</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Primary">@_dashboardData.ActiveCustomers</MudText>
+                            </div>
+                            <MudProgressLinear Value="@GetCustomerActivityRate()" Color="Color.Primary" />
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudText Typo="Typo.body2">Qualified Leads</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@_dashboardData.QualifiedLeads</MudText>
+                            </div>
+                            <MudProgressLinear Value="@GetLeadQualificationRate()" Color="Color.Secondary" />
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudText Typo="Typo.body2">Won Opportunities</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Success">@_dashboardData.WonOpportunities</MudText>
+                            </div>
+                            <MudProgressLinear Value="@GetOpportunityWinRate()" Color="Color.Success" />
+                        </div>
+
+                        <div>
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudText Typo="Typo.body2">Revenue Target</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Info">@GetRevenueTargetProgress().ToString("F0")%</MudText>
+                            </div>
+                            <MudProgressLinear Value="@GetRevenueTargetProgress()" Color="Color.Info" />
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+        <!-- Error/No Data State -->
+        <MudGrid>
+            <MudItem xs="12" Class="text-center pa-8">
+                <MudAlert Severity="Severity.Warning">
+                    <MudText Typo="Typo.h6">No CRM Data Available</MudText>
+                    <MudText Typo="Typo.body1">Unable to load CRM dashboard data. Please check the service configuration or try refreshing.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshData" Class="mt-4">
+                        Try Again
+                    </MudButton>
+                </MudAlert>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+</style>
+
+@code {
+    private bool _loading = true;
+    private CRMDashboardData? _dashboardData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            _dashboardData = await CRMDashboardService.GetDashboardDataAsync();
+            Console.WriteLine($"Dashboard data loaded successfully: Customers={_dashboardData?.TotalCustomers}, Leads={_dashboardData?.TotalLeads}, Opportunities={_dashboardData?.TotalOpportunities}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Set _dashboardData to null so the error state shows
+            _dashboardData = null;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadDashboardData();
+    }
+
+    private void NavigateTo(string url)
+    {
+        Navigation.NavigateTo(url);
+    }
+
+    // Helper methods for visualization calculations
+    private double GetLeadConversionRate()
+    {
+        if (_dashboardData == null || _dashboardData.TotalLeads == 0) return 0;
+        return Math.Min(100, (_dashboardData.QualifiedLeads / (double)_dashboardData.TotalLeads) * 100);
+    }
+
+    private double GetCustomerRetentionRate()
+    {
+        if (_dashboardData == null || _dashboardData.TotalCustomers == 0) return 0;
+        return Math.Min(100, (_dashboardData.ActiveCustomers / (double)_dashboardData.TotalCustomers) * 100);
+    }
+
+    private double GetPipelineProgress()
+    {
+        if (_dashboardData == null || _dashboardData.TotalOpportunityValue == 0) return 0;
+        return Math.Min(100, (double)(_dashboardData.PipelineValue / _dashboardData.TotalOpportunityValue) * 100);
+    }
+
+    private double GetCustomerActivityRate()
+    {
+        if (_dashboardData == null || _dashboardData.TotalCustomers == 0) return 0;
+        return Math.Min(100, (_dashboardData.ActiveCustomers / (double)_dashboardData.TotalCustomers) * 100);
+    }
+
+    private double GetLeadQualificationRate()
+    {
+        if (_dashboardData == null || _dashboardData.TotalLeads == 0) return 0;
+        return Math.Min(100, (_dashboardData.QualifiedLeads / (double)_dashboardData.TotalLeads) * 100);
+    }
+
+    private double GetOpportunityWinRate()
+    {
+        if (_dashboardData == null || _dashboardData.TotalOpportunities == 0) return 0;
+        return Math.Min(100, (_dashboardData.WonOpportunities / (double)_dashboardData.TotalOpportunities) * 100);
+    }
+
+    private double GetRevenueTargetProgress()
+    {
+        if (_dashboardData == null) return 0;
+        // Assume a target of $600K quarterly revenue for demonstration
+        var quarterlyTarget = 600000m;
+        return Math.Min(100, (double)(_dashboardData.QuarterlyRevenue / quarterlyTarget) * 100);
+    }
+}

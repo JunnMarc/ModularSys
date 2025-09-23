@@ -88,6 +88,7 @@
     <ItemGroup>
       <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
       <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
+      <ProjectReference Include="..\ModularSys.CRM\ModularSys.CRM.csproj" />
       <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
     </ItemGroup>
 
