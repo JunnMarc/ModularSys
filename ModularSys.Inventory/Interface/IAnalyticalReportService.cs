@@ -10,6 +10,7 @@ namespace ModularSys.Inventory.Interface
         Task<InventoryTurnoverReport> GenerateInventoryTurnoverReportAsync(AnalyticalReportRequest request);
         Task<StockAgingReport> GenerateStockAgingReportAsync(AnalyticalReportRequest request);
         Task<ProductProfitabilityReport> GenerateProductProfitabilityReportAsync(AnalyticalReportRequest request);
+        Task<ProfitAndLossReport> GenerateProfitAndLossReportAsync(AnalyticalReportRequest request);
         
         // ERP Chart Generation
         Task<List<ERPChartConfig>> GenerateERPChartsAsync(AnalyticalReportRequest request);

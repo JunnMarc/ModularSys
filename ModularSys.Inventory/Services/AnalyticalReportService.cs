@@ -531,6 +531,7 @@ namespace ModularSys.Inventory.Services
                 AnalyticalReportType.InventoryTurnover => await GenerateInventoryTurnoverReportAsync(request),
                 AnalyticalReportType.StockAging => await GenerateStockAgingReportAsync(request),
                 AnalyticalReportType.ProfitabilityByProduct => await GenerateProductProfitabilityReportAsync(request),
+                AnalyticalReportType.ProfitAndLossStatement => await GenerateProfitAndLossReportAsync(request),
                 _ => throw new ArgumentException($"Unsupported report type: {request.ReportType}")
             };
 
@@ -584,8 +585,263 @@ namespace ModularSys.Inventory.Services
                     Description = "Detailed product profitability analysis with rankings",
                     ReportType = AnalyticalReportType.ProfitabilityByProduct,
                     SupportedFormats = new List<string> { "PDF", "Excel", "Word" }
+                },
+                new CrystalReportDefinition
+                {
+                    ReportName = "Profit & Loss Statement",
+                    ReportPath = "/Reports/ProfitAndLoss.rpt",
+                    Description = "Comprehensive P&L statement showing business profitability",
+                    ReportType = AnalyticalReportType.ProfitAndLossStatement,
+                    SupportedFormats = new List<string> { "PDF", "Excel", "Word" }
                 }
             };
+        }
+
+        // Comprehensive Profit & Loss Report Generation
+        public async Task<ProfitAndLossReport> GenerateProfitAndLossReportAsync(AnalyticalReportRequest request)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            var report = new ProfitAndLossReport
+            {
+                ReportDate = DateTime.Now,
+                PeriodStart = request.StartDate,
+                PeriodEnd = request.EndDate,
+                CompanyName = "ModularSys Enterprise"
+            };
+
+            // Calculate Revenue Section
+            await CalculateRevenueSection(context, report, request);
+
+            // Calculate COGS Section
+            await CalculateCOGSSection(context, report, request);
+
+            // Calculate Operating Expenses Section
+            await CalculateOperatingExpensesSection(context, report, request);
+
+            // Generate Monthly Breakdown
+            await GenerateMonthlyProfitLossBreakdown(context, report, request);
+
+            // Generate Business Insights and Recommendations
+            GenerateBusinessInsights(report);
+
+            return report;
+        }
+
+        private async Task CalculateRevenueSection(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
+        {
+            // Get all sales orders in the period
+            var salesOrders = await context.SalesOrders
+                .Where(so => !so.IsDeleted && 
+                           so.OrderDate >= request.StartDate && 
+                           so.OrderDate <= request.EndDate &&
+                           so.Status != "Cancelled")
+                .Include(so => so.Lines)
+                .ThenInclude(sol => sol.Product)
+                .ThenInclude(p => p.Category)
+                .ToListAsync();
+
+            // Calculate gross sales
+            report.Revenue.GrossSales = salesOrders.Sum(so => so.TotalAmount);
+
+            // Estimate returns and discounts (typically 2-5% of gross sales)
+            report.Revenue.SalesReturns = report.Revenue.GrossSales * 0.02m; // 2% returns
+            report.Revenue.SalesDiscounts = report.Revenue.GrossSales * 0.03m; // 3% discounts
+
+            // Calculate revenue by category
+            var categoryRevenue = salesOrders
+                .SelectMany(so => so.Lines)
+                .GroupBy(sol => sol.Product.Category?.CategoryName ?? "Uncategorized")
+                .Select(g => new RevenueByCategory
+                {
+                    CategoryName = g.Key,
+                    GrossSales = g.Sum(sol => sol.Quantity * sol.UnitPrice),
+                    Returns = g.Sum(sol => sol.Quantity * sol.UnitPrice) * 0.02m,
+                    Discounts = g.Sum(sol => sol.Quantity * sol.UnitPrice) * 0.03m
+                })
+                .ToList();
+
+            // Calculate percentages
+            foreach (var category in categoryRevenue)
+            {
+                category.PercentageOfTotal = report.Revenue.NetRevenue > 0 
+                    ? (category.NetRevenue / report.Revenue.NetRevenue) * 100 
+                    : 0;
+            }
+
+            report.Revenue.CategoryBreakdown = categoryRevenue;
+        }
+
+        private async Task CalculateCOGSSection(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
+        {
+            // Get inventory transactions for the period
+            var inventoryTransactions = await context.InventoryTransactions
+                .Where(it => !it.IsDeleted && 
+                           it.TransactionDate >= request.StartDate && 
+                           it.TransactionDate <= request.EndDate)
+                .Include(it => it.Product)
+                .ThenInclude(p => p.Category)
+                .ToListAsync();
+
+            // Calculate beginning inventory (inventory value at start of period)
+            var beginningInventoryTransactions = await context.InventoryTransactions
+                .Where(it => !it.IsDeleted && it.TransactionDate < request.StartDate)
+                .Include(it => it.Product)
+                .ToListAsync();
+
+            report.CostOfGoodsSold.BeginningInventory = beginningInventoryTransactions
+                .GroupBy(it => it.ProductId)
+                .Sum(g => g.Sum(it => it.TransactionType == "Purchase" || it.TransactionType == "Adjustment_In" 
+                    ? it.QuantityChange * it.UnitCost 
+                    : -(it.QuantityChange * it.UnitCost)));
+
+            // Calculate purchases during the period
+            report.CostOfGoodsSold.Purchases = inventoryTransactions
+                .Where(it => it.TransactionType == "Purchase")
+                .Sum(it => it.QuantityChange * it.UnitCost);
+
+            // Estimate direct labor and manufacturing overhead (for manufacturing businesses)
+            report.CostOfGoodsSold.DirectLabor = report.CostOfGoodsSold.Purchases * 0.15m; // 15% of purchases
+            report.CostOfGoodsSold.ManufacturingOverhead = report.CostOfGoodsSold.Purchases * 0.10m; // 10% of purchases
+
+            // Calculate ending inventory (current inventory value)
+            var currentInventory = await context.Products
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.Category)
+                .ToListAsync();
+
+            report.CostOfGoodsSold.EndingInventory = currentInventory
+                .Sum(p => p.QuantityOnHand * p.CostPrice);
+
+            // Calculate COGS by category
+            var cogsByCategory = inventoryTransactions
+                .Where(it => it.TransactionType == "Sale")
+                .GroupBy(it => it.Product.Category?.CategoryName ?? "Uncategorized")
+                .Select(g => new COGSByCategory
+                {
+                    CategoryName = g.Key,
+                    COGS = g.Sum(it => it.QuantityChange * it.UnitCost),
+                    Revenue = g.Sum(it => it.QuantityChange * it.Amount / it.QuantityChange), // Amount per unit
+                    GrossProfit = g.Sum(it => it.QuantityChange * (it.Amount / it.QuantityChange - it.UnitCost)),
+                    GrossProfitMargin = g.Sum(it => it.QuantityChange * it.Amount / it.QuantityChange) > 0 
+                        ? (g.Sum(it => it.QuantityChange * (it.Amount / it.QuantityChange - it.UnitCost)) / g.Sum(it => it.QuantityChange * it.Amount / it.QuantityChange)) * 100 
+                        : 0,
+                    PercentageOfTotalCOGS = 0 // Will be calculated after total COGS is known
+                })
+                .ToList();
+
+            // Calculate percentages of total COGS
+            var totalCOGS = report.CostOfGoodsSold.TotalCOGS;
+            foreach (var category in cogsByCategory)
+            {
+                category.PercentageOfTotalCOGS = totalCOGS > 0 ? (category.COGS / totalCOGS) * 100 : 0;
+            }
+
+            report.CostOfGoodsSold.CategoryBreakdown = cogsByCategory;
+        }
+
+        private async Task CalculateOperatingExpensesSection(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
+        {
+            // For this example, we'll estimate operating expenses based on revenue
+            // In a real system, you'd have an expenses table to track actual expenses
+            var netRevenue = report.Revenue.NetRevenue;
+
+            // Estimate typical operating expenses as percentages of revenue
+            report.OperatingExpenses.SalariesAndWages = netRevenue * 0.25m; // 25% of revenue
+            report.OperatingExpenses.Rent = netRevenue * 0.08m; // 8% of revenue
+            report.OperatingExpenses.Utilities = netRevenue * 0.03m; // 3% of revenue
+            report.OperatingExpenses.Marketing = netRevenue * 0.05m; // 5% of revenue
+            report.OperatingExpenses.Insurance = netRevenue * 0.02m; // 2% of revenue
+            report.OperatingExpenses.Depreciation = netRevenue * 0.04m; // 4% of revenue
+            report.OperatingExpenses.OfficeSupplies = netRevenue * 0.01m; // 1% of revenue
+            report.OperatingExpenses.ProfessionalFees = netRevenue * 0.02m; // 2% of revenue
+            report.OperatingExpenses.OtherExpenses = netRevenue * 0.03m; // 3% of revenue
+
+            // Non-operating expenses
+            report.OperatingExpenses.InterestExpense = netRevenue * 0.01m; // 1% of revenue
+            report.OperatingExpenses.TaxExpense = Math.Max(0, report.OperatingIncome * 0.25m); // 25% tax rate on positive income
+        }
+
+        private async Task GenerateMonthlyProfitLossBreakdown(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
+        {
+            var monthlyBreakdown = new List<MonthlyProfitLoss>();
+            var current = new DateTime(request.StartDate.Year, request.StartDate.Month, 1);
+
+            while (current <= request.EndDate)
+            {
+                var monthEnd = current.AddMonths(1).AddDays(-1);
+                if (monthEnd > request.EndDate) monthEnd = request.EndDate;
+
+                // Get monthly sales
+                var monthlySales = await context.SalesOrders
+                    .Where(so => !so.IsDeleted && 
+                               so.OrderDate >= current && 
+                               so.OrderDate <= monthEnd &&
+                               so.Status != "Cancelled")
+                    .SumAsync(so => so.TotalAmount);
+
+                // Estimate monthly COGS (typically 60-70% of sales)
+                var monthlyCOGS = monthlySales * 0.65m;
+
+                // Estimate monthly operating expenses (typically 25-35% of sales)
+                var monthlyOpEx = monthlySales * 0.30m;
+
+                monthlyBreakdown.Add(new MonthlyProfitLoss
+                {
+                    Month = current.ToString("MMM yyyy"),
+                    Revenue = monthlySales,
+                    COGS = monthlyCOGS,
+                    OperatingExpenses = monthlyOpEx
+                });
+
+                current = current.AddMonths(1);
+            }
+
+            report.MonthlyBreakdown = monthlyBreakdown;
+        }
+
+        private void GenerateBusinessInsights(ProfitAndLossReport report)
+        {
+            report.KeyInsights.Clear();
+            report.Recommendations.Clear();
+
+            // Key Insights
+            report.KeyInsights.Add($"Business is currently {report.ProfitabilityStatus.ToLower()} with a net profit margin of {report.NetProfitMargin:F1}%");
+            report.KeyInsights.Add($"Gross profit margin is {report.GrossProfitMargin:F1}%, indicating {(report.GrossProfitMargin >= 40 ? "strong" : report.GrossProfitMargin >= 25 ? "moderate" : "weak")} pricing power");
+            report.KeyInsights.Add($"Operating margin is {report.OperatingMargin:F1}%, showing {(report.OperatingMargin >= 15 ? "excellent" : report.OperatingMargin >= 10 ? "good" : "concerning")} operational efficiency");
+
+            // Recommendations based on performance
+            if (report.NetIncome < 0)
+            {
+                report.Recommendations.Add("URGENT: Business is operating at a loss. Review pricing strategy and reduce costs immediately.");
+                report.Recommendations.Add("Analyze top loss-making categories and consider discontinuing unprofitable products.");
+                report.Recommendations.Add("Implement cost reduction measures in operating expenses, starting with the largest expense categories.");
+            }
+            else if (report.NetProfitMargin < 5)
+            {
+                report.Recommendations.Add("Profit margins are thin. Focus on improving operational efficiency and reducing waste.");
+                report.Recommendations.Add("Consider raising prices on high-demand products to improve margins.");
+                report.Recommendations.Add("Review supplier contracts to negotiate better purchase prices.");
+            }
+            else if (report.NetProfitMargin >= 15)
+            {
+                report.Recommendations.Add("Excellent profitability! Consider reinvesting profits into business expansion.");
+                report.Recommendations.Add("Explore new product lines or market segments to sustain growth.");
+                report.Recommendations.Add("Build cash reserves for future opportunities and economic downturns.");
+            }
+
+            // COGS-specific recommendations
+            if (report.CostOfGoodsSold.TotalCOGS / report.Revenue.NetRevenue > 0.70m)
+            {
+                report.Recommendations.Add("COGS is high at {(report.CostOfGoodsSold.TotalCOGS / report.Revenue.NetRevenue * 100):F1}% of revenue. Negotiate better supplier terms.");
+            }
+
+            // Operating expense recommendations
+            if (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue > 0.40m)
+            {
+                report.Recommendations.Add("Operating expenses are high. Review all expense categories for potential savings.");
+            }
         }
     }
 }

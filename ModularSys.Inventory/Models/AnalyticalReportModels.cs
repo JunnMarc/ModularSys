@@ -13,7 +13,8 @@ namespace ModularSys.Inventory.Models
         PurchaseReport,
         SalesReport,
         AuditTrail,
-        ComprehensiveFinancial
+        ComprehensiveFinancial,
+        ProfitAndLossStatement
     }
 
     // Report Export Formats
@@ -578,5 +579,109 @@ namespace ModularSys.Inventory.Models
         public bool Enabled { get; set; } = true;
         public string Format { get; set; } = "{series.name}: {point.y}";
         public bool Shared { get; set; } = false;
+    }
+
+    // Comprehensive Profit & Loss Statement Report
+    public class ProfitAndLossReport
+    {
+        public DateTime ReportDate { get; set; } = DateTime.Now;
+        public DateTime PeriodStart { get; set; }
+        public DateTime PeriodEnd { get; set; }
+        public string CompanyName { get; set; } = "ModularSys Enterprise";
+        
+        // Revenue Section
+        public ProfitLossRevenue Revenue { get; set; } = new();
+        
+        // Cost of Goods Sold Section
+        public ProfitLossCOGS CostOfGoodsSold { get; set; } = new();
+        
+        // Operating Expenses Section
+        public ProfitLossOperatingExpenses OperatingExpenses { get; set; } = new();
+        
+        // Calculated Totals
+        public decimal GrossProfit => Revenue.NetRevenue - CostOfGoodsSold.TotalCOGS;
+        public decimal GrossProfitMargin => Revenue.NetRevenue > 0 ? (GrossProfit / Revenue.NetRevenue) * 100 : 0;
+        public decimal OperatingIncome => GrossProfit - OperatingExpenses.TotalOperatingExpenses;
+        public decimal OperatingMargin => Revenue.NetRevenue > 0 ? (OperatingIncome / Revenue.NetRevenue) * 100 : 0;
+        public decimal NetIncome => OperatingIncome - OperatingExpenses.InterestExpense - OperatingExpenses.TaxExpense;
+        public decimal NetProfitMargin => Revenue.NetRevenue > 0 ? (NetIncome / Revenue.NetRevenue) * 100 : 0;
+        
+        // Business Health Indicators
+        public string ProfitabilityStatus => NetIncome > 0 ? "PROFITABLE" : "LOSS";
+        public string HealthRating => GetHealthRating();
+        public List<string> KeyInsights { get; set; } = new();
+        public List<string> Recommendations { get; set; } = new();
+        
+        // Monthly Breakdown
+        public List<MonthlyProfitLoss> MonthlyBreakdown { get; set; } = new();
+        
+        private string GetHealthRating()
+        {
+            if (NetProfitMargin >= 15) return "EXCELLENT";
+            if (NetProfitMargin >= 10) return "GOOD";
+            if (NetProfitMargin >= 5) return "FAIR";
+            if (NetProfitMargin >= 0) return "BREAK-EVEN";
+            return "NEEDS ATTENTION";
+        }
+    }
+
+    public class ProfitLossRevenue
+    {
+        public decimal GrossSales { get; set; }
+        public decimal SalesReturns { get; set; }
+        public decimal SalesDiscounts { get; set; }
+        public decimal NetRevenue => GrossSales - SalesReturns - SalesDiscounts;
+        public List<RevenueByCategory> CategoryBreakdown { get; set; } = new();
+    }
+
+    public class ProfitLossCOGS
+    {
+        public decimal BeginningInventory { get; set; }
+        public decimal Purchases { get; set; }
+        public decimal DirectLabor { get; set; }
+        public decimal ManufacturingOverhead { get; set; }
+        public decimal EndingInventory { get; set; }
+        public decimal TotalCOGS => BeginningInventory + Purchases + DirectLabor + ManufacturingOverhead - EndingInventory;
+        public List<COGSByCategory> CategoryBreakdown { get; set; } = new();
+    }
+
+    public class ProfitLossOperatingExpenses
+    {
+        public decimal SalariesAndWages { get; set; }
+        public decimal Rent { get; set; }
+        public decimal Utilities { get; set; }
+        public decimal Marketing { get; set; }
+        public decimal Insurance { get; set; }
+        public decimal Depreciation { get; set; }
+        public decimal OfficeSupplies { get; set; }
+        public decimal ProfessionalFees { get; set; }
+        public decimal OtherExpenses { get; set; }
+        public decimal TotalOperatingExpenses => SalariesAndWages + Rent + Utilities + Marketing + Insurance + Depreciation + OfficeSupplies + ProfessionalFees + OtherExpenses;
+        
+        // Non-Operating Expenses
+        public decimal InterestExpense { get; set; }
+        public decimal TaxExpense { get; set; }
+    }
+
+    public class RevenueByCategory
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal GrossSales { get; set; }
+        public decimal Returns { get; set; }
+        public decimal Discounts { get; set; }
+        public decimal NetRevenue => GrossSales - Returns - Discounts;
+        public decimal PercentageOfTotal { get; set; }
+    }
+
+    public class MonthlyProfitLoss
+    {
+        public string Month { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public decimal COGS { get; set; }
+        public decimal GrossProfit => Revenue - COGS;
+        public decimal OperatingExpenses { get; set; }
+        public decimal NetIncome => GrossProfit - OperatingExpenses;
+        public decimal NetMargin => Revenue > 0 ? (NetIncome / Revenue) * 100 : 0;
+        public string Status => NetIncome >= 0 ? "Profit" : "Loss";
     }
 }

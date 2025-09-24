@@ -96,6 +96,7 @@
                                 <MudSelectItem Value="AnalyticalReportType.StockAging">Stock Aging Report</MudSelectItem>
                                 <MudSelectItem Value="AnalyticalReportType.ProfitabilityByProduct">Product Profitability</MudSelectItem>
                                 <MudSelectItem Value="AnalyticalReportType.ComprehensiveFinancial">Comprehensive Financial</MudSelectItem>
+                                <MudSelectItem Value="AnalyticalReportType.ProfitAndLossStatement">Profit & Loss Statement</MudSelectItem>
                             </MudSelect>
                             <MudButton Variant="Variant.Filled" 
                                       Color="Color.Primary"
@@ -387,6 +388,144 @@
                         </MudCardContent>
                     </MudCard>
                 }
+
+                @if (_selectedReportType == AnalyticalReportType.ProfitAndLossStatement && _profitAndLossReport != null)
+                {
+                    <MudCard Class="mb-4" Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1976D2;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
+                                    Profit & Loss Statement
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Period: @_profitAndLossReport.PeriodStart.ToString("MMM dd") - @_profitAndLossReport.PeriodEnd.ToString("MMM dd, yyyy") • Status: @_profitAndLossReport.ProfitabilityStatus
+                                </MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <!-- Profitability Status Alert -->
+                            <MudAlert Severity="@(_profitAndLossReport.NetIncome >= 0 ? Severity.Success : Severity.Error)" 
+                                     Dense="true" Class="mb-4">
+                                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                                    🏢 Business Status: @_profitAndLossReport.ProfitabilityStatus (@_profitAndLossReport.HealthRating)
+                                </MudText>
+                                <MudText>💰 Net Income: ₱@_profitAndLossReport.NetIncome.ToString("N2") | 📊 Net Profit Margin: @_profitAndLossReport.NetProfitMargin.ToString("F1")%</MudText>
+                            </MudAlert>
+                            
+                            <!-- Summary Cards -->
+                            <MudGrid Class="mb-4">
+                                <MudItem xs="12" md="3">
+                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                        <MudCardContent>
+                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" />
+                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.Revenue.NetRevenue.ToString("N0")</MudText>
+                                                <MudText Typo="Typo.body1">Net Revenue</MudText>
+                                            </MudStack>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
+                                        <MudCardContent>
+                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Large" />
+                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.CostOfGoodsSold.TotalCOGS.ToString("N0")</MudText>
+                                                <MudText Typo="Typo.body1">Total COGS</MudText>
+                                            </MudStack>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                        <MudCardContent>
+                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" />
+                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.GrossProfit.ToString("N0")</MudText>
+                                                <MudText Typo="Typo.body1">Gross Profit</MudText>
+                                            </MudStack>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                                <MudItem xs="12" md="3">
+                                    <MudCard Class="summary-card" Style="@($"background: linear-gradient(135deg, {(_profitAndLossReport.NetIncome >= 0 ? "#4CAF50 0%, #45a049 100%" : "#F44336 0%, #D32F2F 100%")}); color: white;")">
+                                        <MudCardContent>
+                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@(_profitAndLossReport.NetIncome >= 0 ? Icons.Material.Filled.AttachMoney : Icons.Material.Filled.MoneyOff)" Size="Size.Large" />
+                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.NetIncome.ToString("N0")</MudText>
+                                                <MudText Typo="Typo.body1">Net Income</MudText>
+                                            </MudStack>
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+                            </MudGrid>
+
+                            <!-- Monthly P&L Breakdown -->
+                            @if (_profitAndLossReport.MonthlyBreakdown.Any())
+                            {
+                                <MudText Typo="Typo.h6" Class="mb-3">Monthly Profit & Loss Breakdown</MudText>
+                                <MudTable Items="_profitAndLossReport.MonthlyBreakdown" Dense="true" Hover="true">
+                                    <HeaderContent>
+                                        <MudTh>Month</MudTh>
+                                        <MudTh Style="text-align: right">Revenue</MudTh>
+                                        <MudTh Style="text-align: right">COGS</MudTh>
+                                        <MudTh Style="text-align: right">Gross Profit</MudTh>
+                                        <MudTh Style="text-align: right">Operating Expenses</MudTh>
+                                        <MudTh Style="text-align: right">Net Income</MudTh>
+                                        <MudTh Style="text-align: right">Net Margin</MudTh>
+                                        <MudTh Style="text-align: center">Status</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.Month</MudTd>
+                                        <MudTd Style="text-align: right">₱@context.Revenue.ToString("N0")</MudTd>
+                                        <MudTd Style="text-align: right">₱@context.COGS.ToString("N0")</MudTd>
+                                        <MudTd Style="text-align: right">₱@context.GrossProfit.ToString("N0")</MudTd>
+                                        <MudTd Style="text-align: right">₱@context.OperatingExpenses.ToString("N0")</MudTd>
+                                        <MudTd Style="@($"text-align: right; color: {(context.NetIncome >= 0 ? "green" : "red")}")">
+                                            ₱@context.NetIncome.ToString("N0")
+                                        </MudTd>
+                                        <MudTd Style="text-align: right">@context.NetMargin.ToString("F1")%</MudTd>
+                                        <MudTd Style="text-align: center">
+                                            <MudChip T="string" Size="Size.Small" Color="@(context.Status == "Profit" ? Color.Success : Color.Error)">
+                                                @context.Status
+                                            </MudChip>
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+
+                            <!-- Key Business Insights -->
+                            @if (_profitAndLossReport.KeyInsights.Any())
+                            {
+                                <MudText Typo="Typo.h6" Class="mt-4 mb-3">📊 Key Business Insights</MudText>
+                                <MudList T="string" Dense="true">
+                                    @foreach (var insight in _profitAndLossReport.KeyInsights)
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.TrendingUp" IconColor="Color.Info">
+                                            <MudText>@insight</MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+
+                            <!-- Business Recommendations -->
+                            @if (_profitAndLossReport.Recommendations.Any())
+                            {
+                                <MudText Typo="Typo.h6" Class="mt-4 mb-3">💡 Business Recommendations</MudText>
+                                <MudList T="string" Dense="true">
+                                    @foreach (var recommendation in _profitAndLossReport.Recommendations)
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb" 
+                                                    IconColor="@(recommendation.StartsWith("URGENT") ? Color.Error : Color.Warning)">
+                                            <MudText>@recommendation</MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                }
             }
 
             <!-- Executive Dashboard Section -->
@@ -538,6 +677,7 @@
     private InventoryTurnoverReport? _turnoverReport;
     private StockAgingReport? _stockAgingReport;
     private ProductProfitabilityReport? _profitabilityReport;
+    private ProfitAndLossReport? _profitAndLossReport;
 
     protected override async Task OnInitializedAsync()
     {
@@ -637,6 +777,11 @@
                 case AnalyticalReportType.ProfitabilityByProduct:
                     _profitabilityReport = await AnalyticalReportService.GenerateProductProfitabilityReportAsync(request);
                     _currentReportData = _profitabilityReport;
+                    break;
+
+                case AnalyticalReportType.ProfitAndLossStatement:
+                    _profitAndLossReport = await AnalyticalReportService.GenerateProfitAndLossReportAsync(request);
+                    _currentReportData = _profitAndLossReport;
                     break;
 
                 case AnalyticalReportType.ComprehensiveFinancial:
