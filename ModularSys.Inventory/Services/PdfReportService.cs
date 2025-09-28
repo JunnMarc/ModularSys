@@ -673,13 +673,53 @@ public class PdfReportService
                 header.Cell().Background(Colors.Grey.Lighten3).Padding(5).Text("Status").SemiBold();
             });
 
+            // Calculate real KPI metrics from actual data (if it's a turnover report)
+            var totalProducts = 0;
+            var fastMovingProducts = 0;
+            var slowMovingProducts = 0;
+            var averageTurnover = 0.0;
+            
+            if (reportData is InventoryTurnoverReport turnoverReport)
+            {
+                totalProducts = turnoverReport.ProductTurnover?.Count ?? 0;
+                fastMovingProducts = turnoverReport.ProductTurnover?.Count(p => p.TurnoverRatio > 6) ?? 0;
+                slowMovingProducts = turnoverReport.ProductTurnover?.Count(p => p.TurnoverRatio < 2) ?? 0;
+                averageTurnover = turnoverReport.ProductTurnover?.Any() == true ? (double)turnoverReport.ProductTurnover.Average(p => p.TurnoverRatio) : 0;
+            }
+            // Calculate based on actual date range instead of fixed 365 days
+            var daysInPeriod = (request.EndDate - request.StartDate).Days + 1;
+            var averageDaysInInventory = averageTurnover > 0 ? daysInPeriod / averageTurnover : 0;
+            
             var metrics = new[]
             {
-                new { Metric = "Inventory Turnover Ratio", Current = "8.2", Target = "6.0", Status = "Excellent" },
-                new { Metric = "Days Sales in Inventory", Current = "44.5", Target = "60.0", Status = "Good" },
-                new { Metric = "Stock-Out Rate", Current = "2.1%", Target = "5.0%", Status = "Excellent" },
-                new { Metric = "Carrying Cost Ratio", Current = "15.8%", Target = "20.0%", Status = "Good" },
-                new { Metric = "Order Fill Rate", Current = "97.9%", Target = "95.0%", Status = "Excellent" }
+                new { 
+                    Metric = "Average Inventory Turnover", 
+                    Current = averageTurnover.ToString("F1"), 
+                    Target = "4.0", 
+                    Status = averageTurnover >= 4 ? "Excellent" : averageTurnover >= 2 ? "Good" : "Needs Improvement",
+                    Description = $"How many times inventory is sold in {daysInPeriod} days"
+                },
+                new { 
+                    Metric = "Average Days in Inventory", 
+                    Current = averageDaysInInventory.ToString("F0"), 
+                    Target = $"{daysInPeriod / 4}", // Quarter of the period
+                    Status = averageDaysInInventory <= daysInPeriod / 4 ? "Excellent" : averageDaysInInventory <= daysInPeriod / 2 ? "Good" : "Needs Improvement",
+                    Description = $"Average days to sell inventory (based on {daysInPeriod}-day period)"
+                },
+                new { 
+                    Metric = "Fast Moving Products", 
+                    Current = $"{fastMovingProducts}/{totalProducts}", 
+                    Target = $"{(int)(totalProducts * 0.6)}", 
+                    Status = fastMovingProducts >= totalProducts * 0.6 ? "Excellent" : fastMovingProducts >= totalProducts * 0.4 ? "Good" : "Needs Improvement",
+                    Description = $"Products with high turnover in {daysInPeriod}-day period"
+                },
+                new { 
+                    Metric = "Slow Moving Products", 
+                    Current = $"{slowMovingProducts}/{totalProducts}", 
+                    Target = $"< {(int)(totalProducts * 0.2)}", 
+                    Status = slowMovingProducts <= totalProducts * 0.1 ? "Excellent" : slowMovingProducts <= totalProducts * 0.2 ? "Good" : "Needs Improvement",
+                    Description = $"Products with low turnover in {daysInPeriod}-day period"
+                }
             };
 
             foreach (var metric in metrics)
@@ -786,9 +826,27 @@ public class PdfReportService
 
     private static void AddProfitAndLossDetails(ColumnDescriptor column, ProfitAndLossReport report)
     {
-        column.Item().PaddingBottom(5).Text("Profit & Loss Statement")
-            .FontSize(12)
-            .SemiBold();
+        // Add comprehensive explanation
+        column.Item().PaddingBottom(10).Column(explanationColumn =>
+        {
+            explanationColumn.Item().Text("📊 PROFIT & LOSS STATEMENT - COMPREHENSIVE BUSINESS ANALYSIS")
+                .FontSize(14)
+                .SemiBold()
+                .FontColor(Colors.Blue.Darken2);
+            
+            explanationColumn.Item().PaddingTop(5).Text("This report shows your business's financial performance using real data from your sales, purchases, and operations. All numbers are calculated from actual transactions in your database.")
+                .FontSize(10)
+                .FontColor(Colors.Grey.Darken1);
+            
+            explanationColumn.Item().PaddingTop(3).Text($"📅 Report Period: {report.PeriodStart:MMM dd, yyyy} to {report.PeriodEnd:MMM dd, yyyy}")
+                .FontSize(10)
+                .SemiBold();
+            
+            explanationColumn.Item().PaddingTop(3).Text($"🏢 Business Status: {report.ProfitabilityStatus} ({report.HealthRating})")
+                .FontSize(10)
+                .SemiBold()
+                .FontColor(report.NetIncome >= 0 ? Colors.Green.Darken1 : Colors.Red.Darken1);
+        });
 
         // P&L Statement Table
         column.Item().Table(table =>
@@ -807,8 +865,8 @@ public class PdfReportService
                 header.Cell().Background(Colors.Blue.Lighten3).Padding(3).Text("% Rev").SemiBold().FontSize(10);
             });
 
-            // Revenue Section
-            table.Cell().Padding(2).Text("REVENUE").SemiBold().FontSize(9);
+            // Revenue Section with explanation
+            table.Cell().Padding(2).Text("💰 REVENUE (Money Coming In)").SemiBold().FontSize(9);
             table.Cell().Padding(2).Text("");
             table.Cell().Padding(2).Text("");
 
@@ -828,8 +886,8 @@ public class PdfReportService
             table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text($"₱{report.Revenue.NetRevenue:N0}").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text("100%").SemiBold().FontSize(9);
 
-            // COGS Section
-            table.Cell().Padding(2).Text("COST OF GOODS SOLD").SemiBold().FontSize(9);
+            // COGS Section with explanation
+            table.Cell().Padding(2).Text("📦 COST OF GOODS SOLD (What You Paid)").SemiBold().FontSize(9);
             table.Cell().Padding(2).Text("");
             table.Cell().Padding(2).Text("");
 
@@ -854,8 +912,8 @@ public class PdfReportService
             table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text($"₱{report.GrossProfit:N0}").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text($"{report.GrossProfitMargin:F0}%").SemiBold().FontSize(9);
 
-            // Operating Expenses (Simplified)
-            table.Cell().Padding(2).Text("OPERATING EXPENSES").SemiBold().FontSize(9);
+            // Operating Expenses with explanation
+            table.Cell().Padding(2).Text("🏢 OPERATING EXPENSES (Running Costs)").SemiBold().FontSize(9);
             table.Cell().Padding(2).Text($"₱{report.OperatingExpenses.TotalOperatingExpenses:N0}").FontSize(8);
             table.Cell().Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(8);
 
@@ -871,20 +929,57 @@ public class PdfReportService
             table.Cell().Background(netIncomeColor).Padding(2).Text($"{report.NetProfitMargin:F0}%").SemiBold().FontSize(10);
         });
 
-        // Business Status (Simplified)
-        column.Item().PaddingTop(10).PaddingBottom(5).Text("Business Performance")
-            .FontSize(11)
-            .SemiBold();
+        // Comprehensive Business Analysis
+        column.Item().PaddingTop(15).PaddingBottom(5).Text("📈 WHAT THESE NUMBERS MEAN FOR YOUR BUSINESS")
+            .FontSize(12)
+            .SemiBold()
+            .FontColor(Colors.Blue.Darken2);
 
-        column.Item().Row(row =>
+        column.Item().Column(analysisColumn =>
         {
-            row.RelativeItem().Text($"Status: {report.ProfitabilityStatus} ({report.HealthRating})")
+            // Profitability Analysis
+            analysisColumn.Item().PaddingTop(5).Text($"💼 BUSINESS HEALTH: {report.HealthRating}")
                 .FontSize(10)
+                .SemiBold()
                 .FontColor(report.NetIncome >= 0 ? Colors.Green.Darken1 : Colors.Red.Darken1);
             
-            row.RelativeItem().Text($"Net Margin: {report.NetProfitMargin:F1}%")
+            if (report.NetIncome >= 0)
+            {
+                analysisColumn.Item().Text($"✅ Your business made ₱{report.NetIncome:N0} profit during this period. This means after paying for all products sold and operating expenses, you have ₱{report.NetIncome:N0} left over.")
+                    .FontSize(9)
+                    .FontColor(Colors.Green.Darken1);
+            }
+            else
+            {
+                analysisColumn.Item().Text($"⚠️ Your business had a loss of ₱{Math.Abs(report.NetIncome):N0} during this period. This means your costs exceeded your revenue.")
+                    .FontSize(9)
+                    .FontColor(Colors.Red.Darken1);
+            }
+            
+            // Margin Analysis
+            analysisColumn.Item().PaddingTop(3).Text($"📊 PROFIT MARGINS:")
                 .FontSize(10)
-                .AlignRight();
+                .SemiBold();
+            
+            analysisColumn.Item().Text($"• Gross Profit Margin: {report.GrossProfitMargin:F1}% - For every ₱100 in sales, you keep ₱{report.GrossProfitMargin:F0} after paying for products")
+                .FontSize(8);
+            
+            analysisColumn.Item().Text($"• Net Profit Margin: {report.NetProfitMargin:F1}% - For every ₱100 in sales, you keep ₱{Math.Abs(report.NetProfitMargin):F0} as final profit")
+                .FontSize(8);
+            
+            // Revenue Analysis
+            analysisColumn.Item().PaddingTop(3).Text($"💰 REVENUE BREAKDOWN:")
+                .FontSize(10)
+                .SemiBold();
+            
+            analysisColumn.Item().Text($"• Total Sales: ₱{report.Revenue.GrossSales:N0}")
+                .FontSize(8);
+            
+            analysisColumn.Item().Text($"• Returns/Cancellations: ₱{report.Revenue.SalesReturns:N0} ({(report.Revenue.GrossSales > 0 ? (report.Revenue.SalesReturns / report.Revenue.GrossSales) * 100 : 0):F1}% of sales)")
+                .FontSize(8);
+            
+            analysisColumn.Item().Text($"• Discounts Given: ₱{report.Revenue.SalesDiscounts:N0} ({(report.Revenue.GrossSales > 0 ? (report.Revenue.SalesDiscounts / report.Revenue.GrossSales) * 100 : 0):F1}% of sales)")
+                .FontSize(8);
         });
     }
 

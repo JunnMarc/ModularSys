@@ -55,8 +55,18 @@ namespace ModularSys.Inventory.Services
             analytics.TotalCosts = await CalculateActualCOGSAsync(db, completedSalesOrderLines);
             analytics.GrossProfit = analytics.TotalRevenue - analytics.TotalCosts;
             
-            // Add operational costs (15% of revenue as industry standard)
-            var operationalCosts = analytics.TotalRevenue * 0.15m;
+            // Calculate actual operational costs from real data
+            var actualShippingCosts = await db.SalesOrders
+                .Where(so => !so.IsDeleted && so.OrderDate >= startDate && so.OrderDate <= endDate && so.Status != "Cancelled")
+                .SumAsync(so => so.ShippingCost);
+            
+            // Calculate tax costs using the formula since TaxAmount is NotMapped
+            var actualTaxCosts = await db.SalesOrders
+                .Where(so => !so.IsDeleted && so.OrderDate >= startDate && so.OrderDate <= endDate && so.Status != "Cancelled")
+                .SumAsync(so => (so.SubTotal - so.DiscountAmount) * so.TaxRate);
+            
+            // Real operational costs = shipping + taxes (actual business expenses)
+            var operationalCosts = actualShippingCosts + actualTaxCosts;
             analytics.NetProfit = analytics.GrossProfit - operationalCosts;
             
             analytics.ProfitMargin = analytics.TotalRevenue > 0 ? (analytics.GrossProfit / analytics.TotalRevenue) * 100 : 0;
@@ -131,8 +141,17 @@ namespace ModularSys.Inventory.Services
                 var costs = await CalculateActualCOGSAsync(db, dailySalesOrderLines);
                 var grossProfit = revenue - costs;
                 
-                // Add operational costs (15% of revenue)
-                var operationalCosts = revenue * 0.15m;
+                // Calculate actual daily operational costs
+                var dailyShippingCosts = await db.SalesOrders
+                    .Where(so => !so.IsDeleted && so.OrderDate.Date == currentDate.Date && so.Status != "Cancelled")
+                    .SumAsync(so => so.ShippingCost);
+                
+                // Calculate daily tax costs using the formula since TaxAmount is NotMapped
+                var dailyTaxCosts = await db.SalesOrders
+                    .Where(so => !so.IsDeleted && so.OrderDate.Date == currentDate.Date && so.Status != "Cancelled")
+                    .SumAsync(so => (so.SubTotal - so.DiscountAmount) * so.TaxRate);
+                
+                var operationalCosts = dailyShippingCosts + dailyTaxCosts;
                 var netProfit = grossProfit - operationalCosts;
 
                 var metrics = new DailyBusinessMetrics

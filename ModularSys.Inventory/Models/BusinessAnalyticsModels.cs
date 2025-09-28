@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace ModularSys.Inventory.Models
 {
@@ -148,5 +149,61 @@ namespace ModularSys.Inventory.Models
         public decimal CashFlowFromOperations { get; set; }
         public string OverallHealthScore { get; set; } = string.Empty; // Excellent, Good, Fair, Poor, Critical
         public List<string> Recommendations { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Enterprise chart configuration for data visualization
+    /// </summary>
+    public class EnterpriseChartConfig
+    {
+        public string ChartType { get; set; } = string.Empty; // Line, Bar, Pie, Doughnut
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public List<ChartData> Data { get; set; } = new();
+        public bool ShowLegend { get; set; } = true;
+        public string Height { get; set; } = "300px";
+        public string Width { get; set; } = "100%";
+        public ChartOptions Options { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Chart data point for visualization
+    /// </summary>
+    public class ChartData
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+        public string Color { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Series { get; set; } = string.Empty; // For multi-series charts
+    }
+
+    /// <summary>
+    /// Chart configuration options
+    /// </summary>
+    public class ChartOptions
+    {
+        public bool Responsive { get; set; } = true;
+        public bool MaintainAspectRatio { get; set; } = false;
+        public ChartLegend Legend { get; set; } = new();
+        public ChartTooltip Tooltip { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Chart legend configuration
+    /// </summary>
+    public class ChartLegend
+    {
+        public bool Display { get; set; } = true;
+        public string Position { get; set; } = "bottom"; // top, bottom, left, right
+    }
+
+    /// <summary>
+    /// Chart tooltip configuration
+    /// </summary>
+    public class ChartTooltip
+    {
+        public bool Enabled { get; set; } = true;
+        public string Mode { get; set; } = "nearest"; // nearest, point, index, dataset
     }
 }

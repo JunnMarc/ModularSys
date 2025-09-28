@@ -1,15 +1,12 @@
-﻿@page "/inventory-transactions"
-@using Microsoft.EntityFrameworkCore
+@page "/inventory-transactions"
 @using MudBlazor
-@using ModularSys.Data.Common.Db
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
-@using ModularSys.Inventory.Services
 @inject IInventoryService InventoryService
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">Purchase Orders</MudText>
+        <MudText Typo="Typo.h6">Inventory Transactions</MudText>
     </MudStack>
 
     <MudTable Items="@_transactions"
@@ -47,18 +44,5 @@
     protected override async Task OnInitializedAsync()
     {
         _transactions = (await InventoryService.GetAllAsync()).ToList();
-    }
-
-    private async Task<List<InventoryTransaction>> GetAllTransactionsAsync()
-    {
-        // If you want to show all transactions, not just per product
-        var db = InventoryService as InventoryService;
-        var context = typeof(InventoryService)
-            .GetField("_db", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.GetValue(db) as InventoryDbContext;
-
-        return await context.InventoryTransactions
-            .OrderByDescending(t => t.TransactionDate)
-            .ToListAsync();
     }
 }

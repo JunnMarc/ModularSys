@@ -139,6 +139,9 @@ namespace ModularSys.Inventory.Services
                 })
                 .ToListAsync();
 
+            // Calculate actual days in the date range
+            var daysInPeriod = (request.EndDate - request.StartDate).Days + 1;
+            
             var report = new InventoryTurnoverReport
             {
                 ReportDate = request.EndDate,
@@ -146,16 +149,37 @@ namespace ModularSys.Inventory.Services
                 AverageInventoryValue = products.Sum(p => p.QuantityOnHand * p.CostPrice)
             };
 
-            report.OverallTurnoverRatio = report.AverageInventoryValue > 0 ? report.AnnualCOGS / report.AverageInventoryValue : 0;
-            report.DaysSalesInInventory = report.OverallTurnoverRatio > 0 ? 365 / report.OverallTurnoverRatio : 0;
+            // Calculate period turnover ratio and annualize it for comparison
+            var periodTurnoverRatio = report.AverageInventoryValue > 0 ? report.AnnualCOGS / report.AverageInventoryValue : 0;
+            report.OverallTurnoverRatio = daysInPeriod > 0 ? (365.0m / daysInPeriod) * periodTurnoverRatio : 0;
+            
+            // Days sales in inventory should be realistic for the period
+            report.DaysSalesInInventory = periodTurnoverRatio > 0 ? Math.Min(daysInPeriod / periodTurnoverRatio, daysInPeriod * 2) : daysInPeriod;
 
             // Product turnover analysis
             report.ProductTurnover = products.Select(p =>
             {
                 var sales = salesData.FirstOrDefault(s => s.ProductId == p.ProductId);
-                var avgInventory = p.QuantityOnHand * p.CostPrice;
+                var currentInventoryValue = p.QuantityOnHand * p.CostPrice;
                 var cogs = sales?.TotalCOGS ?? 0;
-                var turnoverRatio = avgInventory > 0 ? cogs / avgInventory : 0;
+                var unitsSold = sales?.UnitsSold ?? 0;
+                
+                // Calculate turnover ratio: if we sold units, calculate how many times we turned inventory
+                // For short periods, we need to annualize the ratio for proper classification
+                var periodTurnoverRatio = currentInventoryValue > 0 ? cogs / currentInventoryValue : 0;
+                
+                // Annualize the turnover ratio for proper classification (365 days / period days * period ratio)
+                var annualizedTurnoverRatio = daysInPeriod > 0 ? (365.0m / daysInPeriod) * periodTurnoverRatio : 0;
+                
+                // Days sales in inventory should be realistic for the period
+                var daysInInventory = periodTurnoverRatio > 0 ? daysInPeriod / periodTurnoverRatio : daysInPeriod;
+                
+                // If no sales in period, set to maximum days
+                if (unitsSold == 0)
+                {
+                    daysInInventory = daysInPeriod * 10; // Indicate very slow movement
+                    annualizedTurnoverRatio = 0;
+                }
 
                 return new ProductTurnover
                 {
@@ -163,12 +187,12 @@ namespace ModularSys.Inventory.Services
                     ProductName = p.Name,
                     SKU = p.SKU,
                     Category = p.Category?.CategoryName ?? "Uncategorized",
-                    TurnoverRatio = turnoverRatio,
-                    AverageInventory = avgInventory,
+                    TurnoverRatio = annualizedTurnoverRatio, // Use annualized for classification
+                    AverageInventory = currentInventoryValue,
                     COGS = cogs,
-                    DaysSalesInInventory = turnoverRatio > 0 ? 365 / turnoverRatio : 0,
-                    TurnoverClassification = GetTurnoverClassification(turnoverRatio),
-                    RecommendedAction = GetTurnoverRecommendation(turnoverRatio)
+                    DaysSalesInInventory = Math.Min(daysInInventory, daysInPeriod * 5), // Cap at reasonable maximum
+                    TurnoverClassification = GetTurnoverClassification(annualizedTurnoverRatio, daysInPeriod),
+                    RecommendedAction = GetTurnoverRecommendation(annualizedTurnoverRatio, unitsSold, daysInPeriod)
                 };
             }).OrderByDescending(pt => pt.TurnoverRatio).ToList();
 
@@ -307,25 +331,58 @@ namespace ModularSys.Inventory.Services
         }
 
         // Helper methods
-        private string GetTurnoverClassification(decimal turnoverRatio)
+        private string GetTurnoverClassification(decimal annualizedTurnoverRatio, int daysInPeriod)
         {
-            return turnoverRatio switch
+            // For short periods, be more lenient with classification
+            if (daysInPeriod <= 30) // Less than a month
             {
-                >= 6 => "Fast",
-                >= 3 => "Medium",
-                _ => "Slow"
-            };
+                return annualizedTurnoverRatio switch
+                {
+                    >= 4 => "Fast",
+                    >= 2 => "Medium", 
+                    >= 0.5m => "Slow",
+                    _ => "Very Slow"
+                };
+            }
+            else // Longer periods use standard thresholds
+            {
+                return annualizedTurnoverRatio switch
+                {
+                    >= 6 => "Fast",
+                    >= 3 => "Medium",
+                    >= 1 => "Slow",
+                    _ => "Very Slow"
+                };
+            }
         }
 
-        private string GetTurnoverRecommendation(decimal turnoverRatio)
+        private string GetTurnoverRecommendation(decimal annualizedTurnoverRatio, int unitsSold, int daysInPeriod)
         {
-            return turnoverRatio switch
+            if (unitsSold == 0)
             {
-                >= 6 => "Excellent performance - maintain stock levels",
-                >= 3 => "Good performance - monitor regularly",
-                >= 1 => "Slow moving - consider promotion or reduction",
-                _ => "Very slow - consider discontinuation"
-            };
+                return $"No sales in {daysInPeriod} days - review pricing and marketing";
+            }
+
+            if (daysInPeriod <= 30) // Short period recommendations
+            {
+                return annualizedTurnoverRatio switch
+                {
+                    >= 4 => "Good sales velocity - monitor stock levels",
+                    >= 2 => "Moderate sales - track trends",
+                    >= 0.5m => "Slow sales - consider promotion",
+                    _ => "Very slow - review product viability"
+                };
+            }
+            else // Standard recommendations
+            {
+                return annualizedTurnoverRatio switch
+                {
+                    >= 6 => "Excellent performance - maintain stock levels",
+                    >= 3 => "Good performance - monitor regularly", 
+                    >= 1 => "Slow moving - consider promotion or reduction",
+                    _ => "Very slow - consider discontinuation"
+                };
+            }
         }
 
         private string GetAgingBucket(int daysInStock)
@@ -642,23 +699,31 @@ namespace ModularSys.Inventory.Services
                 .ThenInclude(p => p.Category)
                 .ToListAsync();
 
-            // Calculate gross sales
-            report.Revenue.GrossSales = salesOrders.Sum(so => so.TotalAmount);
+            // Calculate gross sales from actual data
+            report.Revenue.GrossSales = salesOrders.Sum(so => so.SubTotal);
 
-            // Estimate returns and discounts (typically 2-5% of gross sales)
-            report.Revenue.SalesReturns = report.Revenue.GrossSales * 0.02m; // 2% returns
-            report.Revenue.SalesDiscounts = report.Revenue.GrossSales * 0.03m; // 3% discounts
+            // Calculate actual returns from cancelled orders
+            var cancelledOrders = await context.SalesOrders
+                .Where(so => !so.IsDeleted && 
+                           so.OrderDate >= request.StartDate && 
+                           so.OrderDate <= request.EndDate &&
+                           so.Status == "Cancelled")
+                .ToListAsync();
+            
+            report.Revenue.SalesReturns = cancelledOrders.Sum(so => so.SubTotal);
 
-            // Calculate revenue by category
+            // Calculate actual discounts from sales orders
+            report.Revenue.SalesDiscounts = salesOrders.Sum(so => so.DiscountAmount);
+
+            // Calculate revenue by category using actual data
             var categoryRevenue = salesOrders
-                .SelectMany(so => so.Lines)
-                .GroupBy(sol => sol.Product.Category?.CategoryName ?? "Uncategorized")
+                .GroupBy(so => so.Lines.FirstOrDefault()?.Product.Category?.CategoryName ?? "Uncategorized")
                 .Select(g => new RevenueByCategory
                 {
                     CategoryName = g.Key,
-                    GrossSales = g.Sum(sol => sol.Quantity * sol.UnitPrice),
-                    Returns = g.Sum(sol => sol.Quantity * sol.UnitPrice) * 0.02m,
-                    Discounts = g.Sum(sol => sol.Quantity * sol.UnitPrice) * 0.03m
+                    GrossSales = g.Sum(so => so.SubTotal),
+                    Returns = 0, // Will be calculated from cancelled orders by category if needed
+                    Discounts = g.Sum(so => so.DiscountAmount)
                 })
                 .ToList();
 
@@ -701,9 +766,10 @@ namespace ModularSys.Inventory.Services
                 .Where(it => it.TransactionType == "Purchase")
                 .Sum(it => it.QuantityChange * it.UnitCost);
 
-            // Estimate direct labor and manufacturing overhead (for manufacturing businesses)
-            report.CostOfGoodsSold.DirectLabor = report.CostOfGoodsSold.Purchases * 0.15m; // 15% of purchases
-            report.CostOfGoodsSold.ManufacturingOverhead = report.CostOfGoodsSold.Purchases * 0.10m; // 10% of purchases
+            // For retail/inventory businesses, direct labor and manufacturing overhead are typically zero
+            // These would only apply to manufacturing businesses
+            report.CostOfGoodsSold.DirectLabor = 0m;
+            report.CostOfGoodsSold.ManufacturingOverhead = 0m;
 
             // Calculate ending inventory (current inventory value)
             var currentInventory = await context.Products
@@ -743,24 +809,36 @@ namespace ModularSys.Inventory.Services
 
         private async Task CalculateOperatingExpensesSection(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
         {
-            // For this example, we'll estimate operating expenses based on revenue
-            // In a real system, you'd have an expenses table to track actual expenses
+            // Calculate operating expenses based on actual business operations
+            // Since we don't have a dedicated expenses table, we'll use business-driven calculations
+            
+            // Calculate shipping costs from actual orders (this is a real expense)
+            var totalShippingCosts = await context.SalesOrders
+                .Where(so => !so.IsDeleted && 
+                           so.OrderDate >= request.StartDate && 
+                           so.OrderDate <= request.EndDate &&
+                           so.Status != "Cancelled")
+                .SumAsync(so => so.ShippingCost);
+
+            // Use conservative estimates based on industry standards for small businesses
             var netRevenue = report.Revenue.NetRevenue;
+            
+            // More conservative estimates based on actual business size
+            report.OperatingExpenses.SalariesAndWages = netRevenue * 0.15m; // 15% - more realistic for small business
+            report.OperatingExpenses.Rent = netRevenue * 0.05m; // 5% - typical commercial rent
+            report.OperatingExpenses.Utilities = netRevenue * 0.02m; // 2% - utilities
+            report.OperatingExpenses.Marketing = netRevenue * 0.03m; // 3% - marketing spend
+            report.OperatingExpenses.Insurance = netRevenue * 0.01m; // 1% - business insurance
+            report.OperatingExpenses.Depreciation = netRevenue * 0.02m; // 2% - equipment depreciation
+            report.OperatingExpenses.OfficeSupplies = netRevenue * 0.005m; // 0.5% - office supplies
+            report.OperatingExpenses.ProfessionalFees = netRevenue * 0.01m; // 1% - accounting, legal
+            
+            // Add actual shipping costs to other expenses
+            report.OperatingExpenses.OtherExpenses = totalShippingCosts + (netRevenue * 0.015m); // Shipping + 1.5% other
 
-            // Estimate typical operating expenses as percentages of revenue
-            report.OperatingExpenses.SalariesAndWages = netRevenue * 0.25m; // 25% of revenue
-            report.OperatingExpenses.Rent = netRevenue * 0.08m; // 8% of revenue
-            report.OperatingExpenses.Utilities = netRevenue * 0.03m; // 3% of revenue
-            report.OperatingExpenses.Marketing = netRevenue * 0.05m; // 5% of revenue
-            report.OperatingExpenses.Insurance = netRevenue * 0.02m; // 2% of revenue
-            report.OperatingExpenses.Depreciation = netRevenue * 0.04m; // 4% of revenue
-            report.OperatingExpenses.OfficeSupplies = netRevenue * 0.01m; // 1% of revenue
-            report.OperatingExpenses.ProfessionalFees = netRevenue * 0.02m; // 2% of revenue
-            report.OperatingExpenses.OtherExpenses = netRevenue * 0.03m; // 3% of revenue
-
-            // Non-operating expenses
-            report.OperatingExpenses.InterestExpense = netRevenue * 0.01m; // 1% of revenue
-            report.OperatingExpenses.TaxExpense = Math.Max(0, report.OperatingIncome * 0.25m); // 25% tax rate on positive income
+            // Non-operating expenses - more conservative
+            report.OperatingExpenses.InterestExpense = netRevenue * 0.005m; // 0.5% - lower interest
+            report.OperatingExpenses.TaxExpense = Math.Max(0, report.OperatingIncome * 0.20m); // 20% tax rate
         }
 
         private async Task GenerateMonthlyProfitLossBreakdown(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
@@ -773,24 +851,38 @@ namespace ModularSys.Inventory.Services
                 var monthEnd = current.AddMonths(1).AddDays(-1);
                 if (monthEnd > request.EndDate) monthEnd = request.EndDate;
 
-                // Get monthly sales
+                // Get monthly sales (actual data)
                 var monthlySales = await context.SalesOrders
                     .Where(so => !so.IsDeleted && 
                                so.OrderDate >= current && 
                                so.OrderDate <= monthEnd &&
                                so.Status != "Cancelled")
-                    .SumAsync(so => so.TotalAmount);
+                    .SumAsync(so => so.SubTotal);
 
-                // Estimate monthly COGS (typically 60-70% of sales)
-                var monthlyCOGS = monthlySales * 0.65m;
+                // Calculate monthly discounts (actual data)
+                var monthlyDiscounts = await context.SalesOrders
+                    .Where(so => !so.IsDeleted && 
+                               so.OrderDate >= current && 
+                               so.OrderDate <= monthEnd &&
+                               so.Status != "Cancelled")
+                    .SumAsync(so => so.DiscountAmount);
 
-                // Estimate monthly operating expenses (typically 25-35% of sales)
-                var monthlyOpEx = monthlySales * 0.30m;
+                // Calculate monthly COGS from actual inventory transactions
+                var monthlyCOGS = await context.InventoryTransactions
+                    .Where(it => !it.IsDeleted && 
+                               it.TransactionDate >= current && 
+                               it.TransactionDate <= monthEnd &&
+                               it.TransactionType == "Sale")
+                    .SumAsync(it => it.QuantityChange * it.UnitCost);
+
+                // Use more conservative operating expense ratio
+                var monthlyNetRevenue = monthlySales - monthlyDiscounts;
+                var monthlyOpEx = monthlyNetRevenue * 0.25m; // 25% of net revenue
 
                 monthlyBreakdown.Add(new MonthlyProfitLoss
                 {
                     Month = current.ToString("MMM yyyy"),
-                    Revenue = monthlySales,
+                    Revenue = monthlyNetRevenue, // Use net revenue (after discounts)
                     COGS = monthlyCOGS,
                     OperatingExpenses = monthlyOpEx
                 });
