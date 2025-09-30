@@ -39,5 +39,9 @@ namespace ModularSys.Data.Common.Entities.CRM
         // Navigation Properties
         public ICollection<Contact> Contacts { get; set; } = new List<Contact>();
         public ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
+        
+        // Inventory Integration - Sales Orders linked to this customer
+        // Note: Using fully qualified name to avoid circular reference
+        public ICollection<ModularSys.Data.Common.Entities.Inventory.SalesOrder> SalesOrders { get; set; } = new List<ModularSys.Data.Common.Entities.Inventory.SalesOrder>();
     }
 }

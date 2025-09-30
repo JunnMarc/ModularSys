@@ -1,40 +1,49 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities;
 
 public class RoleService : IRoleService
 {
-    private readonly ModularSysDbContext _db;
+    private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
 
-    public RoleService(ModularSysDbContext db)
+    public RoleService(IDbContextFactory<ModularSysDbContext> contextFactory)
     {
-        _db = db;
+        _contextFactory = contextFactory;
     }
 
-    public async Task<List<Role>> GetAllAsync() =>
-        await _db.Roles.Include(r => r.RolePermissions).ToListAsync();
+    public async Task<List<Role>> GetAllAsync()
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Roles.Include(r => r.RolePermissions).ToListAsync();
+    }
 
-    public async Task<Role?> GetByIdAsync(int id) =>
-        await _db.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.RoleId == id);
+    public async Task<Role?> GetByIdAsync(int id)
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Roles.Include(r => r.RolePermissions).FirstOrDefaultAsync(r => r.RoleId == id);
+    }
 
     public async Task<Role> CreateAsync(Role role)
     {
-        _db.Roles.Add(role);
-        await _db.SaveChangesAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        db.Roles.Add(role);
+        await db.SaveChangesAsync();
         return role;
     }
 
     public async Task<bool> UpdateAsync(Role role)
     {
-        _db.Roles.Update(role);
-        return await _db.SaveChangesAsync() > 0;
+        await using var db = _contextFactory.CreateDbContext();
+        db.Roles.Update(role);
+        return await db.SaveChangesAsync() > 0;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var role = await _db.Roles.FindAsync(id);
+        await using var db = _contextFactory.CreateDbContext();
+        var role = await db.Roles.FindAsync(id);
         if (role == null) return false;
-        _db.Roles.Remove(role);
-        return await _db.SaveChangesAsync() > 0;
+        db.Roles.Remove(role);
+        return await db.SaveChangesAsync() > 0;
     }
 }

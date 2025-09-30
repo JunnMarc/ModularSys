@@ -128,42 +128,46 @@ namespace ModularSys.Inventory.Services
             var revenue = scope.ServiceProvider.GetRequiredService<IRevenueService>();
             var inventory = scope.ServiceProvider.GetRequiredService<IInventoryService>();
 
-            using var transaction = await db.Database.BeginTransactionAsync();
-
-            var order = await db.PurchaseOrders
-                .Include(p => p.Lines)
-                .FirstOrDefaultAsync(p => p.PurchaseOrderId == purchaseOrderId);
-
-            if (order == null)
-                throw new KeyNotFoundException("Purchase order not found.");
-
-            if (order.SubTotal <= 0)
-                throw new InvalidOperationException("Purchase order has no value.");
-
-            order.Status = "Received";
-
-            // Record inventory transactions
-            foreach (var line in order.Lines)
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await inventory.RecordTransactionAsync(
+                using var transaction = await db.Database.BeginTransactionAsync();
+
+                var order = await db.PurchaseOrders
+                    .Include(p => p.Lines)
+                    .FirstOrDefaultAsync(p => p.PurchaseOrderId == purchaseOrderId);
+
+                if (order == null)
+                    throw new KeyNotFoundException("Purchase order not found.");
+
+                if (order.SubTotal <= 0)
+                    throw new InvalidOperationException("Purchase order has no value.");
+
+                order.Status = "Received";
+
+                // Record inventory transactions
+                foreach (var line in order.Lines)
+                {
+                    await inventory.RecordTransactionAsync(
+                        db,
+                        productId: line.ProductId,
+                        quantityChange: line.Quantity,
+                        amount: line.LineTotal,
+                        transactionType: "Purchase"
+                    );
+                }
+
+                // Record negative revenue
+                await revenue.RecordAsync(
                     db,
-                    productId: line.ProductId,
-                    quantityChange: line.Quantity,
-                    amount: line.LineTotal,
-                    transactionType: "Purchase"
+                    amount: -order.SubTotal,
+                    source: "Purchase",
+                    reference: $"PO-{order.PurchaseOrderId}"
                 );
-            }
 
-            // Record negative revenue
-            await revenue.RecordAsync(
-                db,
-                amount: -order.SubTotal,
-                source: "Purchase",
-                reference: $"PO-{order.PurchaseOrderId}"
-            );
-
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
+                await db.SaveChangesAsync();
+                await transaction.CommitAsync();
+            });
         }
     }
 }

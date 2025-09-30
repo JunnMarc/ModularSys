@@ -2,28 +2,35 @@ using Microsoft.EntityFrameworkCore;
 using ModularSys.Core.Interfaces;
 using ModularSys.Core.Models;
 using ModularSys.Data.Common.Db;
+using ModularSys.Data.Common.Interfaces.Sync;
 using System.Diagnostics;
 
 namespace ModularSys.Core.Services;
 
 public class DashboardService : IDashboardService
 {
-    private readonly ModularSysDbContext _db;
+    private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
+    private readonly IConnectionManager _connectionManager;
     private static readonly DateTime _appStartTime = DateTime.UtcNow;
 
-    public DashboardService(ModularSysDbContext db)
+    public DashboardService(
+        IDbContextFactory<ModularSysDbContext> contextFactory,
+        IConnectionManager connectionManager)
     {
-        _db = db;
+        _contextFactory = contextFactory;
+        _connectionManager = connectionManager;
     }
 
     public async Task<DashboardStats> GetDashboardStatsAsync()
     {
-        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
-        var totalDepartments = await _db.Departments.CountAsync();
-        var totalRoles = await _db.Roles.CountAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        
+        var totalUsers = await db.Users.IgnoreQueryFilters().CountAsync();
+        var totalDepartments = await db.Departments.CountAsync();
+        var totalRoles = await db.Roles.CountAsync();
 
         // Calculate active users (users who are not deleted)
-        var activeUsers = await _db.Users.IgnoreQueryFilters().CountAsync(u => !u.IsDeleted);
+        var activeUsers = await db.Users.IgnoreQueryFilters().CountAsync(u => !u.IsDeleted);
 
         // Simple growth calculation based on total users vs departments ratio
         var avgUsersPerDept = totalDepartments > 0 ? (decimal)totalUsers / totalDepartments : 0;
@@ -42,8 +49,9 @@ public class DashboardService : IDashboardService
 
     public async Task<List<UserGrowthData>> GetUserGrowthDataAsync(int months = 12)
     {
+        await using var db = _contextFactory.CreateDbContext();
         var result = new List<UserGrowthData>();
-        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
+        var totalUsers = await db.Users.IgnoreQueryFilters().CountAsync();
         
         // Create simple mock data for now to avoid complex date queries
         var now = DateTime.UtcNow;
@@ -65,14 +73,15 @@ public class DashboardService : IDashboardService
 
     public async Task<List<DepartmentStats>> GetDepartmentStatsAsync()
     {
-        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        var totalUsers = await db.Users.IgnoreQueryFilters().CountAsync();
         
-        var departments = await _db.Departments.ToListAsync();
+        var departments = await db.Departments.ToListAsync();
         var departmentStats = new List<DepartmentStats>();
         
         foreach (var dept in departments)
         {
-            var userCount = await _db.Users.IgnoreQueryFilters().CountAsync(u => u.DepartmentId == dept.DepartmentId);
+            var userCount = await db.Users.IgnoreQueryFilters().CountAsync(u => u.DepartmentId == dept.DepartmentId);
             
             departmentStats.Add(new DepartmentStats
             {
@@ -88,10 +97,11 @@ public class DashboardService : IDashboardService
 
     public async Task<List<RecentActivity>> GetRecentActivitiesAsync(int count = 10)
     {
+        await using var db = _contextFactory.CreateDbContext();
         var activities = new List<RecentActivity>();
 
         // Get recent user registrations (simplified)
-        var recentUsers = await _db.Users.IgnoreQueryFilters()
+        var recentUsers = await db.Users.IgnoreQueryFilters()
             .OrderByDescending(u => u.CreatedAt)
             .Take(5)
             .ToListAsync();
@@ -119,18 +129,17 @@ public class DashboardService : IDashboardService
             Icon = "PlayArrow",
             Color = "Primary"
         });
-
+        
         return activities.OrderByDescending(a => a.Timestamp).Take(count).ToList();
     }
 
     public async Task<SystemHealthStats> GetSystemHealthAsync()
     {
-        // Get basic system info
         var process = Process.GetCurrentProcess();
         var uptime = DateTime.UtcNow - _appStartTime;
 
-        // Check database connectivity
-        bool isDatabaseOnline = await CheckDatabaseConnectionAsync();
+        // Check database connectivity with fallback logic
+        var (isDatabaseOnline, connectionType, errorMessage) = await CheckDatabaseConnectionWithFallbackAsync();
         
         // Simulate some metrics (in a real app, you'd get these from system monitoring)
         var random = new Random();
@@ -143,32 +152,41 @@ public class DashboardService : IDashboardService
             Uptime = uptime,
             ActiveConnections = random.Next(5, 15),
             LastBackup = DateTime.UtcNow.AddHours(-random.Next(1, 24)),
-            IsDatabaseOnline = isDatabaseOnline
+            IsDatabaseOnline = isDatabaseOnline,
+            DatabaseConnectionType = connectionType,
+            DatabaseErrorMessage = errorMessage
         };
     }
 
-    private async Task<bool> CheckDatabaseConnectionAsync()
+    private async Task<(bool isOnline, string connectionType, string? errorMessage)> CheckDatabaseConnectionWithFallbackAsync()
     {
-        try
+        // Try local database first
+        bool localOnline = await _connectionManager.TestLocalConnectionAsync();
+        if (localOnline)
         {
-            // Simple query to check if database is accessible
-            await _db.Database.CanConnectAsync();
-            return true;
+            return (true, "Local", null);
         }
-        catch
+
+        // If local fails, try cloud
+        bool cloudOnline = await _connectionManager.TestCloudConnectionAsync();
+        if (cloudOnline)
         {
-            return false;
+            return (true, "Cloud (Fallback)", "Local database unavailable, using cloud");
         }
+
+        // Both failed
+        return (false, "Offline", "Both local and cloud databases are unavailable");
     }
 
     private async Task<long> GetDatabaseSizeAsync()
     {
         try
         {
+            await using var db = _contextFactory.CreateDbContext();
             // Get approximate database size by counting records
-            var userCount = await _db.Users.CountAsync();
-            var roleCount = await _db.Roles.CountAsync();
-            var deptCount = await _db.Departments.CountAsync();
+            var userCount = await db.Users.CountAsync();
+            var roleCount = await db.Roles.CountAsync();
+            var deptCount = await db.Departments.CountAsync();
             
             // Simulate size calculation (in a real app, you'd query actual DB size)
             return (userCount + roleCount + deptCount) * 1024; // Approximate size in bytes
@@ -181,14 +199,15 @@ public class DashboardService : IDashboardService
 
     public async Task<List<RoleDistribution>> GetRoleDistributionAsync()
     {
-        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
-        var roles = await _db.Roles.Include(r => r.RolePermissions).ThenInclude(rp => rp.Permission).ToListAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        var totalUsers = await db.Users.IgnoreQueryFilters().CountAsync();
+        var roles = await db.Roles.Include(r => r.RolePermissions).ThenInclude(rp => rp.Permission).ToListAsync();
         
         var roleDistribution = new List<RoleDistribution>();
         
         foreach (var role in roles)
         {
-            var userCount = await _db.Users.IgnoreQueryFilters().CountAsync(u => u.RoleId == role.RoleId);
+            var userCount = await db.Users.IgnoreQueryFilters().CountAsync(u => u.RoleId == role.RoleId);
             
             roleDistribution.Add(new RoleDistribution
             {
@@ -204,10 +223,11 @@ public class DashboardService : IDashboardService
 
     public async Task<SecurityMetrics> GetSecurityMetricsAsync()
     {
+        await using var db = _contextFactory.CreateDbContext();
         // In a real app, you'd track these in a security log table
         // For now, we'll simulate based on user data
-        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
-        var activeUsers = await _db.Users.CountAsync(u => !u.IsDeleted);
+        var totalUsers = await db.Users.IgnoreQueryFilters().CountAsync();
+        var activeUsers = await db.Users.CountAsync(u => !u.IsDeleted);
         
         return new SecurityMetrics
         {

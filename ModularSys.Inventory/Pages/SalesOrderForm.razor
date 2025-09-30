@@ -436,6 +436,7 @@
                 };
 
                 await SalesOrderService.CreateAsync(order);
+                Snack.Add("Sales order created successfully.", Severity.Success);
             }
 
             MudDialog.Close(DialogResult.Ok(true));

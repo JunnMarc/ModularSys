@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ModularSys.Data.Common.Interfaces;
+using ModularSys.Data.Common.Entities.CRM;
 
 namespace ModularSys.Data.Common.Entities.Inventory
 {
@@ -18,6 +19,12 @@ namespace ModularSys.Data.Common.Entities.Inventory
         public string? CancellationReason { get; set; } // Reason for cancellation if status is Cancelled
         public DateTime? CancelledAt { get; set; } // When the order was cancelled
         public string? CancelledBy { get; set; } // Who cancelled the order
+        
+        // CRM Integration - Optional link to Customer entity
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
+        
+        // Legacy fields - kept for backward compatibility and quick orders without customer link
         public string? CustomerName { get; set; }
         public string? CustomerEmail { get; set; }
         public string? CustomerPhone { get; set; }

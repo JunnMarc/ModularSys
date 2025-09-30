@@ -1,42 +1,50 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities;
 
 public class RolePermissionService : IRolePermissionService
 {
-    private readonly ModularSysDbContext _db;
+    private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
 
-    public RolePermissionService(ModularSysDbContext db)
+    public RolePermissionService(IDbContextFactory<ModularSysDbContext> contextFactory)
     {
-        _db = db;
+        _contextFactory = contextFactory;
     }
 
-    public async Task<List<RolePermission>> GetAllAsync() =>
-        await _db.RolePermissions
+    public async Task<List<RolePermission>> GetAllAsync()
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.RolePermissions
             .Include(rp => rp.Role)
             .Include(rp => rp.Permission)
             .ToListAsync();
+    }
 
-    public async Task<RolePermission?> GetAsync(int roleId, int permissionId) =>
-        await _db.RolePermissions
+    public async Task<RolePermission?> GetAsync(int roleId, int permissionId)
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.RolePermissions
             .Include(rp => rp.Role)
             .Include(rp => rp.Permission)
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
+    }
 
     public async Task<RolePermission> CreateAsync(RolePermission rolePermission)
     {
-        _db.RolePermissions.Add(rolePermission);
-        await _db.SaveChangesAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        db.RolePermissions.Add(rolePermission);
+        await db.SaveChangesAsync();
         return rolePermission;
     }
 
     public async Task<bool> DeleteAsync(int roleId, int permissionId)
     {
-        var rp = await _db.RolePermissions.FindAsync(roleId, permissionId);
+        await using var db = _contextFactory.CreateDbContext();
+        var rp = await db.RolePermissions.FindAsync(roleId, permissionId);
         if (rp == null) return false;
 
-        _db.RolePermissions.Remove(rp);
-        return await _db.SaveChangesAsync() > 0;
+        db.RolePermissions.Remove(rp);
+        return await db.SaveChangesAsync() > 0;
     }
 
     // 🔄 Toggle permission assignment
@@ -59,7 +67,8 @@ public class RolePermissionService : IRolePermissionService
 
     public async Task AssignPermissionsAsync(int roleId, List<int> permissionIds)
     {
-        var existing = await _db.RolePermissions
+        await using var db = _contextFactory.CreateDbContext();
+        var existing = await db.RolePermissions
             .Where(rp => rp.RoleId == roleId)
             .Select(rp => rp.PermissionId)
             .ToListAsync();
@@ -67,15 +76,16 @@ public class RolePermissionService : IRolePermissionService
         var toAdd = permissionIds.Except(existing);
         foreach (var pid in toAdd)
         {
-            _db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = pid });
+            db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = pid });
         }
 
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task<List<Permission>> GetPermissionsForRoleAsync(int roleId)
     {
-        return await _db.RolePermissions
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.RolePermissions
             .Where(rp => rp.RoleId == roleId)
             .Include(rp => rp.Permission)
             .Select(rp => rp.Permission)
@@ -85,7 +95,8 @@ public class RolePermissionService : IRolePermissionService
 
     public async Task<List<Permission>> GetPermissionsForRolesAsync(IEnumerable<int> roleIds)
     {
-        return await _db.RolePermissions
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.RolePermissions
             .Where(rp => roleIds.Contains(rp.RoleId))
             .Include(rp => rp.Permission)
             .Select(rp => rp.Permission)

@@ -136,10 +136,13 @@ namespace ModularSys.Inventory.Services
             var inventory = scope.ServiceProvider.GetRequiredService<IInventoryService>();
             var revenue = scope.ServiceProvider.GetRequiredService<IRevenueService>();
 
-            using var transaction = await db.Database.BeginTransactionAsync();
-
-            try
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
+                using var transaction = await db.Database.BeginTransactionAsync();
+
+                try
+                {
                 var order = await db.SalesOrders
                     .Include(o => o.Lines)
                     .ThenInclude(l => l.Product)
@@ -190,19 +193,20 @@ namespace ModularSys.Inventory.Services
                 await transaction.CommitAsync();
 
                 // Success - no console log needed (UI will show toast)
-            }
-            catch (InvalidOperationException ex)
-            {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"[SYSTEM STATUS] Order completion failed: {ex.Message}");
-                throw; // Re-throw the original exception
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"[SYSTEM STATUS] Critical error during order completion: {ex.Message}");
-                throw new InvalidOperationException($"System error during order completion: {ex.Message}", ex);
-            }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine($"[SYSTEM STATUS] Order completion failed: {ex.Message}");
+                    throw; // Re-throw the original exception
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine($"[SYSTEM STATUS] Critical error during order completion: {ex.Message}");
+                    throw new InvalidOperationException($"System error during order completion: {ex.Message}", ex);
+                }
+            });
         }
 
         public async Task CancelAsync(int salesOrderId, string cancellationReason, string cancelledBy)
@@ -245,6 +249,8 @@ namespace ModularSys.Inventory.Services
             return await query
                 .Include(o => o.Lines)
                 .ThenInclude(l => l.Product)
+                // Note: Customer navigation not available in InventoryDbContext
+                // Use GetOrdersByCustomerIdAsync for Customer details
                 .FirstOrDefaultAsync(o => o.SalesOrderId == id);
         }
 
@@ -260,6 +266,8 @@ namespace ModularSys.Inventory.Services
             return await query
                 .Include(o => o.Lines)
                 .ThenInclude(l => l.Product)
+                // Note: Customer navigation not available in InventoryDbContext
+                // Use GetOrdersByCustomerIdAsync for Customer details
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
@@ -272,6 +280,7 @@ namespace ModularSys.Inventory.Services
             return await db.SalesOrders
                 .Include(o => o.Lines)
                 .ThenInclude(l => l.Product)
+                // Note: Customer navigation not available in InventoryDbContext
                 .Where(o => o.Status == "Pending")
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
@@ -428,5 +437,8 @@ namespace ModularSys.Inventory.Services
 
             Console.WriteLine($"[SYSTEM STATUS] Inventory validation PASSED for order {order.OrderNumber}");
         }
+
+        // Note: CRM integration methods moved to CRM module to avoid circular dependencies
+        // Use CustomerService.GetOrdersAsync() and related methods from CRM module instead
     }
 }

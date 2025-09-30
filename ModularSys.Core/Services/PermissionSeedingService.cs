@@ -13,16 +13,17 @@ public interface IPermissionSeedingService
 
 public class PermissionSeedingService : IPermissionSeedingService
 {
-    private readonly ModularSysDbContext _db;
+    private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
 
-    public PermissionSeedingService(ModularSysDbContext db)
+    public PermissionSeedingService(IDbContextFactory<ModularSysDbContext> contextFactory)
     {
-        _db = db;
+        _contextFactory = contextFactory;
     }
 
     public async Task SeedPermissionsAsync()
     {
-        var existingPermissions = await _db.Permissions.Select(p => p.PermissionName).ToListAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        var existingPermissions = await db.Permissions.Select(p => p.PermissionName).ToListAsync();
 
         var permissionsToAdd = new List<Permission>();
         var displayOrder = 1;
@@ -51,16 +52,17 @@ public class PermissionSeedingService : IPermissionSeedingService
 
         if (permissionsToAdd.Any())
         {
-            _db.Permissions.AddRange(permissionsToAdd);
-            await _db.SaveChangesAsync();
+            db.Permissions.AddRange(permissionsToAdd);
+            await db.SaveChangesAsync();
             Console.WriteLine($"Seeded {permissionsToAdd.Count} new permissions");
         }
     }
 
     public async Task SeedRoleTemplatesAsync()
     {
-        var existingRoles = await _db.Roles.Select(r => r.RoleName).ToListAsync();
-        var allPermissions = await _db.Permissions.ToListAsync();
+        await using var db = _contextFactory.CreateDbContext();
+        var existingRoles = await db.Roles.Select(r => r.RoleName).ToListAsync();
+        var allPermissions = await db.Permissions.ToListAsync();
 
         foreach (var template in PermissionConstants.RoleTemplates)
         {
@@ -74,8 +76,8 @@ public class PermissionSeedingService : IPermissionSeedingService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _db.Roles.Add(role);
-                await _db.SaveChangesAsync();
+                db.Roles.Add(role);
+                await db.SaveChangesAsync();
 
                 // Assign permissions
                 var rolePermissions = new List<RolePermission>();
@@ -94,8 +96,8 @@ public class PermissionSeedingService : IPermissionSeedingService
 
                 if (rolePermissions.Any())
                 {
-                    _db.RolePermissions.AddRange(rolePermissions);
-                    await _db.SaveChangesAsync();
+                    db.RolePermissions.AddRange(rolePermissions);
+                    await db.SaveChangesAsync();
                 }
 
                 Console.WriteLine($"Created role template: {template.Key} with {rolePermissions.Count} permissions");

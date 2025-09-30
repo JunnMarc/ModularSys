@@ -11,6 +11,7 @@ using ModularSys.Core.Loader;
 using ModularSys.Core.Security;
 using ModularSys.Core.Services;
 using ModularSys.Data.Common.Db;
+using ModularSys.Data.Common.Services.Sync;
 using MudBlazor.Services;
 
 namespace ModularSys
@@ -40,23 +41,50 @@ namespace ModularSys
             builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
-            // Load appsettings.json
+            // Load appsettings.json and sync configuration
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            builder.Configuration.AddJsonFile("appsettings.Sync.json", optional: true, reloadOnChange: true);
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
             // Database
             // 1) Scoped DbContext for normal page/services (optional but common)
             builder.Services.AddDbContext<ModularSysDbContext>(options =>
-                options.UseSqlServer(connectionString)
-                       .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                })
+                .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+            
             builder.Services.AddDbContext<InventoryDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                }));
 
             // 2) Factory for isolated contexts (policy checks, background ops)
             builder.Services.AddDbContextFactory<ModularSysDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                }));
+            
             builder.Services.AddDbContextFactory<InventoryDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                }));
 
             // Session & Auth
             builder.Services.AddAuthorizationCore();
@@ -84,6 +112,9 @@ namespace ModularSys
             builder.Services.AddScoped<IPermissionSeedingService, PermissionSeedingService>();
             builder.Services.AddScoped<IStartupSeedingService, StartupSeedingService>();
             builder.Services.AddScoped<ISoftDeleteService, SoftDeleteService>();
+            
+            // Sync services (offline-first synchronization)
+            builder.Services.AddSyncServices(builder.Configuration);
 
             // HttpClient (adjust BaseAddress to your API host/port)
             builder.Services.AddScoped(sp => new HttpClient

@@ -22,7 +22,6 @@
 	  <PackageReference Include="Microsoft.EntityFrameworkCore" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
 	  <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
-	  <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration" />
 	  <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />

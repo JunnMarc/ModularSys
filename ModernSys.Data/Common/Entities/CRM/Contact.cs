@@ -19,7 +19,7 @@ namespace ModularSys.Data.Common.Entities.CRM
         public string? Department { get; set; }
         public bool IsPrimary { get; set; } = false;
         public string? Notes { get; set; }
-        public string Status { get; set; } = "Active"; // Active, Inactive
+        // Status column removed - not in database schema
 
         // Soft Delete Properties (ISoftDeletable)
         public bool IsDeleted { get; set; } = false;

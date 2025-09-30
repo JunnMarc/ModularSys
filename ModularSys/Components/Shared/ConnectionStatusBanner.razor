@@ -1,0 +1,92 @@
+@using ModularSys.Data.Common.Interfaces.Sync
+@using ModularSys.Data.Common.Services.Sync
+@inject IConnectionManager ConnectionManager
+@implements IDisposable
+
+@if (!isOnline)
+{
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.CloudOff">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText>
+                <strong>Offline Mode:</strong> Cloud connection unavailable. Operating with local database only. Changes will sync when connection is restored.
+            </MudText>
+            <MudButton Size="Size.Small" 
+                      Variant="Variant.Text" 
+                      Color="Color.Inherit"
+                      OnClick="CheckConnectionAsync"
+                      Disabled="@checking">
+                @if (checking)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+                    <span class="ml-1">Retry</span>
+                }
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+else if (justRestored)
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.CloudDone" CloseIconClicked="() => justRestored = false" ShowCloseIcon="true">
+        <strong>Online:</strong> Cloud connection restored. Sync is now active.
+    </MudAlert>
+}
+
+@code {
+    private bool isOnline = true;
+    private bool checking = false;
+    private bool justRestored = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to connection status changes
+        ConnectionManager.ConnectionStatusChanged += OnConnectionStatusChanged;
+        
+        // Check initial status
+        isOnline = ConnectionManager.IsCloudAvailable();
+        StateHasChanged();
+    }
+
+    private void OnConnectionStatusChanged(ConnectionStatusChangedEventArgs e)
+    {
+        var wasOffline = !isOnline;
+        isOnline = e.IsCloudAvailable;
+        
+        // Show "restored" message briefly when coming back online
+        if (wasOffline && isOnline)
+        {
+            justRestored = true;
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                justRestored = false;
+                InvokeAsync(StateHasChanged);
+            });
+        }
+        
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CheckConnectionAsync()
+    {
+        checking = true;
+        StateHasChanged();
+        
+        try
+        {
+            isOnline = await ConnectionManager.CheckCloudStatusNowAsync();
+        }
+        finally
+        {
+            checking = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        ConnectionManager.ConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+}

@@ -12,18 +12,18 @@ namespace ModularSys.Core.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly ModularSysDbContext _db;
+        private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
         private readonly ISessionStorage _storage;
         private readonly IRolePermissionService _rolePermissionService;
         private readonly SessionAuthStateProvider _authStateProvider;
 
         public AuthService(
-            ModularSysDbContext db,
+            IDbContextFactory<ModularSysDbContext> contextFactory,
             ISessionStorage storage,
             IRolePermissionService rolePermissionService,
             SessionAuthStateProvider authStateProvider)
         {
-            _db = db;
+            _contextFactory = contextFactory;
             _storage = storage;
             _rolePermissionService = rolePermissionService;
             _authStateProvider = authStateProvider;
@@ -53,20 +53,22 @@ namespace ModularSys.Core.Services
 
         public async Task<bool> RegisterAsync(string username, string password)
         {
+            await using var db = _contextFactory.CreateDbContext();
+            
             if (string.IsNullOrWhiteSpace(username) || username.Length < 4)
                 return false;
 
             if (string.IsNullOrWhiteSpace(password) || password.Length < 12)
                 return false;
 
-            if (await _db.Users.AnyAsync(u => u.Username == username))
+            if (await db.Users.AnyAsync(u => u.Username == username))
                 return false;
 
-            var defaultRole = await _db.Roles.FirstOrDefaultAsync(r => r.RoleId == 1);
+            var defaultRole = await db.Roles.FirstOrDefaultAsync(r => r.RoleId == 1);
             if (defaultRole == null)
                 return false;
 
-            var defaultDepartment = await _db.Departments.FirstOrDefaultAsync(d => d.DepartmentId == 1);
+            var defaultDepartment = await db.Departments.FirstOrDefaultAsync(d => d.DepartmentId == 1);
             if (defaultDepartment == null)
                 return false;
 
@@ -84,8 +86,8 @@ namespace ModularSys.Core.Services
 
             try
             {
-                _db.Users.Add(user);
-                await _db.SaveChangesAsync();
+                db.Users.Add(user);
+                await db.SaveChangesAsync();
                 return true;
             }
             catch
@@ -96,44 +98,45 @@ namespace ModularSys.Core.Services
 
         public async Task<bool> LoginAsync(string username, string password)
         {
-            var user = await _db.Users
+            await using var db = _contextFactory.CreateDbContext();
+            var user = await db.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Username == username);
 
-            if (user != null && VerifyPasswordWithMigration(password, user))
+            if (user == null || !await VerifyPasswordWithMigrationAsync(password, user))
             {
-                var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(user.RoleId);
+                _storage.Remove("current_user");
+                _storage.Remove("current_user_claims");
 
-                var claims = new List<Claim>
+                IsAuthenticated = false;
+                CurrentUser = null;
+
+                _authStateProvider.NotifyUserLogout();
+                OnAuthStateChanged?.Invoke();
+                return false;
+            }
+
+            var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(user.RoleId);
+
+            var claims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.RoleName)
         };
 
-                foreach (var perm in permissions)
-                    claims.Add(new Claim("Permission", perm.PermissionName));
+            foreach (var perm in permissions)
+                claims.Add(new Claim("Permission", perm.PermissionName));
 
-                _storage.Set("current_user", user.Username);
-                _storage.SetClaims("current_user_claims", claims);
+            _storage.Set("current_user", user.Username);
+            _storage.SetClaims("current_user_claims", claims);
 
-                IsAuthenticated = true;
-                CurrentUser = user.Username;
+            IsAuthenticated = true;
+            CurrentUser = user.Username;
 
-                _authStateProvider.NotifyUserAuthentication(claims);
-                OnAuthStateChanged?.Invoke();
-                return true;
-            }
-
-            _storage.Remove("current_user");
-            _storage.Remove("current_user_claims");
-
-            IsAuthenticated = false;
-            CurrentUser = null;
-
-            _authStateProvider.NotifyUserLogout();
+            _authStateProvider.NotifyUserAuthentication(claims);
             OnAuthStateChanged?.Invoke();
-            return false;
+            return true;
         }
 
         public async Task<bool> RefreshClaimsAsync()
@@ -148,7 +151,8 @@ namespace ModularSys.Core.Services
             if (string.IsNullOrWhiteSpace(idValue) || !int.TryParse(idValue, out var userId))
                 return false;
 
-            var dbUser = await _db.Users
+            await using var db = _contextFactory.CreateDbContext();
+            var dbUser = await db.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -209,7 +213,7 @@ namespace ModularSys.Core.Services
             }
         }
 
-        private bool VerifyPasswordWithMigration(string password, User user)
+        private async Task<bool> VerifyPasswordWithMigrationAsync(string password, User user)
         {
             // First try BCrypt (new format)
             if (VerifyPassword(password, user.PasswordHash))
@@ -222,9 +226,10 @@ namespace ModularSys.Core.Services
             if (user.PasswordHash == sha256Hash)
             {
                 // Auto-migrate to BCrypt
+                await using var db = _contextFactory.CreateDbContext();
                 user.PasswordHash = HashPassword(password);
-                _db.Users.Update(user);
-                _db.SaveChanges(); // Sync save for immediate effect
+                db.Users.Update(user);
+                await db.SaveChangesAsync();
                 return true;
             }
 

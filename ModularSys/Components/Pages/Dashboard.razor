@@ -2,9 +2,11 @@
 @using MudBlazor
 @using ModularSys.Core.Interfaces
 @using ModularSys.Core.Models
+@using ModularSys.Data.Common.Interfaces.Sync
 
 @inject NavigationManager Nav
 @inject IDashboardService DashboardService
+@inject IConnectionManager ConnectionManager
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -90,22 +92,35 @@
                     <MudAlert Severity="@(_systemHealth?.IsDatabaseOnline == true ? Severity.Success : Severity.Error)" Dense="true">
                         <MudStack Spacing="1">
                             <MudText Typo="Typo.body2"><b>Database</b></MudText>
-                            <MudText Typo="Typo.caption">@(_systemHealth?.IsDatabaseOnline == true ? "Online" : "Offline")</MudText>
+                            <MudText Typo="Typo.caption">
+                                @if (_systemHealth?.IsDatabaseOnline == true)
+                                {
+                                    <text>@_systemHealth.DatabaseConnectionType</text>
+                                }
+                                else
+                                {
+                                    <text>Offline</text>
+                                }
+                            </MudText>
+                            @if (!string.IsNullOrEmpty(_systemHealth?.DatabaseErrorMessage))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">@_systemHealth.DatabaseErrorMessage</MudText>
+                            }
+                        </MudStack>
+                    </MudAlert>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudAlert Severity="@(isCloudOnline ? Severity.Success : Severity.Warning)" Dense="true">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2"><b>Cloud Sync</b></MudText>
+                            <MudText Typo="Typo.caption">@(isCloudOnline ? "Online" : "Offline")</MudText>
                         </MudStack>
                     </MudAlert>
                 </MudItem>
 
                 <MudItem xs="12" sm="6" md="3">
                     <MudAlert Severity="Severity.Info" Dense="true">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2"><b>Active Sessions</b></MudText>
-                            <MudText Typo="Typo.caption">@(_dashboardStats?.ActiveUsersToday ?? 0) users</MudText>
-                        </MudStack>
-                    </MudAlert>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="3">
-                    <MudAlert Severity="Severity.Normal" Dense="true">
                         <MudStack Spacing="1">
                             <MudText Typo="Typo.body2"><b>Uptime</b></MudText>
                             <MudText Typo="Typo.caption">@(_systemHealth?.Uptime.Days ?? 0)d @(_systemHealth?.Uptime.Hours ?? 0)h @(_systemHealth?.Uptime.Minutes ?? 0)m</MudText>
@@ -217,6 +232,7 @@
     private List<RoleDistribution> _roleDistribution = new();
     private List<RecentActivity> _recentActivities = new();
     private bool _loading = true;
+    private bool isCloudOnline = true;
 
     // Chart data
     private List<ChartSeries> _userGrowthSeries = new();
@@ -230,6 +246,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Check cloud status
+        isCloudOnline = ConnectionManager.IsCloudAvailable();
+        
         await LoadData();
     }
 

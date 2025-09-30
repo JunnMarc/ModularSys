@@ -3,6 +3,7 @@ using ModularSys.Data.Common.Entities;
 using ModularSys.Data.Common.Entities.Inventory;
 using ModularSys.Data.Common.Entities.Finance;
 using ModularSys.Data.Common.Entities.CRM;
+using ModularSys.Data.Common.Entities.Sync;
 using System;
 using ModularSys.Data.Common.Interfaces;
 
@@ -34,6 +35,11 @@ namespace ModularSys.Data.Common.Db
         public DbSet<Contact> Contacts => Set<Contact>();
         public DbSet<Lead> Leads => Set<Lead>();
         public DbSet<Opportunity> Opportunities => Set<Opportunity>();
+        
+        // Synchronization
+        public DbSet<SyncMetadata> SyncMetadata => Set<SyncMetadata>();
+        public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
+        public DbSet<SyncConfiguration> SyncConfigurations => Set<SyncConfiguration>();
 
         public ModularSysDbContext(DbContextOptions<ModularSysDbContext> options)
             : base(options) { }

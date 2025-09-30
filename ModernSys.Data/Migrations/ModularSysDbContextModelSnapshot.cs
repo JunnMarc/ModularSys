@@ -40,7 +40,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
 
                     b.HasData(
                         new
@@ -75,7 +75,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasKey("RevenueTransactionId");
 
-                    b.ToTable("RevenueTransactions");
+                    b.ToTable("RevenueTransactions", (string)null);
                 });
 
             modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Category", b =>
@@ -662,7 +662,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasKey("PermissionId");
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
 
                     b.HasData(
                         new
@@ -741,7 +741,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -765,7 +765,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasIndex("PermissionId");
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermissions", (string)null);
 
                     b.HasData(
                         new
@@ -854,7 +854,7 @@ namespace ModularSys.Data.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
                     b.HasData(
                         new

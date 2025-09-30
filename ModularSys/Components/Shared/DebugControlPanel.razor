@@ -1,0 +1,234 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using ModularSys.Data.Common.Interfaces.Sync
+@using System.Security.Claims
+@inject IConnectionManager ConnectionManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<MudDrawer @bind-Open="@_isOpen" Anchor="Anchor.Right" Elevation="2" Variant="@DrawerVariant.Temporary" Width="400px">
+    <MudDrawerHeader>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">🐛 Debug Panel</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _isOpen = false)" Size="Size.Small" />
+        </MudStack>
+    </MudDrawerHeader>
+    
+    <MudDivider />
+    
+    <div class="pa-4">
+        <!-- Connection Status -->
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🌐 Connection Status</b></MudText>
+            <MudStack Spacing="2">
+                <MudChip T="string"  Icon="@Icons.Material.Filled.Storage"
+                         Color="@(_connectionMode == "Local" ? Color.Success : Color.Default)" 
+                         Size="Size.Small">
+                    Local: @(_isLocalOnline ? "✓ Online" : "✗ Offline")
+                </MudChip>
+                <MudChip T="string" Icon="@Icons.Material.Filled.Cloud" 
+                         Color="@(_isCloudOnline ? Color.Success : Color.Warning)" 
+                         Size="Size.Small">
+                    Cloud: @(_isCloudOnline ? "✓ Online" : "✗ Offline")
+                </MudChip>
+                <MudChip T="string" Icon="@Icons.Material.Filled.Sync" 
+                         Color="Color.Info" 
+                         Size="Size.Small">
+                    Mode: @_connectionMode
+                </MudChip>
+            </MudStack>
+        </MudPaper>
+
+        <!-- User Info -->
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>👤 Current User</b></MudText>
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body2"><b>Username:</b> @_username</MudText>
+                <MudText Typo="Typo.body2"><b>Role:</b> @_role</MudText>
+                <MudText Typo="Typo.body2"><b>Authenticated:</b> @(_isAuthenticated ? "✓ Yes" : "✗ No")</MudText>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Permissions Check -->
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🔐 Permission Checker</b></MudText>
+            <MudTextField @bind-Value="_permissionToCheck" 
+                         Label="Permission Name" 
+                         Variant="Variant.Outlined" 
+                         Margin="Margin.Dense"
+                         Placeholder="e.g., Users.View"
+                         Class="mb-2" />
+            <MudButton OnClick="CheckPermission" 
+                      Variant="Variant.Filled" 
+                      Color="Color.Primary" 
+                      Size="Size.Small"
+                      FullWidth="true"
+                      StartIcon="@Icons.Material.Filled.Security">
+                Check Permission
+            </MudButton>
+            @if (!string.IsNullOrEmpty(_permissionResult))
+            {
+                <MudAlert Severity="@(_hasPermission ? Severity.Success : Severity.Error)" 
+                         Dense="true" 
+                         Class="mt-2">
+                    @_permissionResult
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <!-- All Permissions -->
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>📋 My Permissions (@_permissions.Count)</b></MudText>
+            <div style="max-height: 200px; overflow-y: auto;">
+                @if (_permissions.Any())
+                {
+                    <MudStack Spacing="1">
+                        @foreach (var perm in _permissions.OrderBy(p => p))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@perm</MudChip>
+                        }
+                    </MudStack>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">No permissions</MudText>
+                }
+            </div>
+        </MudPaper>
+
+        <!-- Quick Actions -->
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>⚡ Quick Actions</b></MudText>
+            <MudStack Spacing="2">
+                <MudButton OnClick="RefreshStatus" 
+                          Variant="Variant.Outlined" 
+                          Size="Size.Small"
+                          FullWidth="true"
+                          StartIcon="@Icons.Material.Filled.Refresh">
+                    Refresh Status
+                </MudButton>
+                <MudButton OnClick="TestCloudConnection" 
+                          Variant="Variant.Outlined" 
+                          Size="Size.Small"
+                          FullWidth="true"
+                          StartIcon="@Icons.Material.Filled.CloudSync">
+                    Test Cloud Connection
+                </MudButton>
+                <MudButton OnClick="CopyDebugInfo" 
+                          Variant="Variant.Outlined" 
+                          Size="Size.Small"
+                          FullWidth="true"
+                          StartIcon="@Icons.Material.Filled.ContentCopy">
+                    Copy Debug Info
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </div>
+</MudDrawer>
+
+<!-- Floating Debug Button -->
+@if (!_isOpen)
+{
+    <MudFab Color="Color.Secondary" 
+           StartIcon="@Icons.Material.Filled.BugReport" 
+           Style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
+           OnClick="@(() => _isOpen = true)"
+           Size="Size.Small"
+           Title="Debug Panel" />
+}
+
+@code {
+    [Parameter]
+    public EventCallback<bool> OnToggle { get; set; }
+    
+    private bool _isOpen = false;
+    
+    public void Toggle()
+    {
+        _isOpen = !_isOpen;
+        StateHasChanged();
+    }
+    private bool _isAuthenticated = false;
+    private bool _isLocalOnline = true;
+    private bool _isCloudOnline = false;
+    private string _connectionMode = "Unknown";
+    private string _username = "Unknown";
+    private string _role = "Unknown";
+    private List<string> _permissions = new();
+    private string _permissionToCheck = "";
+    private string _permissionResult = "";
+    private bool _hasPermission = false;
+    private ClaimsPrincipal? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatus();
+    }
+
+    private async Task RefreshStatus()
+    {
+        // Get auth state
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+        _isAuthenticated = _user.Identity?.IsAuthenticated ?? false;
+        
+        if (_isAuthenticated)
+        {
+            _username = _user.Identity?.Name ?? "Unknown";
+            _role = _user.FindFirst(ClaimTypes.Role)?.Value ?? "No Role";
+            _permissions = _user.FindAll("Permission").Select(c => c.Value).ToList();
+        }
+
+        // Get connection status
+        _isLocalOnline = await ConnectionManager.TestLocalConnectionAsync();
+        _isCloudOnline = ConnectionManager.IsCloudAvailable();
+        _connectionMode = ConnectionManager.GetConnectionMode().ToString();
+        
+        StateHasChanged();
+    }
+
+    private void CheckPermission()
+    {
+        if (string.IsNullOrWhiteSpace(_permissionToCheck))
+        {
+            _permissionResult = "Please enter a permission name";
+            _hasPermission = false;
+            return;
+        }
+
+        _hasPermission = _user?.HasClaim("Permission", _permissionToCheck) ?? false;
+        _permissionResult = _hasPermission 
+            ? $"✓ You HAVE permission: {_permissionToCheck}" 
+            : $"✗ You DON'T have permission: {_permissionToCheck}";
+    }
+
+    private async Task TestCloudConnection()
+    {
+        _isCloudOnline = await ConnectionManager.CheckCloudStatusNowAsync();
+        StateHasChanged();
+    }
+
+    private async Task CopyDebugInfo()
+    {
+        var localStatus = _isLocalOnline ? "Online" : "Offline";
+        var cloudStatus = _isCloudOnline ? "Online" : "Offline";
+        
+        var info = $@"Debug Info - {DateTime.Now:yyyy-MM-dd HH:mm:ss}
+========================================
+User: {_username}
+Role: {_role}
+Authenticated: {_isAuthenticated}
+Permissions: {_permissions.Count}
+
+Connection:
+- Local: {localStatus}
+- Cloud: {cloudStatus}
+- Mode: {_connectionMode}
+
+Current Page: {Navigation.Uri}
+========================================";
+        
+        // In a real app, you'd use JS Interop to copy to clipboard
+        Console.WriteLine(info);
+        // For now, just log it
+    }
+}

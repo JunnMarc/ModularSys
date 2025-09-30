@@ -46,6 +46,8 @@ public class SystemHealthStats
     public int ActiveConnections { get; set; }
     public DateTime LastBackup { get; set; }
     public bool IsDatabaseOnline { get; set; }
+    public string DatabaseConnectionType { get; set; } = "Unknown";
+    public string? DatabaseErrorMessage { get; set; }
     public bool IsHealthy => CpuUsage < 80 && MemoryUsage < 85 && IsDatabaseOnline;
 }
 

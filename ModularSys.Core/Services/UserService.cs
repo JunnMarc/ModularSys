@@ -7,45 +7,57 @@ using System.Text;
 
 public class UserService : IUserService
 {
-    private readonly ModularSysDbContext _db;
+    private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
     private readonly IAuthService _authService;
 
-    public UserService(ModularSysDbContext db, IAuthService authService)
+    public UserService(IDbContextFactory<ModularSysDbContext> contextFactory, IAuthService authService)
     {
-        _db = db;
+        _contextFactory = contextFactory;
         _authService = authService;
     }
 
-    public async Task<List<User>> GetAllAsync() =>
-        await _db.Users.Include(u => u.Role).Include(u => u.Department).ToListAsync();
+    public async Task<List<User>> GetAllAsync()
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Users.Include(u => u.Role).Include(u => u.Department).ToListAsync();
+    }
 
-    public async Task<User?> GetByIdAsync(int id) =>
-        await _db.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.Id == id);
+    public async Task<User?> GetByIdAsync(int id)
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.Id == id);
+    }
 
-    public async Task<User?> GetByUsernameAsync(string username) =>
-        await _db.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.Username == username);
+    public async Task<User?> GetByUsernameAsync(string username)
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Users.Include(u => u.Role).Include(u => u.Department).FirstOrDefaultAsync(u => u.Username == username);
+    }
 
     public async Task<User> CreateAsync(User user, string password)
     {
+        await using var db = _contextFactory.CreateDbContext();
         user.PasswordHash = HashPassword(password);
         user.CreatedAt = DateTime.UtcNow;
         user.CreatedBy = _authService.CurrentUser ?? "System";
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
         return user;
     }
 
     public async Task<bool> UpdateAsync(User user)
     {
+        await using var db = _contextFactory.CreateDbContext();
         user.UpdatedAt = DateTime.UtcNow;
         user.UpdatedBy = _authService.CurrentUser ?? "System";
-        _db.Users.Update(user);
-        return await _db.SaveChangesAsync() > 0;
+        db.Users.Update(user);
+        return await db.SaveChangesAsync() > 0;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var user = await _db.Users.FindAsync(id);
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(id);
         if (user == null) return false;
         
         // Soft delete manually
@@ -53,12 +65,13 @@ public class UserService : IUserService
         user.DeletedAt = DateTime.UtcNow;
         user.DeletedBy = _authService.CurrentUser;
         
-        return await _db.SaveChangesAsync() > 0;
+        return await db.SaveChangesAsync() > 0;
     }
 
     public async Task<bool> RestoreAsync(int id)
     {
-        var user = await _db.Users.IgnoreQueryFilters()
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users.IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null) return false;
         
@@ -66,19 +79,23 @@ public class UserService : IUserService
         user.DeletedAt = null;
         user.DeletedBy = null;
         
-        return await _db.SaveChangesAsync() > 0;
+        return await db.SaveChangesAsync() > 0;
     }
 
-    public async Task<List<User>> GetDeletedUsersAsync() =>
-        await _db.Users.IgnoreQueryFilters()
+    public async Task<List<User>> GetDeletedUsersAsync()
+    {
+        await using var db = _contextFactory.CreateDbContext();
+        return await db.Users.IgnoreQueryFilters()
             .Where(u => u.IsDeleted)
             .Include(u => u.Role)
             .Include(u => u.Department)
             .ToListAsync();
+    }
 
     public async Task<(List<User> Users, int TotalCount)> GetPagedAsync(int page, int pageSize, string? searchTerm = null)
     {
-        var query = _db.Users.Include(u => u.Role).Include(u => u.Department).AsQueryable();
+        await using var db = _contextFactory.CreateDbContext();
+        var query = db.Users.Include(u => u.Role).Include(u => u.Department).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -103,24 +120,27 @@ public class UserService : IUserService
 
     public async Task<bool> SetRoleAsync(int userId, int roleId)
     {
-        var user = await _db.Users.FindAsync(userId);
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(userId);
         if (user == null) return false;
         user.RoleId = roleId;
-        _db.Users.Update(user);
-        return await _db.SaveChangesAsync() > 0;
+        db.Users.Update(user);
+        return await db.SaveChangesAsync() > 0;
     }
 
     public async Task<bool> SetDepartmentAsync(int userId, int departmentId)
     {
-        var user = await _db.Users.FindAsync(userId);
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(userId);
         if (user == null) return false;
         user.DepartmentId = departmentId;
-        _db.Users.Update(user);
-        return await _db.SaveChangesAsync() > 0;
+        db.Users.Update(user);
+        return await db.SaveChangesAsync() > 0;
     }
     public async Task<int?> GetRoleIdAsync(int userId)
     {
-        var user = await _db.Users
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -134,7 +154,8 @@ public class UserService : IUserService
 
     public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
     {
-        var user = await _db.Users.FindAsync(userId);
+        await using var db = _contextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(userId);
         if (user == null) return false;
 
         // Verify current password
@@ -146,6 +167,6 @@ public class UserService : IUserService
         user.UpdatedAt = DateTime.UtcNow;
         user.UpdatedBy = _authService.CurrentUser ?? "System";
 
-        return await _db.SaveChangesAsync() > 0;
+        return await db.SaveChangesAsync() > 0;
     }
 }

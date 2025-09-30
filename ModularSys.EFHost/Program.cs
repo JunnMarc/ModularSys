@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,6 +22,9 @@ namespace ModularSys.EFHost
                     var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
 
                     services.AddDbContext<InventoryDbContext>(options =>
+                        options.UseSqlServer(connectionString));
+                    
+                    services.AddDbContext<ModularSysDbContext>(options =>
                         options.UseSqlServer(connectionString));
                 })
                 .Build()

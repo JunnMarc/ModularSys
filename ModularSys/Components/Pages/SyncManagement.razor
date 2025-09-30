@@ -1,0 +1,352 @@
+@page "/sync-management"
+@using ModularSys.Data.Common.Interfaces.Sync
+@using ModularSys.Data.Common.Db
+@using Microsoft.EntityFrameworkCore
+@inject ISyncService SyncService
+@inject IConnectionManager ConnectionManager
+@inject IDbContextFactory<ModularSysDbContext> ContextFactory
+@inject ISnackbar Snackbar
+
+<PageTitle>Sync Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Sync" Class="mr-2" />
+        Synchronization Management
+    </MudText>
+
+    <!-- Connection Status Card -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Connection Status</MudText>
+                        <MudChip T="string" Color="@(isOnline ? Color.Success : Color.Error)" Icon="@Icons.Material.Filled.Cloud">
+                            @(isOnline ? "Online" : "Offline")
+                        </MudChip>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Mode: @connectionMode
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Last Sync</MudText>
+                        <MudText Typo="Typo.body1">
+                            @(lastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(lastSyncTime.HasValue ? $"{(DateTime.UtcNow - lastSyncTime.Value).TotalMinutes:F0} minutes ago" : "")
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Pending Changes</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary">@pendingCount</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Records waiting to sync
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Sync Actions -->
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Sync Actions</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudStack Row="true" Spacing="3">
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          StartIcon="@Icons.Material.Filled.Sync"
+                          OnClick="SyncAllAsync"
+                          Disabled="isSyncing || !isOnline">
+                    Full Sync
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Secondary" 
+                          StartIcon="@Icons.Material.Filled.Update"
+                          OnClick="SyncIncrementalAsync"
+                          Disabled="isSyncing || !isOnline">
+                    Incremental Sync
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Info" 
+                          StartIcon="@Icons.Material.Filled.Upload"
+                          OnClick="PushToCloudAsync"
+                          Disabled="isSyncing || !isOnline">
+                    Push to Cloud
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Info" 
+                          StartIcon="@Icons.Material.Filled.Download"
+                          OnClick="PullFromCloudAsync"
+                          Disabled="isSyncing || !isOnline">
+                    Pull from Cloud
+                </MudButton>
+                <MudButton Variant="Variant.Text" 
+                          Color="Color.Default" 
+                          StartIcon="@Icons.Material.Filled.Refresh"
+                          OnClick="RefreshStatusAsync"
+                          Disabled="isSyncing">
+                    Refresh
+                </MudButton>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Sync Progress -->
+    @if (isSyncing)
+    {
+        <MudCard Class="mb-4">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">Synchronizing...</MudText>
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+                <MudText Typo="Typo.body2">@syncStatus</MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+
+    <!-- Recent Sync History -->
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Recent Sync History</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Items="@syncLogs" Hover="true" Dense="true" Loading="@loadingLogs">
+                <HeaderContent>
+                    <MudTh>Session ID</MudTh>
+                    <MudTh>Started</MudTh>
+                    <MudTh>Duration</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Synced</MudTh>
+                    <MudTh>Failed</MudTh>
+                    <MudTh>Conflicts</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Session">@context.SyncSessionId.ToString().Substring(0, 8)...</MudTd>
+                    <MudTd DataLabel="Started">@context.StartedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
+                    <MudTd DataLabel="Duration">
+                        @if (context.CompletedAt.HasValue)
+                        {
+                            @((context.CompletedAt.Value - context.StartedAt).TotalSeconds.ToString("F1"));
+                        }
+                        else
+                        {
+                            <text>-</text>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Type">@context.SyncType</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Synced">@context.EntitiesSynced</MudTd>
+                    <MudTd DataLabel="Failed">
+                        @if (context.EntitiesFailed > 0)
+                        {
+                            <MudText Color="Color.Error">@context.EntitiesFailed</MudText>
+                        }
+                        else
+                        {
+                            <text>0</text>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Conflicts">
+                        @if (context.ConflictsDetected > 0)
+                        {
+                            <MudText Color="Color.Warning">@context.ConflictsDetected (@context.ConflictsResolved resolved)</MudText>
+                        }
+                        else
+                        {
+                            <text>0</text>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private bool isOnline = false;
+    private bool isSyncing = false;
+    private bool loadingLogs = false;
+    private string connectionMode = "Unknown";
+    private DateTime? lastSyncTime;
+    private int pendingCount = 0;
+    private string syncStatus = "";
+    private List<ModularSys.Data.Common.Entities.Sync.SyncLog> syncLogs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatusAsync();
+        await LoadSyncHistoryAsync();
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        try
+        {
+            isOnline = await SyncService.IsOnlineAsync();
+            connectionMode = ConnectionManager.GetConnectionMode().ToString();
+            lastSyncTime = await SyncService.GetLastSyncTimeAsync();
+            pendingCount = await SyncService.GetPendingSyncCountAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error refreshing status: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadSyncHistoryAsync()
+    {
+        loadingLogs = true;
+        try
+        {
+            using var context = await ContextFactory.CreateDbContextAsync();
+            syncLogs = await context.SyncLogs
+                .OrderByDescending(s => s.StartedAt)
+                .Take(20)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading sync history: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loadingLogs = false;
+        }
+    }
+
+    private async Task SyncAllAsync()
+    {
+        isSyncing = true;
+        syncStatus = "Starting full synchronization...";
+        try
+        {
+            var result = await SyncService.SyncAllAsync();
+            
+            if (result.Success)
+            {
+                Snackbar.Add($"Sync completed! Synced: {result.EntitiesSynced}, Failed: {result.EntitiesFailed}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Sync completed with errors: {result.ErrorMessage}", Severity.Warning);
+            }
+            
+            await RefreshStatusAsync();
+            await LoadSyncHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Sync failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSyncing = false;
+            syncStatus = "";
+        }
+    }
+
+    private async Task SyncIncrementalAsync()
+    {
+        isSyncing = true;
+        syncStatus = "Starting incremental synchronization...";
+        try
+        {
+            var result = await SyncService.SyncIncrementalAsync();
+            
+            if (result.Success)
+            {
+                Snackbar.Add($"Incremental sync completed! Synced: {result.EntitiesSynced}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Sync failed: {result.ErrorMessage}", Severity.Error);
+            }
+            
+            await RefreshStatusAsync();
+            await LoadSyncHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Sync failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSyncing = false;
+            syncStatus = "";
+        }
+    }
+
+    private async Task PushToCloudAsync()
+    {
+        isSyncing = true;
+        syncStatus = "Pushing local changes to cloud...";
+        try
+        {
+            var result = await SyncService.PushToCloudAsync();
+            Snackbar.Add($"Pushed {result.EntitiesSynced} entities to cloud", Severity.Success);
+            await RefreshStatusAsync();
+            await LoadSyncHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Push failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSyncing = false;
+            syncStatus = "";
+        }
+    }
+
+    private async Task PullFromCloudAsync()
+    {
+        isSyncing = true;
+        syncStatus = "Pulling cloud changes to local...";
+        try
+        {
+            var result = await SyncService.PullFromCloudAsync();
+            Snackbar.Add($"Pulled {result.EntitiesSynced} entities from cloud", Severity.Success);
+            await RefreshStatusAsync();
+            await LoadSyncHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Pull failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSyncing = false;
+            syncStatus = "";
+        }
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Completed" => Color.Success,
+            "InProgress" => Color.Info,
+            "Failed" => Color.Error,
+            "PartialSuccess" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+}

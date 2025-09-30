@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,8 +12,13 @@ namespace ModularSys.Data.Common.Entities.CRM
     {
         public int Id { get; set; }
         public int CustomerId { get; set; }
+        
+        [Column("OpportunityName")]
         public string Name { get; set; } = string.Empty;
+        
         public string? Description { get; set; }
+        
+        [Column("EstimatedValue")]
         public decimal Value { get; set; }
         public string Stage { get; set; } = "Prospecting"; // Prospecting, Qualification, Proposal, Negotiation, Won, Lost
         public int Probability { get; set; } = 10; // 0-100%
