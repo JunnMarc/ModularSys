@@ -1,4 +1,4 @@
-using ModularSys.Data.Common.Entities.Inventory;
+ using ModularSys.Data.Common.Entities.Inventory;
 
 namespace ModularSys.Inventory.Interface
 {
@@ -10,6 +10,9 @@ namespace ModularSys.Inventory.Interface
         Task CancelAsync(int salesOrderId, string cancellationReason, string cancelledBy);
         Task<SalesOrder?> GetByIdAsync(int id, bool includeDeleted = false);
         Task<IEnumerable<SalesOrder>> GetAllAsync(bool includeDeleted = false);
+        Task<IEnumerable<SalesOrder>> GetPendingOrdersAsync();
+        Task<(bool CanComplete, List<string> Issues)> CheckInventoryAvailabilityAsync(int salesOrderId);
+        Task<(decimal TotalRevenueBefore, decimal TotalRevenueAfter)> CreateAsyncWithRevenueCheck(SalesOrder order);
         Task DeleteAsync(int id, string deletedBy);
         Task<bool> RestoreAsync(int id, string restoredBy);
     }

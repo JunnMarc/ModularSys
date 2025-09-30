@@ -1,0 +1,399 @@
+@using MudBlazor
+@using ModularSys.Core.Interfaces
+@using ModularSys.Core.Models
+
+@inject NavigationManager Nav
+@inject IDashboardService DashboardService
+@inject IUserService UserService
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <MudText Typo="Typo.h3" Class="font-weight-bold gradient-text">Dashboard</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">Welcome back! Here's what's happening with your business today.</MudText>
+        </div>
+        <div class="header-actions">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                           Color="Color.Inherit" 
+                           OnClick="RefreshAsync"
+                           Title="Refresh Dashboard Data"
+                           Class="refresh-btn" />
+        </div>
+        <div class="header-decoration">
+            <div class="decoration-circle circle-1"></div>
+            <div class="decoration-circle circle-2"></div>
+            <div class="decoration-circle circle-3"></div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="stat-card revenue-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Total Users</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.TotalUsers ?? 0)</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="stat-card orders-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Active Users</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.ActiveUsersToday ?? 0)</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="stat-card users-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Departments</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@(_dashboardStats?.TotalDepartments ?? 0)</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="stat-card growth-card">
+                <MudCardContent Class="d-flex flex-column align-center justify-center">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="stat-icon mb-2" />
+                    <MudText Typo="Typo.caption" Class="text-center">Growth Rate</MudText>
+                    <MudText Typo="Typo.h5" Class="text-center">@((_dashboardStats?.UserGrowthPercentage ?? 0) >= 0 ? "+" : "")@(_dashboardStats?.UserGrowthPercentage ?? 0)%</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- System Health & Quick Actions Row -->
+    <MudGrid Spacing="2" Class="mb-4">
+        <!-- System Health Card -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="chart-card" Elevation="0" Style="border-left: 4px solid #10b981;">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" Class="chart-icon" Color="Color.Success" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">System Health</MudText>
+                    </div>
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">
+                        ✓ All Systems Operational
+                    </MudChip>
+                </div>
+                <MudCardContent Class="pa-4">
+                    <MudStack Spacing="3">
+                        <MudPaper Class="pa-3" Elevation="0" Style="background: #f0fdf4; border-left: 3px solid #10b981;">
+                            <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Storage" Color="Color.Success" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">Database</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Connected & Healthy</MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">Online</MudChip>
+                            </MudStack>
+                        </MudPaper>
+                        <MudPaper Class="pa-3" Elevation="0" Style="background: #eff6ff; border-left: 3px solid #3b82f6;">
+                            <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Devices" Color="Color.Info" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">Active Sessions</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Current user sessions</MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudText Typo="Typo.h6" Color="Color.Info">@(_dashboardStats?.ActiveUsersToday ?? 0)</MudText>
+                            </MudStack>
+                        </MudPaper>
+                        <MudPaper Class="pa-3" Elevation="0" Style="background: #fef3c7; border-left: 3px solid #f59e0b;">
+                            <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 600;">System Uptime</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Since last restart</MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudText Typo="Typo.h6" Color="Color.Warning">99.9%</MudText>
+                            </MudStack>
+                        </MudPaper>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Quick Actions Card -->
+        <MudItem xs="12" md="6">
+            <MudCard Class="chart-card" Elevation="0" Style="border-left: 4px solid #6366f1;">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.Bolt" Class="chart-icon" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Quick Actions</MudText>
+                    </div>
+                </div>
+                <MudCardContent Class="pa-4">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true"
+                                      StartIcon="@Icons.Material.Filled.PersonAdd"
+                                      OnClick='@(() => Nav.NavigateTo("/users"))'>
+                                New User
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true"
+                                      StartIcon="@Icons.Material.Filled.Security"
+                                      OnClick='@(() => Nav.NavigateTo("/permissions"))'>
+                                Permissions
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Info" FullWidth="true"
+                                      StartIcon="@Icons.Material.Filled.Business"
+                                      OnClick='@(() => Nav.NavigateTo("/departments"))'>
+                                Departments
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" FullWidth="true"
+                                      StartIcon="@Icons.Material.Filled.Settings"
+                                      OnClick='@(() => Nav.NavigateTo("/settings"))'>
+                                Settings
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true"
+                                      StartIcon="@Icons.Material.Filled.Assessment"
+                                      OnClick='@(() => Nav.NavigateTo("/reports"))'>
+                                View Reports
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Module Status Cards -->
+    <div class="section-header">
+        <div class="section-title">
+            <MudIcon Icon="@Icons.Material.Filled.Extension" Class="section-icon" />
+            <MudText Typo="Typo.h5" Class="font-weight-medium">Installed Modules</MudText>
+        </div>
+    </div>
+
+    <MudGrid Spacing="2" Class="mb-4">
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="module-card" Style="border-left: 4px solid #10b981;">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Success" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Inventory" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1" Style="font-weight: 600;">Inventory</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">v1.0.0</MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="module-card" Style="border-left: 4px solid #3b82f6;">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Info" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.People" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1" Style="font-weight-600;">User Management</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">v1.0.0</MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Class="module-card" Style="border-left: 4px solid #94a3b8;">
+                <MudCardContent Class="pa-3">
+                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Default" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1" Style="font-weight: 600;">Accounting</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Coming Soon</MudText>
+                            </MudStack>
+                        </MudStack>
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small">Planned</MudChip>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Charts Section -->
+    <div class="section-header">
+        <div class="section-title">
+            <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="section-icon" />
+            <MudText Typo="Typo.h5" Class="font-weight-medium">Analytics Overview</MudText>
+        </div>
+        <div class="filter-container">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">Time Period:</MudText>
+            <MudSelect T="string" Value="_selectedSalesPeriod" ValueChanged="OnSalesPeriodChanged" 
+                       Dense="true" Variant="Variant.Outlined" Class="period-filter">
+                <MudSelectItem T="string" Value='@("7d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" Class="mr-2" />
+                        Last 7 days
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value='@("30d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-2" />
+                        Last 30 days
+                    </div>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value='@("90d")'>
+                    <div class="filter-option">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" Class="mr-2" />
+                        Last 90 days
+                    </div>
+                </MudSelectItem>
+            </MudSelect>
+        </div>
+    </div>
+    
+    <MudGrid Spacing="2">
+        <!-- User Growth Trend -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="chart-card user-growth-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="chart-icon" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">User Growth Over Time</MudText>
+                    </div>
+                    <div class="chart-badge">
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text">
+                            📈 @(_dashboardStats?.UserGrowthPercentage ?? 0)% Growth
+                        </MudChip>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Line"
+                              ChartSeries="_userGrowthSeries"
+                              XAxisLabels="_growthMonths"
+                              OptionsObject="_lineChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Department Distribution -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="chart-card department-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Class="chart-icon" Color="Color.Warning" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Users by Department</MudText>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Donut"
+                              ChartSeries="_departmentDistributionSeries"
+                              XAxisLabels="_departmentLabels"
+                              OptionsObject="_pieChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- User Activity & System Health -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="chart-card activity-chart" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Class="chart-icon" Color="Color.Info" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">User Status Overview</MudText>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <MudChart ChartType="ChartType.Bar"
+                              ChartSeries="_userStatusSeries"
+                              XAxisLabels="_statusLabels"
+                              OptionsObject="_barChartOptions"
+                              Height="240" />
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Recent Activity Feed -->
+        <MudItem xs="12">
+            <MudPaper Class="chart-card activity-feed" Elevation="0">
+                <div class="chart-header">
+                    <div class="chart-title-group">
+                        <MudIcon Icon="@Icons.Material.Filled.Timeline" Class="chart-icon" Color="Color.Success" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Recent Activity</MudText>
+                    </div>
+                    <div class="chart-badge">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">
+                            🔄 Live Feed
+                        </MudChip>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    @if (_recentActivities?.Any() == true)
+                    {
+                        <MudList T="string" Class="activity-list-container">
+                            @foreach (var activity in _recentActivities.Take(8))
+                            {
+                                <MudListItem T="string" Class="activity-list-item">
+                                    <div class="activity-content">
+                                        <div class="activity-icon-wrapper">
+                                            <MudAvatar Size="Size.Small" Color="@GetActivityColor(activity.Color)" Class="activity-avatar">
+                                                <MudIcon Icon="@GetActivityIcon(activity.Icon)" Size="Size.Small" />
+                                            </MudAvatar>
+                                        </div>
+                                        <div class="activity-info">
+                                            <div class="activity-header">
+                                                <MudText Typo="Typo.body2" Class="activity-title">@activity.Activity</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="activity-timestamp">
+                                                    @activity.Timestamp.ToString("MMM dd, HH:mm")
+                                                </MudText>
+                                            </div>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="activity-description">
+                                                @activity.Description
+                                            </MudText>
+                                        </div>
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <div class="no-activity">
+                            <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No recent activity</MudText>
+                        </div>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+</MudContainer>

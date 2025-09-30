@@ -14,4 +14,5 @@ public interface IUserService
     Task<bool> SetRoleAsync(int userId, int roleId);
     Task<bool> SetDepartmentAsync(int userId, int departmentId);
     Task<int?> GetRoleIdAsync(int userId);
+    Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
 }

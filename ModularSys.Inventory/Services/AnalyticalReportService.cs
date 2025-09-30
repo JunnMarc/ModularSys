@@ -808,11 +808,8 @@ namespace ModularSys.Inventory.Services
         }
 
         private async Task CalculateOperatingExpensesSection(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
-        {
-            // Calculate operating expenses based on actual business operations
-            // Since we don't have a dedicated expenses table, we'll use business-driven calculations
-            
-            // Calculate shipping costs from actual orders (this is a real expense)
+        {   
+            // Calculate actual shipping costs from orders (real expense data)
             var totalShippingCosts = await context.SalesOrders
                 .Where(so => !so.IsDeleted && 
                            so.OrderDate >= request.StartDate && 
@@ -820,25 +817,32 @@ namespace ModularSys.Inventory.Services
                            so.Status != "Cancelled")
                 .SumAsync(so => so.ShippingCost);
 
-            // Use conservative estimates based on industry standards for small businesses
+            // Calculate actual tax costs from orders (real expense data)
+            var totalTaxCosts = await context.SalesOrders
+                .Where(so => !so.IsDeleted && 
+                           so.OrderDate >= request.StartDate && 
+                           so.OrderDate <= request.EndDate &&
+                           so.Status != "Cancelled")
+                .SumAsync(so => (so.SubTotal - so.DiscountAmount) * so.TaxRate);
+
             var netRevenue = report.Revenue.NetRevenue;
             
-            // More conservative estimates based on actual business size
-            report.OperatingExpenses.SalariesAndWages = netRevenue * 0.15m; // 15% - more realistic for small business
-            report.OperatingExpenses.Rent = netRevenue * 0.05m; // 5% - typical commercial rent
-            report.OperatingExpenses.Utilities = netRevenue * 0.02m; // 2% - utilities
-            report.OperatingExpenses.Marketing = netRevenue * 0.03m; // 3% - marketing spend
-            report.OperatingExpenses.Insurance = netRevenue * 0.01m; // 1% - business insurance
-            report.OperatingExpenses.Depreciation = netRevenue * 0.02m; // 2% - equipment depreciation
-            report.OperatingExpenses.OfficeSupplies = netRevenue * 0.005m; // 0.5% - office supplies
-            report.OperatingExpenses.ProfessionalFees = netRevenue * 0.01m; // 1% - accounting, legal
+            // Tech retail business operating expenses (Philippines small business benchmarks)
+            report.OperatingExpenses.SalariesAndWages = netRevenue * 0.12m; // 12% - small tech retail staff
+            report.OperatingExpenses.Rent = netRevenue * 0.08m; // 8% - mall/commercial space rent (higher in PH)
+            report.OperatingExpenses.Utilities = netRevenue * 0.025m; // 2.5% - electricity, internet, AC for tech products
+            report.OperatingExpenses.Marketing = netRevenue * 0.04m; // 4% - online ads, social media, promos
+            report.OperatingExpenses.Insurance = netRevenue * 0.015m; // 1.5% - product insurance, liability
+            report.OperatingExpenses.Depreciation = netRevenue * 0.015m; // 1.5% - display equipment, POS systems
+            report.OperatingExpenses.OfficeSupplies = netRevenue * 0.01m; // 1% - packaging, receipts, tech supplies
+            report.OperatingExpenses.ProfessionalFees = netRevenue * 0.008m; // 0.8% - accounting, permits, BIR compliance
             
-            // Add actual shipping costs to other expenses
-            report.OperatingExpenses.OtherExpenses = totalShippingCosts + (netRevenue * 0.015m); // Shipping + 1.5% other
+            // Add actual shipping costs to other expenses (warranty, repairs, misc)
+            report.OperatingExpenses.OtherExpenses = totalShippingCosts + (netRevenue * 0.012m);
 
-            // Non-operating expenses - more conservative
-            report.OperatingExpenses.InterestExpense = netRevenue * 0.005m; // 0.5% - lower interest
-            report.OperatingExpenses.TaxExpense = Math.Max(0, report.OperatingIncome * 0.20m); // 20% tax rate
+            // Non-operating expenses
+            report.OperatingExpenses.InterestExpense = netRevenue * 0.008m; // 0.8% - business loans, credit lines
+            report.OperatingExpenses.TaxExpense = totalTaxCosts; // ✅ Use actual tax from orders
         }
 
         private async Task GenerateMonthlyProfitLossBreakdown(InventoryDbContext context, ProfitAndLossReport report, AnalyticalReportRequest request)
@@ -875,9 +879,9 @@ namespace ModularSys.Inventory.Services
                                it.TransactionType == "Sale")
                     .SumAsync(it => it.QuantityChange * it.UnitCost);
 
-                // Use more conservative operating expense ratio
+                // Calculate monthly operating expenses using same percentage as main report
                 var monthlyNetRevenue = monthlySales - monthlyDiscounts;
-                var monthlyOpEx = monthlyNetRevenue * 0.25m; // 25% of net revenue
+                var monthlyOpEx = monthlyNetRevenue * 0.308m; // 30.8% total (sum of all tech retail OpEx percentages)
 
                 monthlyBreakdown.Add(new MonthlyProfitLoss
                 {

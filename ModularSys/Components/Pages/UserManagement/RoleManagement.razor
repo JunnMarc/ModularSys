@@ -10,53 +10,117 @@
 @inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <!-- Header -->
-    <div class="page-header">
-        <div class="header-content">
-            <MudText Typo="Typo.h4" Class="font-weight-bold">Role Management</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Manage system roles and their permissions
-            </MudText>
-        </div>
-        <div class="header-actions">
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="CreateNewRole"
-                       Class="mr-2">
-                Create Role
-            </MudButton>
-            <MudButton Variant="Variant.Outlined" 
-                       Color="Color.Secondary" 
-                       StartIcon="@Icons.Material.Filled.Security"
-                       OnClick="OpenPermissionMatrix">
-                Permission Matrix
-            </MudButton>
-        </div>
-    </div>
+    <!-- Enhanced Header with Stats -->
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+        <MudStack Spacing="3">
+            <div class="page-header">
+                <div class="header-content">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: white;">
+                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-2" />
+                            Role Management
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                            Manage system roles and their permissions
+                        </MudText>
+                    </MudStack>
+                </div>
+                <div class="header-actions">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Surface"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="CreateNewRole"
+                               Class="mr-2">
+                        Create Role
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" 
+                               StartIcon="@Icons.Material.Filled.Security"
+                               OnClick="OpenPermissionMatrix"
+                               Style="color: white; border-color: white;">
+                        Permission Matrix
+                    </MudButton>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <MudGrid Spacing="2">
+                <MudItem xs="4">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h5" Style="color: white;">@_roles.Count</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Total Roles</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h5" Style="color: white;">@_permissions.Count</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Permissions</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Assignment" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h5" Style="color: white;">@PermissionConstants.RoleTemplates.Count</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Templates</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudStack>
+    </MudPaper>
 
     <!-- Role Templates Section -->
-    <MudPaper Class="pa-4 mb-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" />
-            Quick Role Templates
-        </MudText>
+    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="border-radius: 12px;">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" Color="Color.Primary" />
+                Quick Role Templates
+            </MudText>
+            <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">
+                @PermissionConstants.RoleTemplates.Count templates available
+            </MudChip>
+        </MudStack>
         <MudGrid Spacing="2">
             @foreach (var template in PermissionConstants.RoleTemplates)
             {
                 <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Class="role-template-card" Elevation="1">
-                        <MudCardContent Class="pa-3">
+                    <MudCard Class="role-template-card" Elevation="0" Style="border: 2px solid #e2e8f0; border-radius: 12px;">
+                        <MudCardContent Class="pa-4">
                             <MudStack Spacing="2">
-                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@GetTemplateIcon(template.Key)" Color="@GetTemplateColor(template.Key)" Size="Size.Large" />
+                                    <MudChip T="string" Color="@GetTemplateColor(template.Key)" Size="Size.Small" Variant="Variant.Text">
+                                        @template.Value.Count
+                                    </MudChip>
+                                </MudStack>
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
                                     @template.Key
                                 </MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @template.Value.Count permissions included
                                 </MudText>
-                                <MudButton Variant="Variant.Text" 
-                                           Color="Color.Primary" 
+                                <MudButton Variant="Variant.Filled" 
+                                           Color="@GetTemplateColor(template.Key)" 
                                            Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Add"
                                            OnClick="@(() => CreateRoleFromTemplate(template.Key, template.Value))"
                                            FullWidth="true">
                                     Use Template
@@ -70,18 +134,24 @@
     </MudPaper>
 
     <!-- Roles List -->
-    <MudPaper Class="pa-4" Elevation="2">
+    <MudPaper Class="pa-4" Elevation="2" Style="border-radius: 12px;">
         <div class="section-header">
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" />
-                System Roles (@_roles.Count)
-            </MudText>
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h6">
+                    <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" Color="Color.Primary" />
+                    System Roles
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @_roles.Count total • @FilteredRoles.Count displayed
+                </MudText>
+            </MudStack>
             <MudTextField @bind-Value="_searchTerm"
                           Placeholder="Search roles..."
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search"
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
+                          Clearable="true"
                           Class="search-field" />
         </div>
 
@@ -118,26 +188,23 @@
                 @foreach (var role in FilteredRoles)
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="role-card" Elevation="1">
-                            <MudCardContent Class="pa-3">
-                                <MudStack Spacing="2">
+                        <MudCard Class="role-card" Elevation="0" Style="border: 2px solid #e2e8f0; border-radius: 12px; height: 100%;">
+                            <MudCardContent Class="pa-4">
+                                <MudStack Spacing="3">
                                     <div class="role-header">
-                                        <MudChip T="string" 
-                                                 Color="@GetRoleColor(role.RoleName)" 
-                                                 Size="Size.Small"
-                                                 Variant="Variant.Filled">
-                                            @role.RoleName
-                                        </MudChip>
-                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                                        <MudAvatar Color="@GetRoleColor(role.RoleName)" Size="Size.Medium">
+                                            <MudIcon Icon="@GetRoleIcon(role.RoleName)" />
+                                        </MudAvatar>
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Color="Color.Default">
                                             <MudMenuItem OnClick="@(() => EditRole(role))">
                                                 <div class="menu-item">
-                                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" />
                                                     <span>Edit</span>
                                                 </div>
                                             </MudMenuItem>
                                             <MudMenuItem OnClick="@(() => DuplicateRole(role))">
                                                 <div class="menu-item">
-                                                    <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+                                                    <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Color="Color.Info" />
                                                     <span>Duplicate</span>
                                                 </div>
                                             </MudMenuItem>
@@ -151,19 +218,40 @@
                                         </MudMenu>
                                     </div>
                                     
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                        @GetRolePermissionCount(role.RoleId) permissions assigned
-                                    </MudText>
+                                    <MudStack Spacing="1">
+                                        <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                            @role.RoleName
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="min-height: 36px;">
+                                            @(role.Description ?? "No description provided")
+                                        </MudText>
+                                    </MudStack>
                                     
-                                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
-                                        @GetRoleUserCount(role.RoleId) users with this role
-                                    </MudText>
+                                    <MudDivider />
+                                    
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Permissions</MudText>
+                                            <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Class="mr-1" />
+                                                @GetRolePermissionCount(role.RoleId)
+                                            </MudText>
+                                        </MudStack>
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Users</MudText>
+                                            <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
+                                                @GetRoleUserCount(role.RoleId)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudStack>
                                 </MudStack>
                             </MudCardContent>
-                            <MudCardActions Class="pa-2">
-                                <MudButton Variant="Variant.Text" 
+                            <MudCardActions Class="pa-3 pt-0">
+                                <MudButton Variant="Variant.Outlined" 
                                            Color="Color.Primary" 
                                            Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Visibility"
                                            OnClick="@(() => ViewRoleDetails(role))"
                                            FullWidth="true">
                                     View Details
@@ -204,23 +292,25 @@
     }
 
     .role-template-card {
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
     }
 
     .role-template-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        border-color: var(--mud-palette-primary) !important;
     }
 
     .role-card {
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         height: 100%;
     }
 
     .role-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        border-color: var(--mud-palette-primary) !important;
     }
 
     .role-header {
@@ -321,10 +411,44 @@
 
     private Color GetRoleColor(string roleName) => roleName.ToLower() switch
     {
-        var name when name.Contains("admin") => Color.Error,
-        var name when name.Contains("manager") => Color.Warning,
-        var name when name.Contains("user") => Color.Info,
+        var name when name.Contains("super") => Color.Error,
+        var name when name.Contains("admin") => Color.Warning,
+        var name when name.Contains("manager") => Color.Info,
+        var name when name.Contains("user") => Color.Primary,
+        var name when name.Contains("read") => Color.Secondary,
         _ => Color.Primary
+    };
+    
+    private string GetRoleIcon(string roleName) => roleName.ToLower() switch
+    {
+        var name when name.Contains("super") => Icons.Material.Filled.Shield,
+        var name when name.Contains("admin") => Icons.Material.Filled.AdminPanelSettings,
+        var name when name.Contains("manager") => Icons.Material.Filled.ManageAccounts,
+        var name when name.Contains("user") => Icons.Material.Filled.Person,
+        var name when name.Contains("read") => Icons.Material.Filled.Visibility,
+        _ => Icons.Material.Filled.Group
+    };
+    
+    private Color GetTemplateColor(string templateName) => templateName.ToLower() switch
+    {
+        var name when name.Contains("super") => Color.Error,
+        var name when name.Contains("system") => Color.Warning,
+        var name when name.Contains("hr") => Color.Info,
+        var name when name.Contains("department") => Color.Primary,
+        var name when name.Contains("regular") => Color.Success,
+        var name when name.Contains("read") => Color.Secondary,
+        _ => Color.Primary
+    };
+    
+    private string GetTemplateIcon(string templateName) => templateName.ToLower() switch
+    {
+        var name when name.Contains("super") => Icons.Material.Filled.Shield,
+        var name when name.Contains("system") => Icons.Material.Filled.AdminPanelSettings,
+        var name when name.Contains("hr") => Icons.Material.Filled.People,
+        var name when name.Contains("department") => Icons.Material.Filled.Business,
+        var name when name.Contains("regular") => Icons.Material.Filled.Person,
+        var name when name.Contains("read") => Icons.Material.Filled.Visibility,
+        _ => Icons.Material.Filled.Assignment
     };
 
     private int GetRolePermissionCount(int roleId) =>

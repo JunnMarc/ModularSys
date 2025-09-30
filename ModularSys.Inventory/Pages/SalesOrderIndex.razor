@@ -325,7 +325,9 @@
 
     private decimal GetTotalRevenue()
     {
-        return _orders.Sum(o => o.GrandTotal);
+        return _orders
+            .Where(o => o.Status == "Completed")  // ← ONLY completed orders
+            .Sum(o => o.GrandTotal);
     }
 
     private int GetPendingCount()

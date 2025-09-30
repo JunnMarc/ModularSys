@@ -1,0 +1,111 @@
+@page "/settings"
+@using ModularSys.Core.Interfaces
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Settings</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Settings</MudText>
+
+    <MudGrid Spacing="3">
+        <!-- Account Settings -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Account Settings</MudText>
+                
+                <MudStack Spacing="3">
+                    <MudTextField Label="Username" Value="@AuthService.CurrentUser" ReadOnly="true" Variant="Variant.Outlined" />
+                    
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Person" Href="/profile">
+                        Edit Profile
+                    </MudButton>
+                    
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Lock" Href="/change-password">
+                        Change Password
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- System Information -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">System Information</MudText>
+                
+                <MudStack Spacing="2">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Version</MudText>
+                        <MudText Typo="Typo.body2">ModularSys v1.0.0</MudText>
+                    </div>
+                    
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Environment</MudText>
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Production</MudChip>
+                    </div>
+                    
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Last Login</MudText>
+                        <MudText Typo="Typo.body2">@DateTime.Now.ToString("MMM dd, yyyy HH:mm")</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Appearance -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Appearance</MudText>
+                
+                <MudStack Spacing="2">
+                    <MudSwitch T="bool" Label="Dark Mode" Color="Color.Primary" Disabled="true" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Theme customization coming soon</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Notifications -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Notifications</MudText>
+                
+                <MudStack Spacing="2">
+                    <MudSwitch T="bool" @bind-Value="_emailNotifications" Label="Email Notifications" Color="Color.Primary" />
+                    <MudSwitch T="bool" @bind-Value="_systemAlerts" Label="System Alerts" Color="Color.Primary" />
+                    <MudSwitch T="bool" @bind-Value="_activityUpdates" Label="Activity Updates" Color="Color.Primary" />
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Danger Zone -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Style="border-left: 4px solid #ef4444;">
+                <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Error">Danger Zone</MudText>
+                
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.body2"><b>Logout from all devices</b></MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">This will end all active sessions</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="LogoutAllDevices">
+                        Logout All
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _emailNotifications = true;
+    private bool _systemAlerts = true;
+    private bool _activityUpdates = false;
+
+    private void LogoutAllDevices()
+    {
+        Snackbar.Add("Logged out from all devices", Severity.Info);
+        AuthService.Logout();
+    }
+}

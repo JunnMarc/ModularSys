@@ -1,0 +1,226 @@
+@page "/profile"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject IDepartmentService DepartmentService
+@inject ISnackbar Snackbar
+
+<PageTitle>My Profile</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">My Profile</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else if (_user != null)
+    {
+        <MudGrid Spacing="3">
+            <!-- Profile Card -->
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4 text-center">
+                    <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3" Style="width: 100px; height: 100px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+                    </MudAvatar>
+                    
+                    <MudText Typo="Typo.h5">@_user.FirstName @_user.LastName</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@@@_user.Username</MudText>
+                    
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mt-2">
+                        @_user.Role?.RoleName
+                    </MudChip>
+                    
+                    <MudDivider Class="my-3" />
+                    
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Member Since</MudText>
+                        <MudText Typo="Typo.body2">@_user.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Profile Information -->
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Profile Information</MudText>
+                    
+                    <MudForm @ref="_form">
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_user.FirstName" 
+                                              Label="First Name" 
+                                              Variant="Variant.Outlined" 
+                                              Required="true" />
+                            </MudItem>
+                            
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_user.LastName" 
+                                              Label="Last Name" 
+                                              Variant="Variant.Outlined" 
+                                              Required="true" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_user.Email" 
+                                              Label="Email" 
+                                              Variant="Variant.Outlined" 
+                                              InputType="InputType.Email"
+                                              Required="true" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_user.ContactNumber" 
+                                              Label="Contact Number" 
+                                              Variant="Variant.Outlined" 
+                                              InputType="InputType.Telephone" />
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudSelect T="int" 
+                                           @bind-Value="_user.DepartmentId" 
+                                           Label="Department" 
+                                           Variant="Variant.Outlined"
+                                           Disabled="true">
+                                    @foreach (var dept in _departments)
+                                    {
+                                        <MudSelectItem T="int" Value="@dept.DepartmentId">@dept.DepartmentName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            
+                            <MudItem xs="12">
+                                <MudStack Row="true" Spacing="2">
+                                    <MudButton Variant="Variant.Filled" 
+                                              Color="Color.Primary" 
+                                              OnClick="SaveProfile"
+                                              Disabled="_saving">
+                                        @if (_saving)
+                                        {
+                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                        }
+                                        Save Changes
+                                    </MudButton>
+                                    
+                                    <MudButton Variant="Variant.Outlined" 
+                                              OnClick="LoadProfile">
+                                        Cancel
+                                    </MudButton>
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Activity Summary -->
+            <MudItem xs="12">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Account Activity</MudText>
+                    
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudAlert Severity="Severity.Info" Dense="true">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2"><b>Last Updated</b></MudText>
+                                    <MudText Typo="Typo.caption">@(_user.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")</MudText>
+                                </MudStack>
+                            </MudAlert>
+                        </MudItem>
+                        
+                        <MudItem xs="12" sm="4">
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2"><b>Account Status</b></MudText>
+                                    <MudText Typo="Typo.caption">Active</MudText>
+                                </MudStack>
+                            </MudAlert>
+                        </MudItem>
+                        
+                        <MudItem xs="12" sm="4">
+                            <MudAlert Severity="Severity.Normal" Dense="true">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2"><b>Role</b></MudText>
+                                    <MudText Typo="Typo.caption">@_user.Role?.RoleName</MudText>
+                                </MudStack>
+                            </MudAlert>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private User? _user;
+    private List<Department> _departments = new();
+    private bool _loading = true;
+    private bool _saving = false;
+    private MudForm? _form;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProfile();
+        await LoadDepartments();
+    }
+
+    private async Task LoadProfile()
+    {
+        try
+        {
+            _loading = true;
+            _user = await UserService.GetByUsernameAsync(AuthService.CurrentUser ?? "");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading profile: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadDepartments()
+    {
+        try
+        {
+            _departments = await DepartmentService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading departments: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        if (_user == null) return;
+
+        try
+        {
+            _saving = true;
+            
+            var success = await UserService.UpdateAsync(_user);
+            
+            if (success)
+            {
+                Snackbar.Add("Profile updated successfully!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update profile", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

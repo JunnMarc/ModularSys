@@ -129,9 +129,23 @@ public class UserService : IUserService
 
     private string HashPassword(string password)
     {
-        using var sha = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        var hash = sha.ComputeHash(bytes);
-        return Convert.ToBase64String(hash);
+        return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+    }
+
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return false;
+
+        // Verify current password
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            return false;
+
+        // Update to new password
+        user.PasswordHash = HashPassword(newPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedBy = _authService.CurrentUser ?? "System";
+
+        return await _db.SaveChangesAsync() > 0;
     }
 }

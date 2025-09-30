@@ -1,4 +1,4 @@
-﻿@page "/permissions"
+@page "/permissions"
 @using Microsoft.Maui.Layouts
 @using ModularSys.Core.Interfaces
 @using ModularSys.Core.Services
@@ -9,35 +9,155 @@
 @inject IAuthService AuthService
 @inject ISnackbar Snackbar
 
-<MudPaper Class="pa-4">
-    <MudStack Spacing="2">
-        <MudStack Direction="Row" AlignItems="AlignItems.Start" Spacing="2" Wrap="Wrap.Wrap">
-            <MudText Typo="Typo.h5">Role Permission Matrix</MudText>
-            <MudText Typo="Typo.caption" Class="ml-auto">
-                @($"{FilteredRoles.Count} roles • {FilteredPermissions.Count} permissions")
-            </MudText>
-        </MudStack>
-
-        <MudStack Direction="Row" Spacing="2" Wrap="Wrap.Wrap">
-            <MudGrid>
-                <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="roleFilter" Label="Filter roles" Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.ManageAccounts"
-                                  Immediate="true" DebounceInterval="200" />
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <!-- Enhanced Header -->
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border-radius: 12px;">
+        <MudStack Spacing="3">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: white;">
+                        <MudIcon Icon="@Icons.Material.Filled.Security" Class="mr-2" />
+                        Permission Matrix
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
+                        Manage role-permission assignments with real-time updates
+                    </MudText>
+                </MudStack>
+                <MudChip T="string" Color="Color.Surface" Size="Size.Medium" Style="font-weight: 600;">
+                    @($"{FilteredRoles.Count} roles • {FilteredPermissions.Count} permissions")
+                </MudChip>
+            </MudStack>
+            
+            <!-- Quick Stats -->
+            <MudGrid Spacing="2">
+                <MudItem xs="3">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Style="color: white;">@roles.Count</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Total Roles</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="permissionFilter" Label="Filter permissions" Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock"
-                                  Immediate="true" DebounceInterval="200" />
+                <MudItem xs="3">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Style="color: white;">@permissions.Count</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Permissions</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
                 </MudItem>
-                <MudItem xs="12" sm="4" Class="d-flex align-center">
-                    <MudButton Variant="Variant.Outlined" OnClick="ClearFilters"
-                               Disabled="@(string.IsNullOrWhiteSpace(roleFilter) && string.IsNullOrWhiteSpace(permissionFilter))">
-                        Clear
-                    </MudButton>
+                <MudItem xs="3">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Style="color: white;">@GetActiveAssignmentsCount()</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Active</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="3">
+                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Percent" />
+                            </MudAvatar>
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.h6" Style="color: white;">@GetCoveragePercentage()%</MudText>
+                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Coverage</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
                 </MudItem>
             </MudGrid>
         </MudStack>
+    </MudPaper>
+    
+    <!-- Filters Section -->
+    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="border-radius: 12px;">
+        <MudStack Spacing="3">
+
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" Color="Color.Primary" />
+                Filters & Search
+            </MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@Icons.Material.Filled.SelectAll"
+                           OnClick="GrantAllVisible"
+                           Disabled="@isBusy"
+                           Color="Color.Success"
+                           Size="Size.Small">
+                    Grant All Visible
+                </MudButton>
+                <MudButton Variant="Variant.Text" 
+                           StartIcon="@Icons.Material.Filled.ClearAll"
+                           OnClick="RevokeAllVisible"
+                           Disabled="@isBusy"
+                           Color="Color.Error"
+                           Size="Size.Small">
+                    Revoke All Visible
+                </MudButton>
+            </MudStack>
+        </MudStack>
+        
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="roleFilter" 
+                              Label="Filter roles" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.ManageAccounts"
+                              Immediate="true" 
+                              DebounceInterval="200"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="permissionFilter" 
+                              Label="Filter permissions" 
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" 
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              Immediate="true" 
+                              DebounceInterval="200"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center gap-2">
+                <MudButton Variant="Variant.Outlined" 
+                           OnClick="ClearFilters"
+                           StartIcon="@Icons.Material.Filled.Clear"
+                           Disabled="@(string.IsNullOrWhiteSpace(roleFilter) && string.IsNullOrWhiteSpace(permissionFilter))">
+                    Clear Filters
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="RefreshMatrix"
+                           Disabled="@isLoading">
+                    Refresh
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        </MudStack>
+    </MudPaper>
+    
+    <!-- Matrix Section -->
+    <MudPaper Class="pa-4" Elevation="2" Style="border-radius: 12px;">
+        <MudStack Spacing="2">
 
         @if (isLoading)
         {
@@ -54,29 +174,37 @@
         else
         {
             <div class="matrix-container">
-                <MudTable Items="@FilteredRoles" Bordered="true" Striped="true" Elevation="1" Dense="true">
+                <MudTable Items="@FilteredRoles" Bordered="true" Striped="true" Elevation="0" Dense="true" Style="border-radius: 8px; overflow: hidden;">
                     <HeaderContent>
-                        <MudTh Class="sticky-first">
+                        <MudTh Class="sticky-first" Style="background: #f8fafc; font-weight: 600;">
                             <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
-                                <MudText Typo="Typo.subtitle2">Role</MudText>
+                                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.subtitle2" Class="font-weight-bold">Role</MudText>
                             </MudStack>
                         </MudTh>
                         @foreach (var perm in FilteredPermissions)
                         {
-                            <MudTh Class="sticky-header">
+                            <MudTh Class="sticky-header" Style="background: #f8fafc; min-width: 120px;">
                                 <MudStack Spacing="1" AlignItems="AlignItems.Center">
                                     <MudTooltip Text="@perm.Description">
-                                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@perm.PermissionName</MudText>
+                                        <MudStack Spacing="0" AlignItems="AlignItems.Center">
+                                            <MudIcon Icon="@GetPermissionIcon(perm.PermissionName)" Size="Size.Small" Color="@GetPermissionColor(perm.Category)" />
+                                            <MudText Typo="Typo.caption" Align="Align.Center" Class="font-weight-medium" Style="writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap;">
+                                                @GetShortPermissionName(perm.PermissionName)
+                                            </MudText>
+                                        </MudStack>
                                     </MudTooltip>
                                     <MudStack Direction="Row" Spacing="1" JustifyContent="Center">
                                         <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
                                                        Size="Size.Small"
                                                        Disabled="@isBusy"
+                                                       Color="Color.Success"
                                                        Title="Grant all for this permission"
                                                        OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, true))" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Block"
                                                        Size="Size.Small"
                                                        Disabled="@isBusy"
+                                                       Color="Color.Error"
                                                        Title="Revoke all for this permission"
                                                        OnClick="@(() => SetPermissionForAllRoles(perm.PermissionId, false))" />
                                     </MudStack>
@@ -86,36 +214,46 @@
                     </HeaderContent>
 
                     <RowTemplate>
-                        <MudTd Class="sticky-first">
-                            <MudStack Direction="Row" Spacing="1" AlignItems="AlignItems.Center">
-                                <MudChip Value="@context.RoleName"
-                                         Color="Color.Primary"
-                                         Variant="Variant.Filled"
-                                         Size="Size.Small">
-                                    @context.RoleName
-                                </MudChip>
-                                <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
-                                               Size="Size.Small"
-                                               Disabled="@isBusy"
-                                               Title="Grant all for this role"
-                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, true))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Block"
-                                               Size="Size.Small"
-                                               Disabled="@isBusy"
-                                               Title="Revoke all for this role"
-                                               OnClick="@(() => SetAllPermissionsForRole(context.RoleId, false))" />
+                        <MudTd Class="sticky-first" Style="background: #f8fafc; min-width: 200px;">
+                            <MudStack Direction="Row" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudAvatar Color="@GetRoleColor(context.RoleName)" Size="Size.Small">
+                                    <MudIcon Icon="@GetRoleIcon(context.RoleName)" Size="Size.Small" />
+                                </MudAvatar>
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2" Class="font-weight-medium">
+                                        @context.RoleName
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @GetActivePermissionsCount(context.RoleId) permissions
+                                    </MudText>
+                                </MudStack>
+                                <MudStack Direction="Row" Spacing="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
+                                                   Size="Size.Small"
+                                                   Disabled="@isBusy"
+                                                   Color="Color.Success"
+                                                   Title="Grant all for this role"
+                                                   OnClick="@(() => SetAllPermissionsForRole(context.RoleId, true))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                                   Size="Size.Small"
+                                                   Disabled="@isBusy"
+                                                   Color="Color.Error"
+                                                   Title="Revoke all for this role"
+                                                   OnClick="@(() => SetAllPermissionsForRole(context.RoleId, false))" />
+                                </MudStack>
                             </MudStack>
                         </MudTd>
 
                         @foreach (var perm in FilteredPermissions)
                         {
-                            <MudTd>
+                            <MudTd Style="text-align: center; vertical-align: middle;">
                                 <MudCheckBox T="bool"
                                              Value="@permissionMatrix[context.RoleId][perm.PermissionId]"
                                              ValueChanged="@(value => OnPermissionChanged(context.RoleId, perm.PermissionId, value))"
-                                             Color="Color.Primary"
+                                             Color="Color.Success"
                                              DisableRipple="true"
                                              Disabled="@isBusy"
+                                             Size="Size.Medium"
                                              AriaLabel="@($"{context.RoleName} — {perm.PermissionName}")" />
                             </MudTd>
                         }
@@ -125,12 +263,13 @@
         }
     </MudStack>
 </MudPaper>
+</MudContainer>
 
 <style>
     .matrix-container {
         overflow: auto;
     }
-
+{{ ... }}
     .sticky-header {
         position: sticky;
         top: 0;
@@ -309,5 +448,148 @@
         }
         finally
             { isBusy = false; StateHasChanged(); }
+    }
+
+    // Helper methods for the enhanced UI
+    private int GetActiveAssignmentsCount()
+    {
+        return permissionMatrix.Values.SelectMany(row => row.Values).Count(granted => granted);
+    }
+
+    private int GetCoveragePercentage()
+    {
+        if (roles.Count == 0 || permissions.Count == 0) return 0;
+        var totalPossible = roles.Count * permissions.Count;
+        var assigned = GetActiveAssignmentsCount();
+        return (int)Math.Round((double)assigned / totalPossible * 100);
+    }
+
+    private int GetActivePermissionsCount(int roleId)
+    {
+        if (!permissionMatrix.TryGetValue(roleId, out var row)) return 0;
+        return row.Values.Count(granted => granted);
+    }
+
+    private Color GetRoleColor(string roleName) => roleName.ToLower() switch
+    {
+        var name when name.Contains("super") => Color.Error,
+        var name when name.Contains("admin") => Color.Warning,
+        var name when name.Contains("manager") => Color.Info,
+        var name when name.Contains("user") => Color.Primary,
+        var name when name.Contains("read") => Color.Secondary,
+        _ => Color.Primary
+    };
+
+    private string GetRoleIcon(string roleName) => roleName.ToLower() switch
+    {
+        var name when name.Contains("super") => Icons.Material.Filled.Shield,
+        var name when name.Contains("admin") => Icons.Material.Filled.AdminPanelSettings,
+        var name when name.Contains("manager") => Icons.Material.Filled.ManageAccounts,
+        var name when name.Contains("user") => Icons.Material.Filled.Person,
+        var name when name.Contains("read") => Icons.Material.Filled.Visibility,
+        _ => Icons.Material.Filled.Group
+    };
+
+    private Color GetPermissionColor(string category) => category switch
+    {
+        "User Management" => Color.Primary,
+        "Role & Permission Management" => Color.Warning,
+        "Department Management" => Color.Info,
+        "System Administration" => Color.Error,
+        "Dashboard & Reports" => Color.Success,
+        "Inventory Management" => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private string GetPermissionIcon(string permissionName) => permissionName.ToLower() switch
+    {
+        var p when p.Contains("view") => Icons.Material.Filled.Visibility,
+        var p when p.Contains("create") => Icons.Material.Filled.Add,
+        var p when p.Contains("edit") => Icons.Material.Filled.Edit,
+        var p when p.Contains("delete") => Icons.Material.Filled.Delete,
+        var p when p.Contains("export") => Icons.Material.Filled.Download,
+        var p when p.Contains("import") => Icons.Material.Filled.Upload,
+        var p when p.Contains("manage") => Icons.Material.Filled.Settings,
+        var p when p.Contains("dashboard") => Icons.Material.Filled.Dashboard,
+        var p when p.Contains("reports") => Icons.Material.Filled.Assessment,
+        var p when p.Contains("system") => Icons.Material.Filled.AdminPanelSettings,
+        var p when p.Contains("audit") => Icons.Material.Filled.History,
+        var p when p.Contains("backup") => Icons.Material.Filled.Backup,
+        _ => Icons.Material.Filled.Lock
+    };
+
+    private string GetShortPermissionName(string permissionName)
+    {
+        // Convert "Users.Create" to "Create"
+        var parts = permissionName.Split('.');
+        return parts.Length > 1 ? parts[1] : permissionName;
+    }
+
+    private async Task GrantAllVisible()
+    {
+        isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            foreach (var role in FilteredRoles)
+            {
+                foreach (var perm in FilteredPermissions)
+                {
+                    if (!permissionMatrix[role.RoleId][perm.PermissionId])
+                    {
+                        permissionMatrix[role.RoleId][perm.PermissionId] = true;
+                        await RolePermissionService.ToggleAsync(role.RoleId, perm.PermissionId, true);
+                    }
+                }
+            }
+            Snackbar.Add("Granted all visible permissions", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error granting permissions: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RevokeAllVisible()
+    {
+        isBusy = true;
+        StateHasChanged();
+
+        try
+        {
+            foreach (var role in FilteredRoles)
+            {
+                foreach (var perm in FilteredPermissions)
+                {
+                    if (permissionMatrix[role.RoleId][perm.PermissionId])
+                    {
+                        permissionMatrix[role.RoleId][perm.PermissionId] = false;
+                        await RolePermissionService.ToggleAsync(role.RoleId, perm.PermissionId, false);
+                    }
+                }
+            }
+            Snackbar.Add("Revoked all visible permissions", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error revoking permissions: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshMatrix()
+    {
+        await OnInitializedAsync();
+        Snackbar.Add("Permission matrix refreshed", Severity.Info);
     }
 }

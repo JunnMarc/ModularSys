@@ -56,7 +56,7 @@ namespace ModularSys.Core.Services
             if (string.IsNullOrWhiteSpace(username) || username.Length < 4)
                 return false;
 
-            if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 12)
                 return false;
 
             if (await _db.Users.AnyAsync(u => u.Username == username))
@@ -96,12 +96,11 @@ namespace ModularSys.Core.Services
 
         public async Task<bool> LoginAsync(string username, string password)
         {
-            var hash = HashPassword(password);
             var user = await _db.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Username == username && u.PasswordHash == hash);
+                .FirstOrDefaultAsync(u => u.Username == username);
 
-            if (user != null)
+            if (user != null && VerifyPasswordWithMigration(password, user))
             {
                 var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(user.RoleId);
 
@@ -194,6 +193,45 @@ namespace ModularSys.Core.Services
         }
 
         private string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+        }
+
+        private bool VerifyPassword(string password, string hash)
+        {
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(password, hash);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool VerifyPasswordWithMigration(string password, User user)
+        {
+            // First try BCrypt (new format)
+            if (VerifyPassword(password, user.PasswordHash))
+            {
+                return true;
+            }
+
+            // Fallback to SHA256 (old format) and auto-migrate
+            var sha256Hash = HashPasswordSHA256(password);
+            if (user.PasswordHash == sha256Hash)
+            {
+                // Auto-migrate to BCrypt
+                user.PasswordHash = HashPassword(password);
+                _db.Users.Update(user);
+                _db.SaveChanges(); // Sync save for immediate effect
+                return true;
+            }
+
+            return false;
+        }
+
+        private string HashPasswordSHA256(string password)
         {
             using var sha = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password);

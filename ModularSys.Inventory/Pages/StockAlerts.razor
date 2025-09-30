@@ -91,17 +91,17 @@
                 <MudSelect T="string" @bind-Value="_selectedAlertType" Label="Alert Type" 
                           Variant="Variant.Outlined" Dense="true" Style="min-width: 150px;">
                     <MudSelectItem Value="@("All")">All Types</MudSelectItem>
-                    <MudSelectItem Value="@("OutOfStock")">Out of Stock</MudSelectItem>
-                    <MudSelectItem Value="@("LowStock")">Low Stock</MudSelectItem>
+                    <MudSelectItem Value="@("Out Of Stock")">Out of Stock</MudSelectItem>
+                    <MudSelectItem Value="@("Low Stock")">Low Stock</MudSelectItem>
                     <MudSelectItem Value="@("Expiring")">Expiring</MudSelectItem>
                 </MudSelect>
 
                 <MudSelect T="string" @bind-Value="_selectedSeverity" Label="Severity" 
                           Variant="Variant.Outlined" Dense="true" Style="min-width: 150px;">
                     <MudSelectItem Value="@("All")">All Severities</MudSelectItem>
-                    <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
-                    <MudSelectItem Value="@("Error")">Error</MudSelectItem>
-                    <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                    <MudSelectItem Value="@("Priority")">Critical</MudSelectItem>
+                    <MudSelectItem Value="@("Most Priority")">Error</MudSelectItem>
+                    <MudSelectItem Value="@("Less Priority")">Warning</MudSelectItem>
                     <MudSelectItem Value="@("Info")">Info</MudSelectItem>
                 </MudSelect>
 
@@ -240,7 +240,7 @@
             _stockAlerts = await DashboardService.GetStockAlertsAsync();
             
             // Calculate summary counts
-            _criticalAlerts = _stockAlerts.Count(a => a.Severity == "Critical");
+            _criticalAlerts = _stockAlerts.Count(a => a.Severity == "Error");
             _warningAlerts = _stockAlerts.Count(a => a.Severity == "Warning");
             _expiringAlerts = _stockAlerts.Count(a => a.AlertType == "Expiring");
 

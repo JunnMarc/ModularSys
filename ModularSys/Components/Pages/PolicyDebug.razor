@@ -1,4 +1,4 @@
-﻿@page "/policydebug"
+@page "/policydebug"
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @using ModularSys.Core.Interfaces
@@ -23,12 +23,12 @@
         {
             @foreach (var claim in userClaims)
             {
-                <MudListItem>@claim.Type = @claim.Value</MudListItem>
+                <MudListItem T="string">@claim.Type = @claim.Value</MudListItem>
             }
         }
         else
         {
-            <MudListItem>No claims found (not logged in)</MudListItem>
+            <MudListItem T="string">No claims found (not logged in)</MudListItem>
         }
     </MudList>
 

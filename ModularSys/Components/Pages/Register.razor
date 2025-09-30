@@ -1,47 +1,551 @@
-﻿@page "/register"
-@using MudBlazor
+@page "/register"
 @using ModularSys.Core.Interfaces
 @inject IAuthService AuthService
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
-<MudPaper Class="d-flex justify-center align-center" Style="height:100vh;">
-    <MudCard Style="width:400px;">
-        <MudCardHeader>
-            <MudText Typo="Typo.h5">Create a ModuERP Account</MudText>
-        </MudCardHeader>
+<div class="register-container">
+    <div class="register-left">
+        <!-- Brand Section -->
+        <div class="brand-section">
+            <div class="brand-logo">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Large" Style="color: white;" />
+            </div>
+            <MudText Typo="Typo.h3" Class="brand-title">Join ModularSys</MudText>
+            <MudText Typo="Typo.body1" Class="brand-subtitle">
+                Start building your modular desktop solution
+            </MudText>
+        </div>
+        
+        <!-- Benefits -->
+        <div class="benefits-section">
+            <div class="benefit-item">
+                <MudIcon Icon="@Icons.Material.Filled.Widgets" Class="benefit-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="benefit-title">Custom Modules</MudText>
+                    <MudText Typo="Typo.caption" Class="benefit-desc">Build your perfect workspace</MudText>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <MudIcon Icon="@Icons.Material.Filled.IntegrationInstructions" Class="benefit-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="benefit-title">Easy Integration</MudText>
+                    <MudText Typo="Typo.caption" Class="benefit-desc">Connect with existing systems</MudText>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <MudIcon Icon="@Icons.Material.Filled.CloudOff" Class="benefit-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="benefit-title">Offline Capable</MudText>
+                    <MudText Typo="Typo.caption" Class="benefit-desc">Work without internet dependency</MudText>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="register-right">
+        <div class="register-form-container">
+            <!-- Header -->
+            <div class="form-header">
+                <MudText Typo="Typo.h4" Class="form-title">Create your account</MudText>
+                <MudText Typo="Typo.body2" Class="form-subtitle">
+                    Get started with ModularSys today
+                </MudText>
+            </div>
 
-        <MudCardContent>
+            <!-- Register Form -->
+            <MudForm @ref="_form" Class="register-form">
+                <MudStack Spacing="3">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="firstName"
+                                          Label="First Name"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          FullWidth="true"
+                                          Class="modern-input" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTextField @bind-Value="lastName"
+                                          Label="Last Name"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          FullWidth="true"
+                                          Class="modern-input" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudTextField @bind-Value="email"
+                                  Label="Email Address"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  InputType="InputType.Email"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email" />
+
+                    <MudTextField @bind-Value="username"
+                                  Label="Username"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person" />
+
+                    <MudTextField @bind-Value="password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
+
+                    <MudTextField @bind-Value="confirmPassword"
+                                  Label="Confirm Password"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  InputType="@(_showConfirmPassword ? InputType.Text : InputType.Password)"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showConfirmPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showConfirmPassword = !_showConfirmPassword)" />
+                    
+                    <!-- Password Strength Indicator -->
+                    @if (!string.IsNullOrEmpty(password))
+                    {
+                        <div class="password-strength">
+                            <MudText Typo="Typo.caption" Class="strength-label">Password Strength:</MudText>
+                            <div class="strength-bar">
+                                <div class="strength-fill @GetPasswordStrengthClass()" style="width: @(GetPasswordStrength())%"></div>
+                            </div>
+                            <MudText Typo="Typo.caption" Class="strength-text">@GetPasswordStrengthText()</MudText>
+                        </div>
+                    }
+
+                    <MudCheckBox @bind-Value="_agreeToTerms" 
+                                 Color="Color.Primary" 
+                                 Size="Size.Small">
+                        <MudText Typo="Typo.body2">
+                            I agree to the 
+                            <MudLink Href="#" Class="terms-link">Terms of Service</MudLink> 
+                            and 
+                            <MudLink Href="#" Class="terms-link">Privacy Policy</MudLink>
+                        </MudText>
+                    </MudCheckBox>
+
+                    <MudButton OnClick="HandleRegister"
+                               Disabled="@(_loading || !_agreeToTerms)"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="register-button">
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
+                            <span>Creating Account...</span>
+                        }
+                        else
+                        {
+                            <span>Create Account</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudForm>
+
+            <!-- Error message -->
             @if (!string.IsNullOrEmpty(error))
             {
-                <MudAlert Severity="Severity.Error" Elevation="0">@error</MudAlert>
+                <MudAlert Severity="Severity.Error" Class="error-alert">
+                    @error
+                </MudAlert>
             }
+            
+            <!-- Divider -->
+            <div class="divider-section">
+                <div class="divider-line"></div>
+                <MudText Typo="Typo.caption" Class="divider-text">or</MudText>
+                <div class="divider-line"></div>
+            </div>
+            
+            <!-- Login Link -->
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="login-text">
+                Already have an account?
+                <MudLink Href="/login" Class="login-link">
+                    Sign in here
+                </MudLink>
+            </MudText>
+            
+            <!-- Footer -->
+            <div class="form-footer">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                    © @DateTime.Now.Year ModularSys. All rights reserved.
+                </MudText>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <MudTextField @bind-Value="username" Label="Username" Variant="Variant.Outlined" FullWidth="true" />
-            <MudTextField @bind-Value="password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" FullWidth="true" />
-        </MudCardContent>
-
-        <MudCardActions Class="d-flex justify-end">
-            <MudButton OnClick="HandleRegister" Color="Color.Primary" Variant="Variant.Filled">Register</MudButton>
-        </MudCardActions>
-        <MudText Typo="Typo.caption">
-            Already have an account? <MudLink Href="/login">Login here</MudLink>
-        </MudText>
-    </MudCard>
-</MudPaper>
+<style>
+    .register-container {
+        display: flex;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+    
+    .register-left {
+        flex: 1;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .register-left::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+        opacity: 0.3;
+    }
+    
+    .brand-section {
+        text-align: center;
+        z-index: 1;
+        margin-bottom: 3rem;
+    }
+    
+    .brand-logo {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .brand-title {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .brand-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 400;
+    }
+    
+    .benefits-section {
+        z-index: 1;
+        max-width: 300px;
+    }
+    
+    .benefit-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .benefit-icon {
+        color: white;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .benefit-title {
+        color: white;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .benefit-desc {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .register-right {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: white;
+        overflow-y: auto;
+    }
+    
+    .register-form-container {
+        width: 100%;
+        max-width: 450px;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .form-title {
+        color: #1e293b;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-subtitle {
+        color: #64748b;
+    }
+    
+    .register-form {
+        margin-bottom: 2rem;
+    }
+    
+    .modern-input {
+        border-radius: 8px;
+    }
+    
+    .password-strength {
+        margin-top: -0.5rem;
+    }
+    
+    .strength-label {
+        color: #64748b;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .strength-bar {
+        height: 4px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.25rem;
+    }
+    
+    .strength-fill {
+        height: 100%;
+        transition: width 0.3s ease, background-color 0.3s ease;
+        border-radius: 2px;
+    }
+    
+    .strength-weak { background: #ef4444; }
+    .strength-fair { background: #f59e0b; }
+    .strength-good { background: #10b981; }
+    .strength-strong { background: #059669; }
+    
+    .strength-text {
+        color: #64748b;
+    }
+    
+    .terms-link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .terms-link:hover {
+        text-decoration: underline;
+    }
+    
+    .register-button {
+        height: 48px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-transform: none;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    
+    .register-button:hover {
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.5);
+    }
+    
+    .error-alert {
+        margin-bottom: 1rem;
+        border-radius: 8px;
+    }
+    
+    .divider-section {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+    }
+    
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+    
+    .divider-text {
+        margin: 0 1rem;
+        color: #94a3b8;
+    }
+    
+    .login-text {
+        color: #64748b;
+        margin-bottom: 2rem;
+    }
+    
+    .login-link {
+        color: #4f46e5;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    
+    .login-link:hover {
+        text-decoration: underline;
+    }
+    
+    .form-footer {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1.5rem;
+    }
+    
+    /* Mobile Responsive */
+    @@media (max-width: 768px) {
+        .register-container {
+            flex-direction: column;
+        }
+        
+        .register-left {
+            min-height: 30vh;
+            padding: 2rem 1rem;
+        }
+        
+        .benefits-section {
+            display: none;
+        }
+        
+        .brand-section {
+            margin-bottom: 0;
+        }
+        
+        .register-right {
+            padding: 1.5rem;
+        }
+        
+        .register-form-container {
+            max-width: none;
+        }
+    }
+</style>
 
 @code {
-    string username = "", password = "", error;
+    private string firstName = string.Empty;
+    private string lastName = string.Empty;
+    private string email = string.Empty;
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string error = string.Empty;
+    private MudForm? _form;
+    private bool _loading = false;
+    private bool _agreeToTerms = false;
+    private bool _showPassword = false;
+    private bool _showConfirmPassword = false;
 
-    async Task HandleRegister()
+    private async Task HandleRegister()
     {
+        if (_form is null) return;
+
+        // Validation
+        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) ||
+            string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(username) ||
+            string.IsNullOrWhiteSpace(password))
+        {
+            error = "Please fill in all required fields.";
+            return;
+        }
+
+        if (password != confirmPassword)
+        {
+            error = "Passwords do not match.";
+            return;
+        }
+
+        if (password.Length < 6)
+        {
+            error = "Password must be at least 6 characters long.";
+            return;
+        }
+
+        if (!_agreeToTerms)
+        {
+            error = "Please agree to the Terms of Service and Privacy Policy.";
+            return;
+        }
+
+        _loading = true;
+        error = null;
+
         var success = await AuthService.RegisterAsync(username, password);
+        _loading = false;
+
         if (success)
         {
+            Snackbar.Add("Account created successfully! Please sign in.", Severity.Success);
             Nav.NavigateTo("/login");
         }
         else
         {
             error = "Registration failed. Username may already exist or input is invalid.";
+            Snackbar.Add("Registration failed. Please try again.", Severity.Error);
         }
+    }
+
+    private int GetPasswordStrength()
+    {
+        if (string.IsNullOrEmpty(password)) return 0;
+        
+        int score = 0;
+        if (password.Length >= 6) score += 25;
+        if (password.Length >= 8) score += 25;
+        if (password.Any(char.IsUpper)) score += 25;
+        if (password.Any(char.IsDigit) || password.Any(c => !char.IsLetterOrDigit(c))) score += 25;
+        
+        return score;
+    }
+
+    private string GetPasswordStrengthClass()
+    {
+        var strength = GetPasswordStrength();
+        return strength switch
+        {
+            <= 25 => "strength-weak",
+            <= 50 => "strength-fair",
+            <= 75 => "strength-good",
+            _ => "strength-strong"
+        };
+    }
+
+    private string GetPasswordStrengthText()
+    {
+        var strength = GetPasswordStrength();
+        return strength switch
+        {
+            <= 25 => "Weak",
+            <= 50 => "Fair",
+            <= 75 => "Good",
+            _ => "Strong"
+        };
     }
 }

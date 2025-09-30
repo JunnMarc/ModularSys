@@ -45,5 +45,40 @@ public class SystemHealthStats
     public TimeSpan Uptime { get; set; }
     public int ActiveConnections { get; set; }
     public DateTime LastBackup { get; set; }
-    public bool IsHealthy => CpuUsage < 80 && MemoryUsage < 85;
+    public bool IsDatabaseOnline { get; set; }
+    public bool IsHealthy => CpuUsage < 80 && MemoryUsage < 85 && IsDatabaseOnline;
+}
+
+public class RoleDistribution
+{
+    public string RoleName { get; set; } = string.Empty;
+    public int UserCount { get; set; }
+    public decimal Percentage { get; set; }
+    public List<string> Permissions { get; set; } = new();
+}
+
+public class SecurityMetrics
+{
+    public int TotalLoginAttempts { get; set; }
+    public int FailedLoginAttempts { get; set; }
+    public int SuccessfulLogins { get; set; }
+    public int ActiveSessions { get; set; }
+    public int SuspiciousActivities { get; set; }
+    public DateTime LastSecurityScan { get; set; }
+    public decimal SecurityScore => TotalLoginAttempts > 0 
+        ? (decimal)SuccessfulLogins / TotalLoginAttempts * 100 
+        : 100;
+}
+
+public class PerformanceMetrics
+{
+    public double AverageResponseTime { get; set; }
+    public int TotalRequests { get; set; }
+    public int FailedRequests { get; set; }
+    public double RequestsPerSecond { get; set; }
+    public long TotalDataTransferred { get; set; }
+    public DateTime MeasurementStart { get; set; }
+    public double SuccessRate => TotalRequests > 0 
+        ? (double)(TotalRequests - FailedRequests) / TotalRequests * 100 
+        : 100;
 }

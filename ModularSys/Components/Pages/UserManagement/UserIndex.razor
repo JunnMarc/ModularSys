@@ -2,12 +2,16 @@
 @using ModularSys.Data.Common.Entities
 @using ModularSys.Core.Interfaces
 @using ModularSys.Core.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 @inject IUserService UserService
 @inject IRoleService RoleService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthService
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
     <!-- Header -->
@@ -17,18 +21,24 @@
             <MudText Typo="Typo.body2" Color="Color.Secondary">Manage system users and their permissions</MudText>
         </div>
         <div class="d-flex gap-2">
-            <MudButton Variant="Variant.Outlined" 
-                       StartIcon="@Icons.Material.Filled.RestoreFromTrash"
-                       OnClick="@(() => ToggleDeletedView())"
-                       Color="@(_showDeleted ? Color.Warning : Color.Default)">
-                @(_showDeleted ? "Hide Deleted" : "Show Deleted")
-            </MudButton>
-            <MudButton Variant="Variant.Filled" 
-                       StartIcon="@Icons.Material.Filled.Add"
-                       Color="Color.Primary"
-                       OnClick="CreateUser">
-                Add User
-            </MudButton>
+            @if (HasPermission("Users.Delete"))
+            {
+                <MudButton Variant="Variant.Outlined" 
+                           StartIcon="@Icons.Material.Filled.RestoreFromTrash"
+                           OnClick="@(() => ToggleDeletedView())"
+                           Color="@(_showDeleted ? Color.Warning : Color.Default)">
+                    @(_showDeleted ? "Hide Deleted" : "Show Deleted")
+                </MudButton>
+            }
+            @if (HasPermission("Users.Create"))
+            {
+                <MudButton Variant="Variant.Filled" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Color="Color.Primary"
+                           OnClick="CreateUser">
+                    Add User
+                </MudButton>
+            }
         </div>
     </div>
 
@@ -132,24 +142,38 @@
                 }
                 <MudTd>
                     <div class="d-flex gap-1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                       Color="Color.Primary" 
-                                       Size="Size.Small"
-                                       OnClick="@(() => EditUser(context.Id))" />
+                        @if (CanEditUser(context))
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                           Color="Color.Primary" 
+                                           Size="Size.Small"
+                                           OnClick="@(() => EditUser(context.Id))" />
+                        }
                         
-                        @if (context.IsDeleted)
+                        @if (context.IsDeleted && CanRestoreUser())
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.Restore" 
                                            Color="Color.Success" 
                                            Size="Size.Small"
                                            OnClick="@(() => RestoreUser(context.Id))" />
                         }
-                        else
+                        else if (!context.IsDeleted && CanDeleteUser(context))
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" 
                                            Color="Color.Error" 
                                            Size="Size.Small"
-                                           OnClick="@(() => DeleteUser(context.Id))" />
+                                           OnClick="@(() => DeleteUser(context.Id))" 
+                                           Disabled="@IsCurrentUser(context)" />
+                        }
+                        
+                        @if (IsCurrentUser(context) && !context.IsDeleted)
+                        {
+                            <MudTooltip Text="You cannot delete your own account">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                               Color="Color.Default" 
+                                               Size="Size.Small"
+                                               Disabled="true" />
+                            </MudTooltip>
                         }
                     </div>
                 </MudTd>
@@ -166,11 +190,51 @@
     private bool _loading = true;
     private bool _showDeleted = false;
     private int _totalCount = 0;
+    private string? _currentUsername;
+    private ClaimsPrincipal? _currentUser;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _currentUser = authState.User;
+        _currentUsername = _currentUser?.Identity?.Name;
+        
         await LoadRoles();
         await LoadUsers();
+    }
+    
+    // Permission check methods
+    private bool IsCurrentUser(User user)
+    {
+        return user.Username.Equals(_currentUsername, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    private bool HasPermission(string permissionName)
+    {
+        return _currentUser?.HasClaim("Permission", permissionName) ?? false;
+    }
+    
+    private bool CanEditUser(User user)
+    {
+        // Can edit if has permission OR editing own profile
+        return HasPermission("Users.Edit") || IsCurrentUser(user);
+    }
+    
+    private bool CanDeleteUser(User user)
+    {
+        // Cannot delete yourself, must have permission
+        if (IsCurrentUser(user)) return false;
+        return HasPermission("Users.Delete");
+    }
+    
+    private bool CanRestoreUser()
+    {
+        return HasPermission("Users.Delete"); // Same permission as delete
+    }
+    
+    private bool CanCreateUser()
+    {
+        return HasPermission("Users.Create");
     }
 
     private async Task LoadRoles()
@@ -224,9 +288,31 @@
 
     private async Task DeleteUser(int id)
     {
+        // Get user to check if it's current user
+        var userToDelete = await UserService.GetByIdAsync(id);
+        if (userToDelete == null)
+        {
+            Snackbar.Add("User not found", Severity.Error);
+            return;
+        }
+        
+        // Prevent self-deletion
+        if (IsCurrentUser(userToDelete))
+        {
+            Snackbar.Add("You cannot delete your own account", Severity.Warning);
+            return;
+        }
+        
+        // Check permission
+        if (!HasPermission("Users.Delete"))
+        {
+            Snackbar.Add("You don't have permission to delete users", Severity.Error);
+            return;
+        }
+        
         var result = await DialogService.ShowMessageBox(
             "Confirm Delete",
-            "Are you sure you want to delete this user? This action can be undone later.",
+            $"Are you sure you want to delete {userToDelete.FirstName} {userToDelete.LastName}? This action can be undone later.",
             yesText: "Delete", cancelText: "Cancel");
 
         if (result == true)

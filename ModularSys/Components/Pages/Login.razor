@@ -1,109 +1,381 @@
-﻿@page "/login"
+@page "/login"
 @using ModularSys.Core.Interfaces
 @inject IAuthService AuthService
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Small"
-              Class="d-flex align-center justify-center"
-              Style="height:100vh; background-color:#f3f4f6;">
+<div class="login-container">
+    <div class="login-left">
+        <!-- Brand Section -->
+        <div class="brand-section">
+            <div class="brand-logo">
+                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Style="color: white;" />
+            </div>
+            <MudText Typo="Typo.h3" Class="brand-title">ModularSys</MudText>
+            <MudText Typo="Typo.body1" Class="brand-subtitle">
+                Desktop Modular Business Platform
+            </MudText>
+        </div>
+        
+        <!-- Features -->
+        <div class="features-section">
+            <div class="feature-item">
+                <MudIcon Icon="@Icons.Material.Filled.Extension" Class="feature-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="feature-title">Modular Architecture</MudText>
+                    <MudText Typo="Typo.caption" Class="feature-desc">Plug-and-play system modules</MudText>
+                </div>
+            </div>
+            <div class="feature-item">
+                <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="feature-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="feature-title">Desktop Native</MudText>
+                    <MudText Typo="Typo.caption" Class="feature-desc">Optimized for desktop workflows</MudText>
+                </div>
+            </div>
+            <div class="feature-item">
+                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="feature-icon" />
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="feature-title">Scalable System</MudText>
+                    <MudText Typo="Typo.caption" Class="feature-desc">Add modules as you grow</MudText>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="login-right">
+        <div class="login-form-container">
+            <!-- Header -->
+            <div class="form-header">
+                <MudText Typo="Typo.h4" Class="form-title">Welcome back</MudText>
+                <MudText Typo="Typo.body2" Class="form-subtitle">
+                    Sign in to your account to continue
+                </MudText>
+            </div>
 
-    <MudPaper Elevation="8"
-              Class="pa-6 rounded-md login-card d-flex flex-column align-center justify-center">
+            <!-- Login Form -->
+            <MudForm @ref="_form" Class="login-form">
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="username"
+                                  Label="Username"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person" />
 
-        <!-- Logo -->
-        <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Filled.Computer" Color="Color.Inherit" Size="Size.Large" />
-        </MudAvatar>
+                    <MudTextField @bind-Value="password"
+                                  Label="Password"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  FullWidth="true"
+                                  Class="modern-input"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
+                    
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudCheckBox @bind-Value="_rememberMe" 
+                                     Label="Remember me" 
+                                     Color="Color.Primary" 
+                                     Size="Size.Small" />
+                        <MudLink Href="#" Class="forgot-link">Forgot password?</MudLink>
+                    </MudStack>
 
-        <MudText Typo="Typo.h5" Align="Align.Center" Class="fw-bold mb-1">Login</MudText>
-        <MudText Typo="Typo.caption" Color="Color.Info" Align="Align.Center" Class="mb-4">
-            Please sign in with your credentials
-        </MudText>
+                    <MudButton OnClick="LoginUser"
+                               Disabled="@_loading"
+                               Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="login-button">
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign In</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudForm>
 
-        <!-- Login Form -->
-        <MudForm @ref="_form"
-                 Class="w-100"
-                 Validation="@(new Func<bool>(() => !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password)))">
-
-            <MudTextField @bind-Value="username"
-                          Label="Username"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          FullWidth="true"
-                          Margin="Margin.Normal"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Person" />
-
-            <MudTextField @bind-Value="password"
-                          Label="Password"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          InputType="InputType.Password"
-                          FullWidth="true"
-                          Margin="Margin.Normal"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Lock" />
-
-            <MudButton OnClick="LoginUser"
-                       Disabled="@_loading"
-                       Color="Color.Primary"
-                       Variant="Variant.Filled"
-                       FullWidth="true"
-                       Class="mt-4 rounded-md">
-                @if (_loading)
-                {
-                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
-                    <span>Signing in...</span>
-                }
-                else
-                {
-                    <span>Login</span>
-                }
-            </MudButton>
-        </MudForm>
-
-        <!-- Error message -->
-        @if (!string.IsNullOrEmpty(error))
-        {
-            <MudText Color="Color.Error" Align="Align.Center" Class="mt-3">@error</MudText>
-        }
-
-        <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-3">
-            Don't have an account?
-            <MudLink Href="/register" Color="Color.Primary" Class="fw-bold">
-                Register
-            </MudLink>
-        </MudText>
-
-        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mt-4">
-            © @DateTime.Now.Year ModuERP
-        </MudText>
-    </MudPaper>
-</MudContainer>
+            <!-- Error message -->
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <MudAlert Severity="Severity.Error" Class="error-alert">
+                    @error
+                </MudAlert>
+            }
+            
+            <!-- Divider -->
+            <div class="divider-section">
+                <div class="divider-line"></div>
+                <MudText Typo="Typo.caption" Class="divider-text">or</MudText>
+                <div class="divider-line"></div>
+            </div>
+            
+            <!-- Register Link -->
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="register-text">
+                Don't have an account?
+                <MudLink Href="/register" Class="register-link">
+                    Create one here
+                </MudLink>
+            </MudText>
+            
+            <!-- Footer -->
+            <div class="form-footer">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                    © @DateTime.Now.Year ModularSys. All rights reserved.
+                </MudText>
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
-    .login-card {
+    .login-container {
+        display: flex;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+    
+    .login-left {
+        flex: 1;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .login-left::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+        opacity: 0.3;
+    }
+    
+    .brand-section {
+        text-align: center;
+        z-index: 1;
+        margin-bottom: 3rem;
+    }
+    
+    .brand-logo {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .brand-title {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .brand-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 400;
+    }
+    
+    .features-section {
+        z-index: 1;
+        max-width: 300px;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .feature-icon {
+        color: white;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .feature-title {
+        color: white;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .feature-desc {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .login-right {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: white;
+    }
+    
+    .login-form-container {
         width: 100%;
-        max-width: 420px; /* Desktop width */
-        background-color: white;
-        border-radius: 0.5rem;
+        max-width: 400px;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .form-title {
+        color: #1e293b;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-subtitle {
+        color: #64748b;
+    }
+    
+    .login-form {
+        margin-bottom: 2rem;
+    }
+    
+    .modern-input {
+        border-radius: 8px;
+    }
+    
+    .forgot-link {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+    
+    .login-button {
+        height: 48px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-transform: none;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .login-button:hover {
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+    }
+    
+    .error-alert {
+        margin-bottom: 1rem;
+        border-radius: 8px;
+    }
+    
+    .divider-section {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+    }
+    
+    .divider-line {
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+    
+    .divider-text {
+        margin: 0 1rem;
+        color: #94a3b8;
+    }
+    
+    .register-text {
+        color: #64748b;
+        margin-bottom: 2rem;
+    }
+    
+    .register-link {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    
+    .register-link:hover {
+        text-decoration: underline;
+    }
+    
+    .form-footer {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1.5rem;
+    }
+    
+    /* Mobile Responsive */
+    @@media (max-width: 768px) {
+        .login-container {
+            flex-direction: column;
+        }
+        
+        .login-left {
+            min-height: 40vh;
+            padding: 2rem 1rem;
+        }
+        
+        .features-section {
+            display: none;
+        }
+        
+        .brand-section {
+            margin-bottom: 0;
+        }
+        
+        .login-right {
+            padding: 1.5rem;
+        }
+        
+        .login-form-container {
+            max-width: none;
+        }
     }
 </style>
 
 @code {
     private string username = string.Empty;
     private string password = string.Empty;
-    private string? error;
+    private string error = string.Empty;
     private MudForm? _form;
     private bool _loading = false;
     private bool _rememberMe = false;
+    private bool _showPassword = false;
 
     private async Task LoginUser()
     {
         if (_form is null) return;
 
         await _form.Validate();
-        if (!_form.IsValid)
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
             error = "Please enter both username and password.";
             return;
@@ -118,9 +390,11 @@
         if (!result)
         {
             error = "Invalid username or password.";
+            Snackbar.Add("Login failed. Please check your credentials.", Severity.Error);
         }
         else
         {
+            Snackbar.Add("Welcome back!", Severity.Success);
             if (_rememberMe)
             {
                 // save credentials to local storage or secure store

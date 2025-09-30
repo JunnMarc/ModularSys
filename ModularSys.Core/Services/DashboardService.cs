@@ -129,6 +129,9 @@ public class DashboardService : IDashboardService
         var process = Process.GetCurrentProcess();
         var uptime = DateTime.UtcNow - _appStartTime;
 
+        // Check database connectivity
+        bool isDatabaseOnline = await CheckDatabaseConnectionAsync();
+        
         // Simulate some metrics (in a real app, you'd get these from system monitoring)
         var random = new Random();
         
@@ -139,8 +142,23 @@ public class DashboardService : IDashboardService
             DatabaseSize = await GetDatabaseSizeAsync(),
             Uptime = uptime,
             ActiveConnections = random.Next(5, 15),
-            LastBackup = DateTime.UtcNow.AddHours(-random.Next(1, 24))
+            LastBackup = DateTime.UtcNow.AddHours(-random.Next(1, 24)),
+            IsDatabaseOnline = isDatabaseOnline
         };
+    }
+
+    private async Task<bool> CheckDatabaseConnectionAsync()
+    {
+        try
+        {
+            // Simple query to check if database is accessible
+            await _db.Database.CanConnectAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task<long> GetDatabaseSizeAsync()
@@ -159,5 +177,65 @@ public class DashboardService : IDashboardService
         {
             return 0;
         }
+    }
+
+    public async Task<List<RoleDistribution>> GetRoleDistributionAsync()
+    {
+        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
+        var roles = await _db.Roles.Include(r => r.RolePermissions).ThenInclude(rp => rp.Permission).ToListAsync();
+        
+        var roleDistribution = new List<RoleDistribution>();
+        
+        foreach (var role in roles)
+        {
+            var userCount = await _db.Users.IgnoreQueryFilters().CountAsync(u => u.RoleId == role.RoleId);
+            
+            roleDistribution.Add(new RoleDistribution
+            {
+                RoleName = role.RoleName,
+                UserCount = userCount,
+                Percentage = totalUsers > 0 ? (decimal)userCount / totalUsers * 100 : 0,
+                Permissions = role.RolePermissions.Select(rp => rp.Permission.PermissionName).ToList()
+            });
+        }
+        
+        return roleDistribution.OrderByDescending(r => r.UserCount).ToList();
+    }
+
+    public async Task<SecurityMetrics> GetSecurityMetricsAsync()
+    {
+        // In a real app, you'd track these in a security log table
+        // For now, we'll simulate based on user data
+        var totalUsers = await _db.Users.IgnoreQueryFilters().CountAsync();
+        var activeUsers = await _db.Users.CountAsync(u => !u.IsDeleted);
+        
+        return new SecurityMetrics
+        {
+            TotalLoginAttempts = totalUsers * 10, // Simulated
+            FailedLoginAttempts = totalUsers, // Simulated ~10% failure rate
+            SuccessfulLogins = totalUsers * 9, // Simulated
+            ActiveSessions = activeUsers,
+            SuspiciousActivities = 0, // No suspicious activities detected
+            LastSecurityScan = DateTime.UtcNow.AddMinutes(-30)
+        };
+    }
+
+    public async Task<PerformanceMetrics> GetPerformanceMetricsAsync()
+    {
+        var uptime = DateTime.UtcNow - _appStartTime;
+        var random = new Random();
+        
+        // Simulate performance metrics (in a real app, you'd track these with middleware/telemetry)
+        var totalRequests = (int)(uptime.TotalMinutes * random.Next(50, 100));
+        
+        return new PerformanceMetrics
+        {
+            AverageResponseTime = random.Next(50, 200), // ms
+            TotalRequests = totalRequests,
+            FailedRequests = totalRequests / 100, // 1% failure rate
+            RequestsPerSecond = totalRequests / uptime.TotalSeconds,
+            TotalDataTransferred = totalRequests * random.Next(1024, 4096), // bytes
+            MeasurementStart = _appStartTime
+        };
     }
 }

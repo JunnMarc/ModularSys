@@ -9,4 +9,7 @@ public interface IDashboardService
     Task<List<DepartmentStats>> GetDepartmentStatsAsync();
     Task<List<RecentActivity>> GetRecentActivitiesAsync(int count = 10);
     Task<SystemHealthStats> GetSystemHealthAsync();
+    Task<List<RoleDistribution>> GetRoleDistributionAsync();
+    Task<SecurityMetrics> GetSecurityMetricsAsync();
+    Task<PerformanceMetrics> GetPerformanceMetricsAsync();
 }

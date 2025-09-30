@@ -150,51 +150,6 @@
                         <ValidationMessage For="@(() => _model.DepartmentId)" />
                     </MudItem>
 
-                    <!-- Password Section -->
-                    @if (!_model.IsEditMode || _showPasswordFields)
-                    {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.h6" Class="mb-3 mt-4">
-                                @(_model.IsEditMode ? "Change Password" : "Set Password")
-                            </MudText>
-                            <MudDivider Class="mb-4" />
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_model.Password"
-                                          Label="Password"
-                                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                                          Required="@_model.RequirePassword"
-                                          Variant="Variant.Outlined"
-                                          Adornment="Adornment.End"
-                                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
-                                          OnAdornmentClick="@(() => _showPassword = !_showPassword)"
-                                          HelperText="Minimum 6 characters" />
-                            <ValidationMessage For="@(() => _model.Password)" />
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_model.ConfirmPassword"
-                                          Label="Confirm Password"
-                                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                                          Required="@_model.RequirePassword"
-                                          Variant="Variant.Outlined"
-                                          HelperText="Must match password" />
-                            <ValidationMessage For="@(() => _model.ConfirmPassword)" />
-                        </MudItem>
-                    }
-                    else if (_model.IsEditMode)
-                    {
-                        <MudItem xs="12">
-                            <MudButton Variant="Variant.Text" 
-                                       StartIcon="@Icons.Material.Filled.Lock"
-                                       OnClick="@(() => _showPasswordFields = true)"
-                                       Class="mt-2">
-                                Change Password
-                            </MudButton>
-                        </MudItem>
-                    }
-
                     <!-- Actions -->
                     <MudItem xs="12" Class="d-flex justify-end gap-2 mt-6">
                         <MudButton Variant="Variant.Text" 

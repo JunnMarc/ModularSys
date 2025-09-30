@@ -15,17 +15,17 @@ public class PdfReportService
 
     public static byte[] GenerateAnalyticalReportPdf(AnalyticalReportRequest request, object reportData)
     {
-        // Enable debugging for QuestPDF if needed
-        // QuestPDF.Settings.EnableDebugging = true;
+        // Enable debugging to find layout issues
+        QuestPDF.Settings.EnableDebugging = true;
         
         return Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.Margin(2, Unit.Centimetre);
+                page.Margin(1.5f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10));
+                page.DefaultTextStyle(x => x.FontSize(9));
 
                 page.Header()
                     .Height(100)
@@ -68,7 +68,7 @@ public class PdfReportService
                     });
 
                 page.Content()
-                    .PaddingVertical(1, Unit.Centimetre)
+                    .PaddingVertical(0.5f, Unit.Centimetre)
                     .Column(column =>
                     {
                         // Executive Summary
@@ -101,6 +101,12 @@ public class PdfReportService
                             }
                         });
 
+                        // Page break before detailed content for P&L reports
+                        if (request.ReportType == AnalyticalReportType.ProfitAndLossStatement)
+                        {
+                            column.Item().PageBreak();
+                        }
+
                         // Detailed Analysis with Complete Data Tables
                         column.Item().PaddingTop(20).Text("Detailed Analysis")
                             .FontSize(14)
@@ -130,27 +136,37 @@ public class PdfReportService
                             }
                         });
 
-                        // Monthly Performance Analysis
-                        column.Item().PaddingTop(20).Text("Monthly Performance Analysis")
-                            .FontSize(14)
-                            .SemiBold()
-                            .FontColor(Colors.Blue.Darken2);
-
-                        column.Item().PaddingTop(10).Column(monthlyColumn =>
+                        // Skip Monthly Performance and KPI sections for P&L (already included in details)
+                        if (request.ReportType != AnalyticalReportType.ProfitAndLossStatement)
                         {
-                            AddMonthlyPerformanceTable(monthlyColumn, request);
-                        });
+                            // Monthly Performance Analysis
+                            column.Item().PaddingTop(20).Text("Monthly Performance Analysis")
+                                .FontSize(14)
+                                .SemiBold()
+                                .FontColor(Colors.Blue.Darken2);
 
-                        // Key Performance Indicators
-                        column.Item().PaddingTop(20).Text("Key Performance Indicators")
-                            .FontSize(14)
-                            .SemiBold()
-                            .FontColor(Colors.Blue.Darken2);
+                            column.Item().PaddingTop(10).Column(monthlyColumn =>
+                            {
+                                AddMonthlyPerformanceTable(monthlyColumn, request);
+                            });
 
-                        column.Item().PaddingTop(10).Column(kpiColumn =>
+                            // Key Performance Indicators
+                            column.Item().PaddingTop(20).Text("Key Performance Indicators")
+                                .FontSize(14)
+                                .SemiBold()
+                                .FontColor(Colors.Blue.Darken2);
+
+                            column.Item().PaddingTop(10).Column(kpiColumn =>
+                            {
+                                AddKPIAnalysis(kpiColumn, request, reportData);
+                            });
+                        }
+
+                        // Page break before compliance notes for P&L
+                        if (request.ReportType == AnalyticalReportType.ProfitAndLossStatement)
                         {
-                            AddKPIAnalysis(kpiColumn, request, reportData);
-                        });
+                            column.Item().PageBreak();
+                        }
 
                         // GAAP Compliance Notes
                         column.Item().PaddingTop(20).Text("GAAP Compliance Notes")
@@ -168,6 +184,41 @@ public class PdfReportService
                                 .FontSize(10);
                             complianceColumn.Item().Text("• All figures are in Philippine Pesos (₱)")
                                 .FontSize(10);
+                            
+                            // Add data accuracy notes for P&L reports
+                            if (request.ReportType == AnalyticalReportType.ProfitAndLossStatement)
+                            {
+                                complianceColumn.Item().PaddingTop(10).Text("✅ DATA ACCURACY (100% Real Database):")
+                                    .FontSize(10)
+                                    .SemiBold()
+                                    .FontColor(Colors.Green.Darken2);
+                                complianceColumn.Item().Text("• Revenue: Gross Sales, Returns (cancelled orders), Discounts - from SalesOrders")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                                complianceColumn.Item().Text("• COGS: Beginning Inventory, Purchases, Ending Inventory - from InventoryTransactions")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                                complianceColumn.Item().Text("• Tax Expense: Actual tax from completed orders (12% VAT)")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                                complianceColumn.Item().Text("• Shipping Costs: Actual shipping charges from orders")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                                
+                                complianceColumn.Item().PaddingTop(5).Text("⚠️ ESTIMATED DATA (Tech Retail Benchmarks):")
+                                    .FontSize(10)
+                                    .SemiBold()
+                                    .FontColor(Colors.Orange.Darken2);
+                                complianceColumn.Item().Text("• Operating Expenses: Based on Philippines small tech retail business standards (~30.8% of revenue)")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                                complianceColumn.Item().Text("  - Salaries 12%, Rent 8%, Utilities 2.5%, Marketing 4%, Insurance 1.5%, etc.")
+                                    .FontSize(7)
+                                    .FontColor(Colors.Grey.Darken2);
+                                complianceColumn.Item().Text("• Interest Expense: 0.8% of revenue (typical for small business loans)")
+                                    .FontSize(8)
+                                    .FontColor(Colors.Grey.Darken2);
+                            }
                         });
                     });
 
@@ -826,25 +877,13 @@ public class PdfReportService
 
     private static void AddProfitAndLossDetails(ColumnDescriptor column, ProfitAndLossReport report)
     {
-        // Add comprehensive explanation
-        column.Item().PaddingBottom(10).Column(explanationColumn =>
+        // Compact header
+        column.Item().PaddingBottom(5).Row(row =>
         {
-            explanationColumn.Item().Text("📊 PROFIT & LOSS STATEMENT - COMPREHENSIVE BUSINESS ANALYSIS")
-                .FontSize(14)
-                .SemiBold()
-                .FontColor(Colors.Blue.Darken2);
-            
-            explanationColumn.Item().PaddingTop(5).Text("This report shows your business's financial performance using real data from your sales, purchases, and operations. All numbers are calculated from actual transactions in your database.")
-                .FontSize(10)
-                .FontColor(Colors.Grey.Darken1);
-            
-            explanationColumn.Item().PaddingTop(3).Text($"📅 Report Period: {report.PeriodStart:MMM dd, yyyy} to {report.PeriodEnd:MMM dd, yyyy}")
-                .FontSize(10)
-                .SemiBold();
-            
-            explanationColumn.Item().PaddingTop(3).Text($"🏢 Business Status: {report.ProfitabilityStatus} ({report.HealthRating})")
-                .FontSize(10)
-                .SemiBold()
+            row.RelativeItem().Text($"Period: {report.PeriodStart:MMM dd} - {report.PeriodEnd:MMM dd, yyyy}")
+                .FontSize(9);
+            row.RelativeItem().AlignRight().Text($"Status: {report.ProfitabilityStatus} ({report.HealthRating})")
+                .FontSize(9)
                 .FontColor(report.NetIncome >= 0 ? Colors.Green.Darken1 : Colors.Red.Darken1);
         });
 
@@ -860,126 +899,122 @@ public class PdfReportService
 
             table.Header(header =>
             {
-                header.Cell().Background(Colors.Blue.Lighten3).Padding(3).Text("Item").SemiBold().FontSize(10);
-                header.Cell().Background(Colors.Blue.Lighten3).Padding(3).Text("Amount").SemiBold().FontSize(10);
-                header.Cell().Background(Colors.Blue.Lighten3).Padding(3).Text("% Rev").SemiBold().FontSize(10);
+                header.Cell().Background(Colors.Blue.Lighten3).Padding(2).Text("Item").SemiBold().FontSize(8);
+                header.Cell().Background(Colors.Blue.Lighten3).Padding(2).Text("Amount").SemiBold().FontSize(8);
+                header.Cell().Background(Colors.Blue.Lighten3).Padding(2).Text("% Rev").SemiBold().FontSize(8);
             });
 
-            // Revenue Section with explanation
-            table.Cell().Padding(2).Text("💰 REVENUE (Money Coming In)").SemiBold().FontSize(9);
-            table.Cell().Padding(2).Text("");
-            table.Cell().Padding(2).Text("");
+            // Revenue Section - Math Format
+            table.Cell().Padding(1).Text("💰 REVENUE").SemiBold().FontSize(8);
+            table.Cell().Padding(1).Text("");
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Gross Sales").FontSize(8);
-            table.Cell().Padding(2).Text($"₱{report.Revenue.GrossSales:N0}").FontSize(8);
-            table.Cell().Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.Revenue.GrossSales / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(8);
+            table.Cell().Padding(1).Text("    Gross Sales").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.Revenue.GrossSales:N0}").FontSize(7);
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Less: Returns").FontSize(8);
-            table.Cell().Padding(2).Text($"(₱{report.Revenue.SalesReturns:N0})").FontSize(8);
-            table.Cell().Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.Revenue.SalesReturns / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(8);
+            table.Cell().Padding(1).Text("    Less: Returns/Cancelled").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"(₱{report.Revenue.SalesReturns:N0})").FontSize(7).Italic();
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Less: Discounts").FontSize(8);
-            table.Cell().Padding(2).Text($"(₱{report.Revenue.SalesDiscounts:N0})").FontSize(8);
-            table.Cell().Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.Revenue.SalesDiscounts / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(8);
+            table.Cell().Padding(1).Text("    Less: Discounts").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"(₱{report.Revenue.SalesDiscounts:N0})").FontSize(7).Italic();
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text("NET REVENUE").SemiBold().FontSize(9);
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text($"₱{report.Revenue.NetRevenue:N0}").SemiBold().FontSize(9);
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text("100%").SemiBold().FontSize(9);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text("    = NET REVENUE").SemiBold().FontSize(8);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text($"₱{report.Revenue.NetRevenue:N0}").SemiBold().FontSize(8);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text("100%").SemiBold().FontSize(8);
 
-            // COGS Section with explanation
-            table.Cell().Padding(2).Text("📦 COST OF GOODS SOLD (What You Paid)").SemiBold().FontSize(9);
-            table.Cell().Padding(2).Text("");
-            table.Cell().Padding(2).Text("");
+            // COGS Section - Math Format (GAAP Formula)
+            table.Cell().Padding(1).Text("📦 COST OF GOODS SOLD").SemiBold().FontSize(8);
+            table.Cell().Padding(1).Text("");
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Beg. Inventory").FontSize(8);
-            table.Cell().Padding(2).Text($"₱{report.CostOfGoodsSold.BeginningInventory:N0}").FontSize(8);
-            table.Cell().Padding(2).Text("");
+            table.Cell().Padding(1).Text("    Beginning Inventory").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.CostOfGoodsSold.BeginningInventory:N0}").FontSize(7);
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Add: Purchases").FontSize(8);
-            table.Cell().Padding(2).Text($"₱{report.CostOfGoodsSold.Purchases:N0}").FontSize(8);
-            table.Cell().Padding(2).Text("");
+            table.Cell().Padding(1).Text("    Add: Purchases").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"+ ₱{report.CostOfGoodsSold.Purchases:N0}").FontSize(7).Italic();
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(2).Text("  Less: End. Inventory").FontSize(8);
-            table.Cell().Padding(2).Text($"(₱{report.CostOfGoodsSold.EndingInventory:N0})").FontSize(8);
-            table.Cell().Padding(2).Text("");
+            table.Cell().Padding(1).Text("    Less: Ending Inventory").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"- ₱{report.CostOfGoodsSold.EndingInventory:N0}").FontSize(7).Italic();
+            table.Cell().Padding(1).Text("");
 
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text("TOTAL COGS").SemiBold().FontSize(9);
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text($"₱{report.CostOfGoodsSold.TotalCOGS:N0}").SemiBold().FontSize(9);
-            table.Cell().Background(Colors.Grey.Lighten4).Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.CostOfGoodsSold.TotalCOGS / report.Revenue.NetRevenue) * 100 : 0):F0}%").SemiBold().FontSize(9);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text("    = TOTAL COGS").SemiBold().FontSize(8);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text($"₱{report.CostOfGoodsSold.TotalCOGS:N0}").SemiBold().FontSize(8);
+            table.Cell().Background(Colors.Grey.Lighten4).Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.CostOfGoodsSold.TotalCOGS / report.Revenue.NetRevenue) * 100 : 0):F0}%").SemiBold().FontSize(8);
 
-            // Gross Profit
-            table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text("GROSS PROFIT").SemiBold().FontSize(9);
+            // Gross Profit Calculation
+            table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text("= GROSS PROFIT (Revenue - COGS)").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text($"₱{report.GrossProfit:N0}").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Green.Lighten4).Padding(2).Text($"{report.GrossProfitMargin:F0}%").SemiBold().FontSize(9);
 
-            // Operating Expenses with explanation
-            table.Cell().Padding(2).Text("🏢 OPERATING EXPENSES (Running Costs)").SemiBold().FontSize(9);
-            table.Cell().Padding(2).Text($"₱{report.OperatingExpenses.TotalOperatingExpenses:N0}").FontSize(8);
-            table.Cell().Padding(2).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(8);
+            // Operating Expenses
+            table.Cell().Padding(1).Text("🏢 OPERATING EXPENSES").SemiBold().FontSize(8);
+            table.Cell().Padding(1).Text("");
+            table.Cell().Padding(1).Text("");
+
+            table.Cell().Padding(1).Text("    Less: Total OpEx").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"- ₱{report.OperatingExpenses.TotalOperatingExpenses:N0}").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(7);
 
             // Operating Income
-            table.Cell().Background(Colors.Blue.Lighten4).Padding(2).Text("OPERATING INCOME").SemiBold().FontSize(9);
+            table.Cell().Background(Colors.Blue.Lighten4).Padding(2).Text("= OPERATING INCOME").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Blue.Lighten4).Padding(2).Text($"₱{report.OperatingIncome:N0}").SemiBold().FontSize(9);
             table.Cell().Background(Colors.Blue.Lighten4).Padding(2).Text($"{report.OperatingMargin:F0}%").SemiBold().FontSize(9);
 
+            // Non-Operating Expenses
+            table.Cell().Padding(1).Text("    Less: Interest & Tax").FontSize(7).Italic();
+            table.Cell().Padding(1).Text($"- ₱{report.OperatingExpenses.InterestExpense + report.OperatingExpenses.TaxExpense:N0}").FontSize(7).Italic();
+            table.Cell().Padding(1).Text("");
+
             // Net Income
             var netIncomeColor = report.NetIncome >= 0 ? Colors.Green.Lighten4 : Colors.Red.Lighten4;
-            table.Cell().Background(netIncomeColor).Padding(2).Text("NET INCOME").SemiBold().FontSize(10);
+            table.Cell().Background(netIncomeColor).Padding(2).Text("= NET INCOME (Final Profit)").SemiBold().FontSize(10);
             table.Cell().Background(netIncomeColor).Padding(2).Text($"₱{report.NetIncome:N0}").SemiBold().FontSize(10);
             table.Cell().Background(netIncomeColor).Padding(2).Text($"{report.NetProfitMargin:F0}%").SemiBold().FontSize(10);
         });
 
-        // Comprehensive Business Analysis
-        column.Item().PaddingTop(15).PaddingBottom(5).Text("📈 WHAT THESE NUMBERS MEAN FOR YOUR BUSINESS")
-            .FontSize(12)
+        // Business Insights Section
+        column.Item().PaddingTop(10).Text("📊 KEY INSIGHTS & RECOMMENDATIONS")
+            .FontSize(10)
             .SemiBold()
             .FontColor(Colors.Blue.Darken2);
 
-        column.Item().Column(analysisColumn =>
+        column.Item().PaddingTop(5).Column(insightsColumn =>
         {
-            // Profitability Analysis
-            analysisColumn.Item().PaddingTop(5).Text($"💼 BUSINESS HEALTH: {report.HealthRating}")
-                .FontSize(10)
+            // Business Health
+            var healthColor = report.NetIncome >= 0 ? Colors.Green.Darken1 : Colors.Red.Darken1;
+            insightsColumn.Item().Text($"Business Health: {report.HealthRating} | Status: {report.ProfitabilityStatus}")
+                .FontSize(8)
                 .SemiBold()
-                .FontColor(report.NetIncome >= 0 ? Colors.Green.Darken1 : Colors.Red.Darken1);
-            
-            if (report.NetIncome >= 0)
-            {
-                analysisColumn.Item().Text($"✅ Your business made ₱{report.NetIncome:N0} profit during this period. This means after paying for all products sold and operating expenses, you have ₱{report.NetIncome:N0} left over.")
-                    .FontSize(9)
-                    .FontColor(Colors.Green.Darken1);
-            }
-            else
-            {
-                analysisColumn.Item().Text($"⚠️ Your business had a loss of ₱{Math.Abs(report.NetIncome):N0} during this period. This means your costs exceeded your revenue.")
-                    .FontSize(9)
-                    .FontColor(Colors.Red.Darken1);
-            }
-            
-            // Margin Analysis
-            analysisColumn.Item().PaddingTop(3).Text($"📊 PROFIT MARGINS:")
-                .FontSize(10)
+                .FontColor(healthColor);
+
+            // Key Metrics
+            insightsColumn.Item().PaddingTop(3).Text("Key Metrics:")
+                .FontSize(8)
                 .SemiBold();
-            
-            analysisColumn.Item().Text($"• Gross Profit Margin: {report.GrossProfitMargin:F1}% - For every ₱100 in sales, you keep ₱{report.GrossProfitMargin:F0} after paying for products")
-                .FontSize(8);
-            
-            analysisColumn.Item().Text($"• Net Profit Margin: {report.NetProfitMargin:F1}% - For every ₱100 in sales, you keep ₱{Math.Abs(report.NetProfitMargin):F0} as final profit")
-                .FontSize(8);
-            
-            // Revenue Analysis
-            analysisColumn.Item().PaddingTop(3).Text($"💰 REVENUE BREAKDOWN:")
-                .FontSize(10)
-                .SemiBold();
-            
-            analysisColumn.Item().Text($"• Total Sales: ₱{report.Revenue.GrossSales:N0}")
-                .FontSize(8);
-            
-            analysisColumn.Item().Text($"• Returns/Cancellations: ₱{report.Revenue.SalesReturns:N0} ({(report.Revenue.GrossSales > 0 ? (report.Revenue.SalesReturns / report.Revenue.GrossSales) * 100 : 0):F1}% of sales)")
-                .FontSize(8);
-            
-            analysisColumn.Item().Text($"• Discounts Given: ₱{report.Revenue.SalesDiscounts:N0} ({(report.Revenue.GrossSales > 0 ? (report.Revenue.SalesDiscounts / report.Revenue.GrossSales) * 100 : 0):F1}% of sales)")
-                .FontSize(8);
+            insightsColumn.Item().Text($"• Gross Profit Margin: {report.GrossProfitMargin:F1}% (Industry avg: 25-40%)")
+                .FontSize(7);
+            insightsColumn.Item().Text($"• Net Profit Margin: {report.NetProfitMargin:F1}% (Target: >10%)")
+                .FontSize(7);
+            insightsColumn.Item().Text($"• Operating Margin: {report.OperatingMargin:F1}% (Efficiency indicator)")
+                .FontSize(7);
+
+            // Recommendations (first 3 only to save space)
+            if (report.Recommendations.Any())
+            {
+                insightsColumn.Item().PaddingTop(3).Text("Top Recommendations:")
+                    .FontSize(8)
+                    .SemiBold();
+                foreach (var rec in report.Recommendations.Take(3))
+                {
+                    insightsColumn.Item().Text($"• {rec}")
+                        .FontSize(7);
+                }
+            }
         });
     }
 

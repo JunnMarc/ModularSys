@@ -33,7 +33,7 @@ public class UserInputModel
     public int DepartmentId { get; set; }
 
     // Password fields (only for create/password change)
-    [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters")]
+    [StringLength(100, MinimumLength = 12, ErrorMessage = "Password must be at least 12 characters")]
     public string? Password { get; set; }
 
     [Compare("Password", ErrorMessage = "Passwords do not match")]

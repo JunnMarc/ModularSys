@@ -48,7 +48,7 @@
                         <MudNavLink Href="/roles" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Group">
                             Roles
                         </MudNavLink>
-                        <MudNavLink Href="/permissions/matrix" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Security">
+                        <MudNavLink Href="/permissions" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Security">
                             Permissions
                         </MudNavLink>
                         <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
@@ -95,32 +95,23 @@
                             </div>
                         </MudButton>
                     </ActivatorContent>
-
                     <ChildContent>
                         <!-- First level item -->
                         <MudMenuItem OnClick="@GoToSettings">
                             <MudIcon Icon="@Icons.Material.Filled.Settings" Class="me-2" /> Settings
                         </MudMenuItem>
 
-                        <!-- Nested menu -->
-                        <MudNestedMenu>
-                            <ActivatorContent>
-                                <MudMenuItem>
-                                    <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Class="me-2" /> Account
-                                </MudMenuItem>
-                            </ActivatorContent>
-                            <ChildContent>
-                                    <MudMenuItem OnClick="@(() => GoToSettings())">
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" /> Profile
-                                </MudMenuItem>
-                                    <MudMenuItem OnClick="@(() => GoToSettings())">
-                                    <MudIcon Icon="@Icons.Material.Filled.Tune" Class="me-2" /> Preferences
-                                </MudMenuItem>
-                            </ChildContent>
-                        </MudNestedMenu>
-
-                        <!-- Logout -->
-                        <MudMenuItem OnClick="Logout">
+                        <!-- Account menu items -->
+                        <MudMenuItem OnClick="@(() => Nav.NavigateTo("/profile"))">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" /> Profile
+                        </MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Nav.NavigateTo("/change-password"))">
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Class="me-2" /> Change Password
+                        </MudMenuItem>
+                        
+                        <MudDivider />
+                        
+                        <MudMenuItem OnClick="@HandleLogout">
                             <MudIcon Icon="@Icons.Material.Filled.Logout" Class="me-2" /> Logout
                         </MudMenuItem>
                     </ChildContent>
@@ -331,11 +322,19 @@
         }
     }
 
-    private void GoToSettings() => Nav.NavigateTo("/settings");
+    private void GoToSettings()
+    {
+        Nav.NavigateTo("/settings");
+    }
 
-    private void Logout()
+    private void HandleLogout()
     {
         AuthService.Logout();
-        Nav.NavigateTo("/login", forceLoad: false);
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= HandleAuthChange;
     }
 }

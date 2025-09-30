@@ -613,6 +613,75 @@
                 </MudItem>
             </MudGrid>
 
+            <!-- AI Business Summary Section -->
+            @if (_analyticsData != null)
+            {
+                <MudCard Class="mb-4" Elevation="2">
+                    <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <CardHeaderContent>
+                            <MudStack Row="true" AlignItems="@AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Large" />
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.h6" Style="font-weight: 600;">AI Business Insights</MudText>
+                                    <MudText Typo="Typo.caption">Automated analysis of your business performance</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent Class="pa-4">
+                        <MudStack Spacing="3">
+                            <!-- Performance Summary -->
+                            <MudPaper Class="pa-3" Elevation="0" Style="background: #f5f5f5; border-left: 4px solid #4CAF50;">
+                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #4CAF50;">
+                                    📊 Performance Summary
+                                </MudText>
+                                <MudText Typo="Typo.body2" Class="mt-2">
+                                    @GetPerformanceSummary()
+                                </MudText>
+                            </MudPaper>
+
+                            <!-- Profitability Analysis -->
+                            <MudPaper Class="pa-3" Elevation="0" Style="background: #f5f5f5; border-left: 4px solid #2196F3;">
+                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #2196F3;">
+                                    💰 Profitability Analysis
+                                </MudText>
+                                <MudText Typo="Typo.body2" Class="mt-2">
+                                    @GetProfitabilityAnalysis()
+                                </MudText>
+                            </MudPaper>
+
+                            <!-- Risk Assessment -->
+                            @if (_analyticsData.CancellationRate > 10)
+                            {
+                                <MudPaper Class="pa-3" Elevation="0" Style="background: #fff3e0; border-left: 4px solid #FF9800;">
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600; color: #FF9800;">
+                                        ⚠️ Risk Assessment
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Class="mt-2">
+                                        @GetRiskAssessment()
+                                    </MudText>
+                                </MudPaper>
+                            }
+
+                            <!-- Recommendations -->
+                            <MudPaper Class="pa-3" Elevation="0" Style="background: #e8f5e9; border-left: 4px solid #4CAF50;">
+                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #4CAF50;">
+                                    💡 Key Recommendations
+                                </MudText>
+                                <MudList T="string" Dense="true" Class="mt-2">
+                                    @foreach (var recommendation in GetRecommendations())
+                                    {
+                                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                                            <MudText Typo="Typo.body2">@recommendation</MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            </MudPaper>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            }
+
             <!-- Enterprise Charts Grid -->
             @if (_enterpriseCharts.Any())
             {
@@ -950,6 +1019,93 @@
                 Height = "350px"
             }
         };
+    }
+
+    private string GetPerformanceSummary()
+    {
+        if (_analyticsData == null) return "No data available.";
+        
+        var period = (_dateRange?.End - _dateRange?.Start)?.Days ?? 30;
+        var avgDailyRevenue = _analyticsData.TotalRevenue / period;
+        var completionRate = _analyticsData.TotalOrders > 0 ? (_analyticsData.CompletedOrders / (decimal)_analyticsData.TotalOrders) * 100 : 0;
+        
+        return $"During the {period}-day period, your business generated ₱{_analyticsData.TotalRevenue:N0} in total revenue from {_analyticsData.TotalOrders} orders (₱{avgDailyRevenue:N0}/day average). " +
+               $"You successfully completed {_analyticsData.CompletedOrders} orders ({completionRate:F1}% completion rate) with {_analyticsData.CancelledOrders} cancellations. " +
+               $"Your average order value is ₱{_analyticsData.AverageOrderValue:N0}, indicating {(completionRate >= 90 ? "excellent" : completionRate >= 75 ? "good" : "moderate")} operational efficiency.";
+    }
+
+    private string GetProfitabilityAnalysis()
+    {
+        if (_analyticsData == null) return "No data available.";
+        
+        var profitStatus = _analyticsData.GrossProfit >= 0 ? "profitable" : "operating at a loss";
+        var marginQuality = _analyticsData.ProfitMargin switch
+        {
+            >= 40 => "excellent",
+            >= 25 => "healthy",
+            >= 15 => "moderate",
+            >= 5 => "thin",
+            _ => "concerning"
+        };
+        
+        return $"Your business is currently {profitStatus} with a gross profit of ₱{_analyticsData.GrossProfit:N0} and a {marginQuality} profit margin of {_analyticsData.ProfitMargin:F1}%. " +
+               $"Total costs amount to ₱{_analyticsData.TotalCosts:N0}, representing {(_analyticsData.TotalRevenue > 0 ? (_analyticsData.TotalCosts / _analyticsData.TotalRevenue) * 100 : 0):F1}% of revenue. " +
+               $"{(marginQuality == "excellent" || marginQuality == "healthy" ? "This indicates strong pricing power and cost management." : "Consider reviewing pricing strategy and cost optimization opportunities.")}";
+    }
+
+    private string GetRiskAssessment()
+    {
+        if (_analyticsData == null) return "No data available.";
+        
+        var riskLevel = _analyticsData.CancellationRate switch
+        {
+            >= 20 => "HIGH RISK",
+            >= 15 => "Moderate Risk",
+            >= 10 => "Elevated Risk",
+            _ => "Low Risk"
+        };
+        
+        return $"Your cancellation rate of {_analyticsData.CancellationRate:F1}% is classified as {riskLevel}. " +
+               $"With {_analyticsData.CancelledOrders} cancelled orders out of {_analyticsData.TotalOrders} total, this represents potential lost revenue of approximately ₱{(_analyticsData.TotalRevenue * (_analyticsData.CancellationRate / 100)):N0}. " +
+               $"Immediate action is recommended to identify and address the root causes of order cancellations.";
+    }
+
+    private List<string> GetRecommendations()
+    {
+        if (_analyticsData == null) return new List<string>();
+        
+        var recommendations = new List<string>();
+        
+        // Profit margin recommendations
+        if (_analyticsData.ProfitMargin < 15)
+            recommendations.Add($"Increase profit margins: Current {_analyticsData.ProfitMargin:F1}% is below industry standard (25-40%). Review pricing strategy and negotiate better supplier terms.");
+        else if (_analyticsData.ProfitMargin >= 40)
+            recommendations.Add($"Excellent margins at {_analyticsData.ProfitMargin:F1}%! Consider reinvesting profits into marketing and inventory expansion.");
+        
+        // Cancellation recommendations
+        if (_analyticsData.CancellationRate > 10)
+            recommendations.Add($"Reduce cancellation rate from {_analyticsData.CancellationRate:F1}% to below 10%. Analyze cancellation reasons and improve order fulfillment processes.");
+        
+        // Order value recommendations
+        if (_analyticsData.AverageOrderValue < 1000)
+            recommendations.Add($"Increase average order value from ₱{_analyticsData.AverageOrderValue:N0}. Implement upselling strategies, bundle deals, and minimum order incentives.");
+        
+        // Volume recommendations
+        var period = (_dateRange?.End - _dateRange?.Start)?.Days ?? 30;
+        var avgDailyOrders = _analyticsData.TotalOrders / (decimal)period;
+        if (avgDailyOrders < 5)
+            recommendations.Add($"Boost order volume from {avgDailyOrders:F1} orders/day. Invest in marketing campaigns and customer acquisition strategies.");
+        
+        // Cost management
+        var costRatio = _analyticsData.TotalRevenue > 0 ? (_analyticsData.TotalCosts / _analyticsData.TotalRevenue) * 100 : 0;
+        if (costRatio > 70)
+            recommendations.Add($"Optimize costs: Current cost ratio of {costRatio:F1}% is high. Focus on supplier negotiations and operational efficiency.");
+        
+        // Default recommendation
+        if (recommendations.Count == 0)
+            recommendations.Add("Business performance is strong. Continue monitoring key metrics and maintain current strategies.");
+        
+        return recommendations;
     }
 
     private string GetChartIcon(string chartType)
