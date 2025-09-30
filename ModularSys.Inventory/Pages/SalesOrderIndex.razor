@@ -326,7 +326,7 @@
     private decimal GetTotalRevenue()
     {
         return _orders
-            .Where(o => o.Status == "Completed")  // ← ONLY completed orders
+            .Where(o => o.Status == "Completed") 
             .Sum(o => o.GrandTotal);
     }
 
@@ -435,6 +435,7 @@
         {
             "Customer requested cancellation",
             "Out of stock",
+            "Insufficient stock",
             "Payment issues",
             "Shipping problems",
             "Product quality concerns",
