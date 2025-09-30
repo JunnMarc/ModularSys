@@ -21,6 +21,7 @@ namespace ModularSys.Data.Common.Services.Sync
         private bool _cloudAvailable = true;
         private DateTime _lastCloudCheck = DateTime.MinValue;
         private readonly TimeSpan _cloudCheckInterval = TimeSpan.FromMinutes(2);
+        private bool _manualModeOverride = false; // Prevents auto-switching when manually set
         
         private string LocalConnectionString => _configuration.GetConnectionString("LocalConnection") 
             ?? _configuration.GetConnectionString("DefaultConnection")!;
@@ -117,6 +118,15 @@ namespace ModularSys.Data.Common.Services.Sync
         {
             _logger.LogInformation("Connection mode changed from {OldMode} to {NewMode}", _currentMode, mode);
             _currentMode = mode;
+            
+            // If manually set to Local or Cloud, enable manual override to prevent auto-switching
+            _manualModeOverride = (mode == ConnectionMode.Local || mode == ConnectionMode.Cloud);
+            
+            // If set back to Hybrid, disable manual override to allow auto-switching
+            if (mode == ConnectionMode.Hybrid)
+            {
+                _manualModeOverride = false;
+            }
         }
 
         public async Task<bool> IsCloudReachableAsync()
@@ -185,13 +195,13 @@ namespace ModularSys.Data.Common.Services.Sync
                     var wasAvailable = _cloudAvailable;
                     _cloudAvailable = await IsCloudReachableAsync();
                     
-                    // If status changed, notify and adjust mode
-                    if (wasAvailable != _cloudAvailable)
+                    // If status changed, notify and adjust mode (only if not in manual override)
+                    if (wasAvailable != _cloudAvailable && !_manualModeOverride)
                     {
                         if (_cloudAvailable)
                         {
                             _logger.LogInformation("Cloud connection restored. Switching to Hybrid mode.");
-                            SetConnectionMode(ConnectionMode.Hybrid);
+                            _currentMode = ConnectionMode.Hybrid; // Direct assignment to avoid triggering manual override
                             OnConnectionStatusChanged(new ConnectionStatusChangedEventArgs
                             {
                                 IsCloudAvailable = true,
@@ -203,7 +213,7 @@ namespace ModularSys.Data.Common.Services.Sync
                         else
                         {
                             _logger.LogWarning("Cloud connection lost. Switching to Local-only mode.");
-                            SetConnectionMode(ConnectionMode.Local);
+                            _currentMode = ConnectionMode.Local; // Direct assignment to avoid triggering manual override
                             OnConnectionStatusChanged(new ConnectionStatusChangedEventArgs
                             {
                                 IsCloudAvailable = false,
@@ -212,6 +222,10 @@ namespace ModularSys.Data.Common.Services.Sync
                                 Timestamp = DateTime.UtcNow
                             });
                         }
+                    }
+                    else if (_manualModeOverride)
+                    {
+                        _logger.LogDebug("Manual mode override active. Skipping automatic mode switch.");
                     }
                 }
                 catch (Exception ex)

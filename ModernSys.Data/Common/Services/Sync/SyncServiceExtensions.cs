@@ -33,7 +33,7 @@ namespace ModularSys.Data.Common.Services.Sync
             }
 
             // Register sync services
-            services.AddScoped<IConnectionManager, ConnectionManager>();
+            services.AddSingleton<IConnectionManager, ConnectionManager>();
             services.AddScoped<IChangeTracker, ChangeTracker>();
             services.AddScoped<IConflictResolver, ConflictResolver>();
             services.AddScoped<ISyncService, SyncService>();

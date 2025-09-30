@@ -44,7 +44,16 @@ namespace ModularSys
             // Load appsettings.json and sync configuration
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
             builder.Configuration.AddJsonFile("appsettings.Sync.json", optional: true, reloadOnChange: true);
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            
+            // Get connection string with fallback: DefaultConnection -> LocalConnection -> CloudConnection
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? builder.Configuration.GetConnectionString("LocalConnection")
+                ?? builder.Configuration.GetConnectionString("CloudConnection");
+            
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("No database connection string found. Please configure DefaultConnection, LocalConnection, or CloudConnection in appsettings.json");
+            }
 
             // Database
             // 1) Scoped DbContext for normal page/services (optional but common)

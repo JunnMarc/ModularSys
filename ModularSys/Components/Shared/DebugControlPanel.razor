@@ -1,9 +1,12 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using ModularSys.Data.Common.Interfaces.Sync
 @using System.Security.Claims
+@using static ModularSys.Data.Common.Interfaces.Sync.IConnectionManager
+@using MudBlazor
 @inject IConnectionManager ConnectionManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudDrawer @bind-Open="@_isOpen" Anchor="Anchor.Right" Elevation="2" Variant="@DrawerVariant.Temporary" Width="400px">
     <MudDrawerHeader>
