@@ -31,28 +31,13 @@
                         </MudChip>
                     </MudStack>
                     <MudStack Spacing="2" AlignItems="@AlignItems.End">
-                        <MudDateRangePicker @bind-DateRange="_dateRange" 
-                                           Label="Report Period" 
-                                           Variant="Variant.Outlined"
-                                           Style="min-width: 320px;"
-                                           Class="report-date-picker" />
-                        <MudStack Row="true" Spacing="2">
-                            <MudButton Variant="Variant.Outlined" 
-                                      StartIcon="@Icons.Material.Filled.Refresh" 
-                                      OnClick="RefreshReports"
-                                      Loading="_loading"
-                                      Class="action-button">
-                                Refresh
-                            </MudButton>
-                            <MudButton Variant="Variant.Filled" 
-                                      Color="Color.Primary"
-                                      StartIcon="@Icons.Material.Filled.FileDownload" 
-                                      OnClick="ExportToCrystalReports"
-                                      Disabled="_loading"
-                                      Class="action-button">
-                                Export Reports
-                            </MudButton>
-                        </MudStack>
+                        <MudButton Variant="Variant.Outlined" 
+                                  StartIcon="@Icons.Material.Filled.Refresh" 
+                                  OnClick="RefreshReports"
+                                  Loading="_loading"
+                                  Class="action-button">
+                            Refresh Data
+                        </MudButton>
                     </MudStack>
                 </MudStack>
             </MudCardContent>
@@ -87,15 +72,17 @@
                             </MudText>
                         </MudStack>
                         <MudStack Row="true" Spacing="2" AlignItems="@AlignItems.Center">
+                            <MudDateRangePicker @bind-DateRange="_dateRange" 
+                                               Label="Report Period" 
+                                               Variant="Variant.Outlined"
+                                               Style="min-width: 280px;"
+                                               Class="report-date-picker" />
                             <MudSelect T="AnalyticalReportType" @bind-Value="_selectedReportType" 
                                       Label="Report Type" Variant="Variant.Outlined" 
                                       Style="min-width: 250px;">
                                 <MudSelectItem Value="AnalyticalReportType.InventoryValuation">Inventory Valuation Report</MudSelectItem>
                                 <MudSelectItem Value="AnalyticalReportType.CostOfGoodsSold">Cost of Goods Sold (COGS)</MudSelectItem>
                                 <MudSelectItem Value="AnalyticalReportType.InventoryTurnover">Inventory Turnover Analysis</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.StockAging">Stock Aging Report</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.ProfitabilityByProduct">Product Profitability</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.ComprehensiveFinancial">Comprehensive Financial</MudSelectItem>
                                 <MudSelectItem Value="AnalyticalReportType.ProfitAndLossStatement">Profit & Loss Statement</MudSelectItem>
                             </MudSelect>
                             <MudButton Variant="Variant.Filled" 

@@ -4,45 +4,220 @@
 @using ModularSys.Data.Common.Entities.Inventory
 @inject IInventoryService InventoryService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h6">Inventory Transactions</MudText>
-    </MudStack>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <!-- Header -->
+    <MudPaper Class="pa-4 mb-4" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <div>
+                <MudText Typo="Typo.h5" Class="mb-1">📦 Inventory Transactions</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">View all stock movements and transaction history</MudText>
+            </div>
+            <MudChip T="string" Icon="@Icons.Material.Filled.Receipt" Color="Color.Info">
+                @_filteredTransactions.Count Transactions
+            </MudChip>
+        </MudStack>
+    </MudPaper>
 
-    <MudTable Items="@_transactions"
+    <!-- Filters -->
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField @bind-Value="_searchString" 
+                             Placeholder="Search by product, reference, or notes..." 
+                             Adornment="Adornment.Start" 
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             Immediate="true"
+                             OnDebounceIntervalElapsed="FilterTransactions"
+                             DebounceInterval="300"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect @bind-Value="_selectedType" 
+                          Label="Transaction Type" 
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          T="string"
+                          Clearable="true"
+                          OnClearButtonClick="@(() => { _selectedType = null; FilterTransactions(); })">
+                    <MudSelectItem T="string" Value="@("Sale")">Sale</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Purchase")">Purchase</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Adjustment")">Adjustment</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Return")">Return</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("Transfer")">Transfer</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudDatePicker @bind-Date="_startDate" 
+                              Label="From Date" 
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudButton OnClick="FilterTransactions" 
+                          Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          FullWidth="true"
+                          StartIcon="@Icons.Material.Filled.FilterList">
+                    Filter
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Transactions Table -->
+    <MudTable Items="@_filteredTransactions"
               Hover="true"
-              Dense="true"
-              Bordered="true"
-              Striped="true"
-              Class="w-100">
-
+              Breakpoint="Breakpoint.Sm"
+              Loading="@_loading"
+              LoadingProgressColor="Color.Info"
+              Elevation="2">
         <HeaderContent>
-            <MudTh>Product ID</MudTh>
-            <MudTh>Change</MudTh>
-            <MudTh>Amount</MudTh>
+            <MudTh>Transaction #</MudTh>
+            <MudTh>Product</MudTh>
             <MudTh>Type</MudTh>
-            <MudTh>Date</MudTh>
+            <MudTh Style="text-align: center">Stock Change</MudTh>
+            <MudTh Style="text-align: right">Amount</MudTh>
+            <MudTh>Reference</MudTh>
+            <MudTh>Date & Time</MudTh>
         </HeaderContent>
 
         <RowTemplate>
-            <MudTd>@context.ProductId</MudTd>
-            <MudTd>@context.QuantityChange</MudTd>
-            <MudTd>@context.Amount.ToString("₱#,##0.00")</MudTd>
-            <MudTd>@context.TransactionType</MudTd>
-            <MudTd>@context.TransactionDate.ToString("MMM dd, yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Transaction #">
+                <MudText Typo="Typo.body2" Class="fw-bold">@context.TransactionNumber</MudText>
+            </MudTd>
+            <MudTd DataLabel="Product">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2" Class="fw-bold">@context.Product?.Name</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">SKU: @context.Product?.SKU</MudText>
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Size="Size.Small" Color="@GetTransactionTypeColor(context.TransactionType)">
+                    @GetTransactionTypeIcon(context.TransactionType) @context.TransactionType
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Stock Change" Style="text-align: center">
+                <MudChip T="string" Size="Size.Small" Color="@(context.QuantityChange > 0 ? Color.Success : Color.Error)">
+                    @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
+                </MudChip>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                    @context.QuantityBefore → @context.QuantityAfter
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Amount" Style="text-align: right">
+                <MudText Typo="Typo.body2" Class="fw-bold" Color="@(context.Amount >= 0 ? Color.Success : Color.Error)">
+                    @context.Amount.ToString("₱#,##0.00")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @context.UnitCost.ToString("₱#,##0.00")/unit
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Reference">
+                @if (!string.IsNullOrEmpty(context.Reference))
+                {
+                    <MudText Typo="Typo.body2">@context.Reference</MudText>
+                }
+                @if (!string.IsNullOrEmpty(context.Reason))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Reason</MudText>
+                }
+                @if (string.IsNullOrEmpty(context.Reference) && string.IsNullOrEmpty(context.Reason))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Date">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2">@context.TransactionDate.ToString("MMM dd, yyyy")</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.TransactionDate.ToString("hh:mm tt")</MudText>
+                </MudStack>
+            </MudTd>
         </RowTemplate>
 
         <NoRecordsContent>
-            <MudText Color="Color.Secondary">No transactions found.</MudText>
+            <div class="pa-8 text-center">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary">No transactions found</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Try adjusting your filters</MudText>
+            </div>
         </NoRecordsContent>
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
+        </PagerContent>
     </MudTable>
 </MudContainer>
 
 @code {
     private List<InventoryTransaction> _transactions = new();
+    private List<InventoryTransaction> _filteredTransactions = new();
+    private bool _loading = true;
+    private string _searchString = "";
+    private string? _selectedType = null;
+    private DateTime? _startDate = null;
 
     protected override async Task OnInitializedAsync()
     {
-        _transactions = (await InventoryService.GetAllAsync()).ToList();
+        await LoadTransactions();
     }
+
+    private async Task LoadTransactions()
+    {
+        _loading = true;
+        _transactions = (await InventoryService.GetAllAsync()).OrderByDescending(t => t.TransactionDate).ToList();
+        FilterTransactions();
+        _loading = false;
+    }
+
+    private void FilterTransactions()
+    {
+        _filteredTransactions = _transactions.ToList();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(_searchString))
+        {
+            _filteredTransactions = _filteredTransactions.Where(t =>
+                (t.Product?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.Reference?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.Notes?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (t.TransactionNumber?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            ).ToList();
+        }
+
+        // Type filter
+        if (!string.IsNullOrEmpty(_selectedType))
+        {
+            _filteredTransactions = _filteredTransactions.Where(t => t.TransactionType == _selectedType).ToList();
+        }
+
+        // Date filter
+        if (_startDate.HasValue)
+        {
+            _filteredTransactions = _filteredTransactions.Where(t => t.TransactionDate >= _startDate.Value).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private Color GetTransactionTypeColor(string type) => type switch
+    {
+        "Sale" => Color.Success,
+        "Purchase" => Color.Info,
+        "Adjustment" => Color.Warning,
+        "Return" => Color.Secondary,
+        "Transfer" => Color.Default,
+        _ => Color.Default
+    };
+
+    private string GetTransactionTypeIcon(string type) => type switch
+    {
+        "Sale" => "📤",
+        "Purchase" => "📥",
+        "Adjustment" => "⚖️",
+        "Return" => "↩️",
+        "Transfer" => "🔄",
+        _ => "📦"
+    };
 }

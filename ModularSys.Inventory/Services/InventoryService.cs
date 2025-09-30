@@ -68,6 +68,7 @@ namespace ModularSys.Inventory.Services
             var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
 
             return await db.InventoryTransactions
+                .Include(t => t.Product)
                 .OrderByDescending(t => t.TransactionDate)
                 .ToListAsync();
         }

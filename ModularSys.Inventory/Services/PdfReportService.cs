@@ -956,9 +956,47 @@ public class PdfReportService
             table.Cell().Padding(1).Text("");
             table.Cell().Padding(1).Text("");
 
-            table.Cell().Padding(1).Text("    Less: Total OpEx").FontSize(7).Italic();
-            table.Cell().Padding(1).Text($"- ₱{report.OperatingExpenses.TotalOperatingExpenses:N0}").FontSize(7).Italic();
-            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(7);
+            // Detailed Operating Expenses Breakdown
+            table.Cell().Padding(1).Text("    • Salaries & Wages").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.SalariesAndWages:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.SalariesAndWages / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Rent").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.Rent:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.Rent / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Utilities (Electricity, Water, Internet)").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.Utilities:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.Utilities / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Marketing & Advertising").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.Marketing:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.Marketing / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Insurance").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.Insurance:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.Insurance / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Depreciation").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.Depreciation:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.Depreciation / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Office Supplies").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.OfficeSupplies:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.OfficeSupplies / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Professional Fees (Accounting, Legal)").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.ProfessionalFees:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.ProfessionalFees / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            table.Cell().Padding(1).Text("    • Other Expenses (Shipping, Repairs, Misc)").FontSize(7);
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.OtherExpenses:N0}").FontSize(7);
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.OtherExpenses / report.Revenue.NetRevenue) * 100 : 0):F1}%").FontSize(7);
+
+            // Total Operating Expenses
+            table.Cell().Padding(1).Text("    = Total Operating Expenses").FontSize(7).SemiBold().Italic();
+            table.Cell().Padding(1).Text($"₱{report.OperatingExpenses.TotalOperatingExpenses:N0}").FontSize(7).SemiBold().Italic();
+            table.Cell().Padding(1).Text($"{(report.Revenue.NetRevenue > 0 ? (report.OperatingExpenses.TotalOperatingExpenses / report.Revenue.NetRevenue) * 100 : 0):F0}%").FontSize(7).SemiBold().Italic();
 
             // Operating Income
             table.Cell().Background(Colors.Blue.Lighten4).Padding(2).Text("= OPERATING INCOME").SemiBold().FontSize(9);
