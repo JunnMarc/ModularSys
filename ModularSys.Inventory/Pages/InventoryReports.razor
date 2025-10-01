@@ -19,16 +19,13 @@
             <MudCardContent Class="pa-6">
                 <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
                     <MudStack Spacing="2">
-                        <MudText Typo="Typo.h3" Style="font-weight: 700; color: #1976D2;">
+                        <MudText Typo="Typo.h3" Style="font-weight: 400; color: #1976D2;">
                             <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="mr-3" Size="Size.Large" />
                             Analytical Accounting Reports
                         </MudText>
-                        <MudText Typo="Typo.h6" Color="Color.Secondary" Style="font-weight: 400;">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 400;">
                             Comprehensive financial analysis with GAAP-compliant inventory accounting reports
                         </MudText>
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Verified">
-                            Crystal Reports Integration • Real-time Analytics • Export Ready
-                        </MudChip>
                     </MudStack>
                     <MudStack Spacing="2" AlignItems="@AlignItems.End">
                         <MudButton Variant="Variant.Outlined" 
@@ -63,13 +60,6 @@
                 <MudCardContent Class="pa-4">
                     <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
                         <MudStack Spacing="2">
-                            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #1976D2;">
-                                <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
-                                Analytical Report Generator
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                Generate comprehensive GAAP-compliant financial and operational reports
-                            </MudText>
                         </MudStack>
                         <MudStack Row="true" Spacing="2" AlignItems="@AlignItems.Center">
                             <MudDateRangePicker @bind-DateRange="_dateRange" 

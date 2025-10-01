@@ -40,8 +40,27 @@ namespace ModularSys.Data.Common.Services.Sync
             _logger = logger;
             _contextFactory = contextFactory;
             
+            // Initialize cloud status immediately
+            _ = InitializeCloudStatusAsync();
+            
             // Start background monitoring
             _ = MonitorConnectionStatusAsync();
+        }
+        
+        private async Task InitializeCloudStatusAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Initializing cloud connection status...");
+                _cloudAvailable = await TestCloudConnectionAsync();
+                _lastCloudCheck = DateTime.UtcNow;
+                _logger.LogInformation("Initial cloud status: {Status}", _cloudAvailable ? "Online" : "Offline");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during initial cloud status check");
+                _cloudAvailable = false;
+            }
         }
 
         public ModularSysDbContext GetLocalContext()
@@ -93,18 +112,24 @@ namespace ModularSys.Data.Common.Services.Sync
         {
             try
             {
-                if (string.IsNullOrEmpty(CloudConnectionString))
+                var cloudConnStr = _configuration.GetConnectionString("CloudConnection");
+                _logger.LogInformation("Testing cloud connection. CloudConnection configured: {IsConfigured}", !string.IsNullOrEmpty(cloudConnStr));
+                
+                if (string.IsNullOrEmpty(cloudConnStr))
                 {
-                    _logger.LogWarning("Cloud connection string is not configured");
+                    _logger.LogWarning("Cloud connection string is not configured in appsettings.Sync.json");
                     return false;
                 }
                 
+                _logger.LogInformation("Attempting to connect to cloud database...");
                 using var context = GetCloudContext();
-                return await context.Database.CanConnectAsync();
+                var canConnect = await context.Database.CanConnectAsync();
+                _logger.LogInformation("Cloud database connection test result: {CanConnect}", canConnect);
+                return canConnect;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to connect to cloud database");
+                _logger.LogError(ex, "Failed to connect to cloud database: {Message}", ex.Message);
                 return false;
             }
         }
@@ -133,14 +158,20 @@ namespace ModularSys.Data.Common.Services.Sync
         {
             try
             {
-                // First check internet connectivity
-                if (!await IsInternetAvailableAsync())
+                // Try database connection first - it's the most reliable indicator
+                var dbReachable = await TestCloudConnectionAsync();
+                
+                if (dbReachable)
                 {
-                    return false;
+                    _logger.LogInformation("Cloud database is reachable");
+                    return true;
                 }
                 
-                // Then test cloud database connection
-                return await TestCloudConnectionAsync();
+                // If DB test failed, check if it's an internet issue
+                var internetAvailable = await IsInternetAvailableAsync();
+                _logger.LogInformation("Database unreachable. Internet available: {InternetAvailable}", internetAvailable);
+                
+                return false;
             }
             catch (Exception ex)
             {
@@ -156,19 +187,25 @@ namespace ModularSys.Data.Common.Services.Sync
                 // Try to ping a reliable host
                 using var ping = new Ping();
                 var reply = await ping.SendPingAsync("8.8.8.8", 3000); // Google DNS
-                return reply.Status == IPStatus.Success;
+                var success = reply.Status == IPStatus.Success;
+                _logger.LogDebug("Internet check (8.8.8.8): {Status}", success ? "Success" : "Failed");
+                return success;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogDebug("Ping to 8.8.8.8 failed: {Message}, trying 1.1.1.1", ex.Message);
                 // If ping fails, try alternative check
                 try
                 {
                     using var ping = new Ping();
                     var reply = await ping.SendPingAsync("1.1.1.1", 3000); // Cloudflare DNS
-                    return reply.Status == IPStatus.Success;
+                    var success = reply.Status == IPStatus.Success;
+                    _logger.LogDebug("Internet check (1.1.1.1): {Status}", success ? "Success" : "Failed");
+                    return success;
                 }
-                catch
+                catch (Exception ex2)
                 {
+                    _logger.LogWarning("Both ping attempts failed. Assuming no internet. Error: {Message}", ex2.Message);
                     return false;
                 }
             }
