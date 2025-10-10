@@ -1,177 +1,172 @@
 @page "/inventory/dashboard"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
-@using MudBlazor
+@using Radzen.Blazor
 @inject IInventoryDashboardService DashboardService
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <MudStack Spacing="4">
-        <!-- Header -->
-        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-            <MudText Typo="Typo.h4" GutterBottom="false">
-                <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
+                <RadzenIcon Icon="dashboard" Style="margin-right: 8px;" />
                 Inventory Dashboard
-            </MudText>
-            <MudButton Variant="Variant.Outlined" 
-                      StartIcon="@Icons.Material.Filled.Refresh" 
-                      OnClick="RefreshData"
-                      Loading="_loading">
-                Refresh
-            </MudButton>
-        </MudStack>
+            </h1>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Real-time inventory analytics and insights</p>
+        </div>
+        <RadzenButton Text="Refresh" 
+                     Icon="refresh" 
+                     Click="RefreshData"
+                     Disabled="_loading"
+                     Variant="Variant.Outlined"
+                     Style="border-radius: 6px; border-color: #d1d5db; color: #6b7280;" />
+    </div>
 
-        @if (_loading)
+    @if (_loading)
+    {
+        <div style="display: flex; justify-content: center; padding: 40px;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
+    }
+    else if (_dashboardData != null)
+    {
+        <!-- KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Total Products</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: #374151;">@_dashboardData.TotalProducts.ToString("N0")</h2>
+                    </div>
+                    <div style="width: 48px; height: 48px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="inventory_2" Style="font-size: 1.5rem; color: #6b7280;" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Inventory Value</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: #374151;">@_dashboardData.TotalInventoryValue.ToString("C0")</h2>
+                    </div>
+                    <div style="width: 48px; height: 48px; border-radius: 8px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="attach_money" Style="font-size: 1.5rem; color: #10b981;" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Low Stock Items</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: @(_dashboardData.LowStockCount > 0 ? "#f59e0b" : "#374151");">@_dashboardData.LowStockCount.ToString("N0")</h2>
+                    </div>
+                    <div style="width: 48px; height: 48px; border-radius: 8px; background: @(_dashboardData.LowStockCount > 0 ? "#fef3c7" : "#f1f5f9"); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="@(_dashboardData.LowStockCount > 0 ? "warning" : "check_circle")" Style="@GetLowStockIconStyle()" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Profit Margin</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: @GetProfitMarginColor();">@_dashboardData.ProfitMargin.ToString("F1")%</h2>
+                    </div>
+                    <div style="width: 48px; height: 48px; border-radius: 8px; background: @GetProfitMarginBackground(); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="trending_up" Style="@GetProfitMarginIconStyle()" />
+                    </div>
+                </div>
+            </RadzenCard>
+        </div>
+        @if (_stockAlerts?.Any() == true)
         {
-            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
-                <MudProgressCircular Indeterminate="true" Size="Size.Large" />
-                <MudText>Loading dashboard data...</MudText>
-            </MudStack>
+            <RadzenCard Style="padding: 0; border-radius: 8px; border: 1px solid #f0f0f0; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+                <div style="padding: 20px; border-bottom: 1px solid #f0f0f0; background: #f8fafc;">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">
+                        <RadzenIcon Icon="notifications_active" Style="margin-right: 8px;" />
+                        Stock Alerts (@_stockAlerts.Count())
+                    </h3>
+                </div>
+                <div style="padding: 20px;">
+                    @foreach (var alert in _stockAlerts.Take(5))
+                    {
+                        <RadzenCard Style="@GetAlertCardStyle(alert)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="color: #374151;">@alert.ProductName - @alert.Message</div>
+                                <div style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @GetAlertTypeStyle(alert.AlertType)">
+                                    @alert.AlertType
+                                </div>
+                            </div>
+                        </RadzenCard>
+                    }
+                    @if (_stockAlerts.Count() > 5)
+                    {
+                        <p style="text-align: center; color: #6b7280; margin: 16px 0 0 0;">
+                            And @(_stockAlerts.Count() - 5) more alerts...
+                        </p>
+                    }
+                </div>
+            </RadzenCard>
         }
-        else if (_dashboardData != null)
-        {
-            <!-- KPI Cards Row -->
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory" 
-                                    Color="Color.Primary" Size="Size.Large" />
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h4">@_dashboardData.TotalProducts.ToString("N0")</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" 
-                                    Color="Color.Success" Size="Size.Large" />
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h4">@_dashboardData.TotalInventoryValue.ToString("C0")</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Value</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
+        <!-- Summary Metrics -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="text-align: center;">
+                    <RadzenIcon Icon="attach_money" Style="font-size: 2rem; color: #10b981; margin-bottom: 12px;" />
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #10b981;">@_dashboardData.MonthlyRevenue.ToString("C0")</h3>
+                    <p style="margin: 8px 0 0 0; color: #6b7280;">Monthly Revenue</p>
+                    <p style="margin: 8px 0 0 0; font-size: 0.875rem; color: @(_dashboardData.ProfitMargin >= 0 ? "#10b981" : "#ef4444");">
+                        @_dashboardData.ProfitMargin.ToString("F1")% Profit Margin
+                    </p>
+                </div>
+            </RadzenCard>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                            <MudIcon Icon="@Icons.Material.Filled.Warning" 
-                                    Color="Color.Warning" Size="Size.Large" />
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h4">@_dashboardData.LowStockCount.ToString("N0")</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Low Stock Items</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="text-align: center;">
+                    <RadzenIcon Icon="inventory_2" Style="font-size: 2rem; color: #3b82f6; margin-bottom: 12px;" />
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #3b82f6;">@_dashboardData.TotalInventoryValue.ToString("C0")</h3>
+                    <p style="margin: 8px 0 0 0; color: #6b7280;">Total Inventory Value</p>
+                    <p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #6b7280;">
+                        @_dashboardData.TotalProducts.ToString("N0") Products
+                    </p>
+                </div>
+            </RadzenCard>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" 
-                                    Color="Color.Info" Size="Size.Large" />
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h4">@_dashboardData.ProfitMargin.ToString("F1")%</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">Profit Margin</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
-
-            <!-- Stock Alerts Section -->
-            @if (_stockAlerts?.Any() == true)
-            {
-                <MudCard Elevation="2" Class="pa-4">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">
-                                <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Class="mr-2" />
-                                Stock Alerts (@_stockAlerts.Count())
-                            </MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudStack Spacing="2">
-                            @foreach (var alert in _stockAlerts.Take(5))
-                            {
-                                <MudAlert Severity="@GetAlertSeverity(alert.Severity)" 
-                                         Variant="Variant.Outlined" 
-                                         Dense="true">
-                                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                        <MudText>@alert.Message</MudText>
-                                        <MudChip T="string" Size="Size.Small" Color="@GetAlertColor(alert.AlertType)">
-                                            @alert.AlertType
-                                        </MudChip>
-                                    </MudStack>
-                                </MudAlert>
-                            }
-                            @if (_stockAlerts.Count() > 5)
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
-                                    And @(_stockAlerts.Count() - 5) more alerts...
-                                </MudText>
-                            }
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            }
-
-            <!-- SIMPLIFIED: Key Summary Metrics Only -->
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" />
-                            <MudText Typo="Typo.h4" Color="Color.Success">@_dashboardData.MonthlyRevenue.ToString("C0")</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Monthly Revenue</MudText>
-                            <MudText Typo="Typo.caption" Color="@(_dashboardData.ProfitMargin >= 0 ? Color.Success : Color.Error)">
-                                @_dashboardData.ProfitMargin.ToString("F1")% Profit Margin
-                            </MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Size="Size.Large" />
-                            <MudText Typo="Typo.h4" Color="Color.Primary">@_dashboardData.TotalInventoryValue.ToString("C0")</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Inventory Value</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @_dashboardData.TotalProducts.ToString("N0") Products
-                            </MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Elevation="2" Class="pa-4">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" />
-                            <MudText Typo="Typo.h4" Color="Color.Info">@(_dashboardData.PendingSalesOrders + _dashboardData.PendingPurchaseOrders)</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Pending Orders</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @_dashboardData.PendingSalesOrders SO • @_dashboardData.PendingPurchaseOrders PO
-                            </MudText>
-                        </MudStack>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
-        }
-    </MudStack>
-</MudContainer>
+            <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="text-align: center;">
+                    <RadzenIcon Icon="@(_dashboardData.LowStockCount > 0 ? "warning" : "check_circle")" Style="@GetLowStockIconStyle()" />
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: @(_dashboardData.LowStockCount > 0 ? "#f59e0b" : "#10b981");">@_dashboardData.LowStockCount</h3>
+                    <p style="margin: 8px 0 0 0; color: #6b7280;">Low Stock Alerts</p>
+                    <p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #6b7280;">
+                        @(_dashboardData.LowStockCount > 0 ? "Requires attention" : "All good!")
+                    </p>
+                </div>
+            </RadzenCard>
+        </div>
+    }
+    else
+    {
+        <div style="padding: 40px; text-align: center;">
+            <RadzenIcon Icon="dashboard" Style="font-size: 3rem; color: #6b7280; margin-bottom: 16px;" />
+            <h3 style="margin: 0 0 8px 0; color: #374151;">No Dashboard Data Available</h3>
+            <p style="margin: 0 0 16px 0; color: #6b7280;">Unable to load dashboard data. Please try refreshing.</p>
+            <RadzenButton Text="Refresh" 
+                         Icon="refresh" 
+                         Click="RefreshData"
+                         ButtonStyle="ButtonStyle.Primary"
+                         Style="background: #374151; border-radius: 6px; border: none;" />
+        </div>
+    }
+</div>
 
 @code {
-    private bool _loading = true;
     private InventoryDashboardData? _dashboardData;
-    private IEnumerable<StockAlert>? _stockAlerts;
+    private List<StockAlert> _stockAlerts = new();
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -187,11 +182,11 @@
 
             // SIMPLIFIED: Load only essential dashboard data and stock alerts
             _dashboardData = await DashboardService.GetDashboardDataAsync();
-            _stockAlerts = await DashboardService.GetStockAlertsAsync();
+            _stockAlerts = (await DashboardService.GetStockAlertsAsync()).ToList();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading dashboard data: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error loading dashboard data: {ex.Message}");
         }
         finally
         {
@@ -203,22 +198,56 @@
     private async Task RefreshData()
     {
         await LoadDashboardData();
-        Snackbar.Add("Dashboard data refreshed", Severity.Success);
+        NotificationService.Notify(NotificationSeverity.Success, "Success", "Dashboard data refreshed");
     }
 
-    private Severity GetAlertSeverity(string severity) => severity switch
+    private string GetLowStockIconStyle()
     {
-        "Critical" => Severity.Error,
-        "Error" => Severity.Error,
-        "Warning" => Severity.Warning,
-        _ => Severity.Info
+        return $"font-size: 2rem; color: {(_dashboardData?.LowStockCount > 0 ? "#f59e0b" : "#10b981")}; margin-bottom: 12px;";
+    }
+
+    private string GetAlertBorderColor(string severity) => severity switch
+    {
+        "Critical" => "#ef4444",
+        "Error" => "#ef4444",
+        "Warning" => "#f59e0b",
+        _ => "#3b82f6"
     };
 
-    private MudBlazor.Color GetAlertColor(string alertType) => alertType switch
+    private string GetAlertBackgroundColor(string severity) => severity switch
     {
-        "OutOfStock" => MudBlazor.Color.Error,
-        "LowStock" => MudBlazor.Color.Warning,
-        "Expiring" => MudBlazor.Color.Info,
-        _ => MudBlazor.Color.Default
+        "Critical" => "#fef2f2",
+        "Error" => "#fef2f2",
+        "Warning" => "#fffbeb",
+        _ => "#eff6ff"
     };
+
+    private string GetAlertTypeStyle(string alertType) => alertType switch
+    {
+        "OutOfStock" => "background: #fecaca; color: #991b1b;",
+        "LowStock" => "background: #fef3c7; color: #92400e;",
+        "Expiring" => "background: #dbeafe; color: #1e40af;",
+        _ => "background: #f1f5f9; color: #6b7280;"
+    };
+
+    private string GetProfitMarginIconStyle()
+    {
+        return $"font-size: 2rem; color: {(_dashboardData?.ProfitMargin >= 0 ? "#10b981" : "#ef4444")}; margin-bottom: 12px;";
+    }
+
+    private string GetProfitMarginColor()
+    {
+        return _dashboardData?.ProfitMargin >= 0 ? "#10b981" : "#ef4444";
+    }
+
+    private string GetProfitMarginBackground()
+    {
+        return _dashboardData?.ProfitMargin >= 0 ? "#ecfdf5" : "#fef2f2";
+    }
+
+
+    private string GetAlertCardStyle(StockAlert alert)
+    {
+        return $"padding: 12px; margin-bottom: 8px; border-left: 4px solid {GetAlertBorderColor(alert.Severity)}; background: {GetAlertBackgroundColor(alert.Severity)};";
+    }
 }

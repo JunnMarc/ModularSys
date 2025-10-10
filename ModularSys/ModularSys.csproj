@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
@@ -81,14 +81,14 @@
 		<PackageReference Include="Microsoft.Maui.Controls" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
-		<PackageReference Include="MudBlazor" />
-		<PackageReference Include="MudBlazor.ThemeManager" />
+		<PackageReference Include="Radzen.Blazor" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
       <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
       <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
+      <!-- <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" /> -->
     </ItemGroup>
 
 </Project>

@@ -1,331 +1,253 @@
 @page "/dashboard"
-@using MudBlazor
+@using Radzen
+@using Radzen.Blazor
 @using ModularSys.Core.Interfaces
-@using ModularSys.Core.Models
-@using ModularSys.Data.Common.Interfaces.Sync
+@using ModularSys.Core.Loader
+@using ModularSys.Data.Common.Entities
 
+@inject IAuthService AuthService
+@inject IUserService UserService
+@inject IRoleService RoleService
 @inject NavigationManager Nav
-@inject IDashboardService DashboardService
-@inject IConnectionManager ConnectionManager
+@inject NotificationService NotificationService
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Dashboard - ModularSys</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
+@if (_loading)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 400px;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        <RadzenText Text="Loading dashboard..." Style="margin-top: 1rem;" />
+    </RadzenStack>
+}
+else
+{
+    <div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+        <!-- Page Header -->
+        <div style="margin-bottom: 24px;">
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Dashboard</h1>
+            <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Welcome back, @AuthService.CurrentUser. Here's what's happening today.</p>
+        </div>
 
-    @if (_loading)
-    {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-    }
-    else
-    {
         <!-- KPI Cards -->
-        <MudGrid Spacing="3" Class="mb-4">
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Users</MudText>
-                                <MudText Typo="Typo.h5">@(_dashboardStats?.TotalUsers ?? 0)</MudText>
-                            </div>
-                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Users</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalUsers</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #4caf50;">+@_newUsersThisMonth this month</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="group" Style="font-size: 2rem; color: #2196f3;" />
+                    </div>
+                </div>
+            </RadzenCard>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Active Users</MudText>
-                                <MudText Typo="Typo.h5">@(_dashboardStats?.ActiveUsersToday ?? 0)</MudText>
-                            </div>
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Color="Color.Success" />
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Active Users</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_activeUsers</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #4caf50;">@($"{(_totalUsers > 0 ? (_activeUsers * 100.0 / _totalUsers):0):F1}% active rate")</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #e8f5e9; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="check_circle" Style="font-size: 2rem; color: #4caf50;" />
+                    </div>
+                </div>
+            </RadzenCard>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Departments</MudText>
-                                <MudText Typo="Typo.h5">@(_dashboardStats?.TotalDepartments ?? 0)</MudText>
-                            </div>
-                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Info" />
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Roles</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalRoles</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #757575;">Role-based access control</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff3e0; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="admin_panel_settings" Style="font-size: 2rem; color: #ff9800;" />
+                    </div>
+                </div>
+            </RadzenCard>
 
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Roles</MudText>
-                                <MudText Typo="Typo.h5">@(_dashboardStats?.TotalRoles ?? 0)</MudText>
-                            </div>
-                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Warning" />
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
+            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Modules</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@ModuleLoader.Subsystems.Count</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #757575;">Active subsystems</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #e8eaf6; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="extension" Style="font-size: 2rem; color: #3f51b5;" />
+                    </div>
+                </div>
+            </RadzenCard>
+        </div>
 
-        <!-- System Health -->
-        <MudPaper Class="pa-4 mb-4">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                <MudText Typo="Typo.h6">System Health</MudText>
-                <MudChip T="string" Color="@(_systemHealth?.IsHealthy == true ? Color.Success : Color.Error)" Size="Size.Small">
-                    @(_systemHealth?.IsHealthy == true ? "Healthy" : "Issues")
-                </MudChip>
-            </MudStack>
+        <!-- Recent Activity & Quick Actions -->
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeLG="8">
+                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                    <RadzenStack Gap="1rem">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Recent Users" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
+                            <RadzenButton Text="View All" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" 
+                                        Style="border-radius: 6px;" Click="@(() => Nav.NavigateTo("/users"))" />
+                        </RadzenStack>
+                        
+                        @if (_recentUsers.Any())
+                        {
+                            <RadzenDataGrid Data="@_recentUsers" TItem="User" AllowPaging="false" AllowSorting="true" Style="height: 300px;">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="User" Title="User" Width="200px">
+                                        <Template Context="user">
+                                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                                <RadzenGravatar Email="@user.Username" Style="width: 32px; height: 32px;" />
+                                                <RadzenStack Gap="0">
+                                                    <RadzenText Text="@user.Username" Style="font-weight: 600;" />
+                                                    <RadzenText Text="@user.Email" Style="font-size: 0.75rem; color: var(--rz-text-secondary-color);" />
+                                                </RadzenStack>
+                                            </RadzenStack>
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="User" Property="Role.RoleName" Title="Role" Width="120px">
+                                        <Template Context="user">
+                                            <RadzenBadge Text="@user.Role?.RoleName" BadgeStyle="BadgeStyle.Info" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="User" Property="CreatedAt" Title="Joined" FormatString="{0:MMM dd, yyyy}" Width="120px" />
+                                    <RadzenDataGridColumn TItem="User" Title="Status" Width="100px">
+                                        <Template Context="user">
+                                            <RadzenBadge Text="@(user.IsDeleted ? "Inactive" : "Active")" 
+                                                       BadgeStyle="@(user.IsDeleted ? BadgeStyle.Danger : BadgeStyle.Success)" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem;">
+                                <RadzenIcon Icon="people_outline" Style="font-size: 3rem; color: var(--rz-text-secondary-color);" />
+                                <RadzenText Text="No users found" Style="color: var(--rz-text-secondary-color);" />
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-            <MudGrid Spacing="2">
-                <MudItem xs="12" sm="6" md="3">
-                    <MudAlert Severity="@(_systemHealth?.IsDatabaseOnline == true ? Severity.Success : Severity.Error)" Dense="true">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2"><b>Database</b></MudText>
-                            <MudText Typo="Typo.caption">
-                                @if (_systemHealth?.IsDatabaseOnline == true)
-                                {
-                                    <text>@_systemHealth.DatabaseConnectionType</text>
-                                }
-                                else
-                                {
-                                    <text>Offline</text>
-                                }
-                            </MudText>
-                            @if (!string.IsNullOrEmpty(_systemHealth?.DatabaseErrorMessage))
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Warning">@_systemHealth.DatabaseErrorMessage</MudText>
-                            }
-                        </MudStack>
-                    </MudAlert>
-                </MudItem>
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                    <RadzenStack Gap="1rem">
+                        <RadzenText Text="Quick Actions" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
+                        
+                        <RadzenStack Gap="0.75rem">
+                            <RadzenButton Text="Add New User" Icon="person_add" Click="@(() => Nav.NavigateTo("/users"))" 
+                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
+                            <RadzenButton Text="Manage Roles" Icon="admin_panel_settings" Click="@(() => Nav.NavigateTo("/roles"))" 
+                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
+                            <RadzenButton Text="View Permissions" Icon="security" Click="@(() => Nav.NavigateTo("/permissions"))" 
+                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
+                            <RadzenButton Text="System Settings" Icon="settings" Click="@(() => Nav.NavigateTo("/settings"))" 
+                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
+                        </RadzenStack>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudAlert Severity="@(isCloudOnline ? Severity.Success : Severity.Warning)" Dense="true">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2"><b>Cloud Sync</b></MudText>
-                            <MudText Typo="Typo.caption">@(isCloudOnline ? "Online" : "Offline")</MudText>
-                        </MudStack>
-                    </MudAlert>
-                </MudItem>
+                        <RadzenText Text="System Status" Style="font-size: 1.125rem; font-weight: 600; color: #111827; margin-top: 1rem;" />
+                        
+                        <RadzenStack Gap="0.75rem">
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                <RadzenText Text="Database" Style="font-size: 0.875rem; color: #6b7280;" />
+                                <RadzenBadge Text="Connected" BadgeStyle="BadgeStyle.Success" Style="border-radius: 4px;" />
+                            </RadzenStack>
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                <RadzenText Text="Modules" Style="font-size: 0.875rem; color: #6b7280;" />
+                                <RadzenBadge Text="@($"{ModuleLoader.Subsystems.Count} Active")" BadgeStyle="BadgeStyle.Info" Style="border-radius: 4px;" />
+                            </RadzenStack>
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                <RadzenText Text="Version" Style="font-size: 0.875rem; color: #6b7280;" />
+                                <RadzenBadge Text="v1.0.0" BadgeStyle="BadgeStyle.Secondary" Style="border-radius: 4px;" />
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudAlert Severity="Severity.Info" Dense="true">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2"><b>Uptime</b></MudText>
-                            <MudText Typo="Typo.caption">@(_systemHealth?.Uptime.Days ?? 0)d @(_systemHealth?.Uptime.Hours ?? 0)h @(_systemHealth?.Uptime.Minutes ?? 0)m</MudText>
-                        </MudStack>
-                    </MudAlert>
-                </MudItem>
-
-                <MudItem xs="12" sm="6" md="3">
-                    <MudAlert Severity="Severity.Success" Dense="true">
-                        <MudStack Spacing="1">
-                            <MudText Typo="Typo.body2"><b>Last Backup</b></MudText>
-                            <MudText Typo="Typo.caption">@(_systemHealth?.LastBackup.ToString("MMM dd, HH:mm") ?? "N/A")</MudText>
-                        </MudStack>
-                    </MudAlert>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-
-        <!-- Security & Performance -->
-        <MudGrid Spacing="3" Class="mb-4">
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Security Monitoring</MudText>
-                    <MudGrid Spacing="2">
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Security Score</MudText>
-                            <MudText Typo="Typo.h6" Color="@(_securityMetrics?.SecurityScore >= 90 ? Color.Success : Color.Warning)">
-                                @(_securityMetrics?.SecurityScore.ToString("F1") ?? "0")%
-                            </MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Successful Logins</MudText>
-                            <MudText Typo="Typo.h6">@(_securityMetrics?.SuccessfulLogins ?? 0)</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Failed Attempts</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Error">@(_securityMetrics?.FailedLoginAttempts ?? 0)</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Suspicious Activity</MudText>
-                            <MudText Typo="Typo.h6">@(_securityMetrics?.SuspiciousActivities ?? 0)</MudText>
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Performance Metrics</MudText>
-                    <MudGrid Spacing="2">
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Avg Response Time</MudText>
-                            <MudText Typo="Typo.h6">@(_performanceMetrics?.AverageResponseTime.ToString("F0") ?? "0")ms</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Success Rate</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Success">@(_performanceMetrics?.SuccessRate.ToString("F1") ?? "0")%</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Total Requests</MudText>
-                            <MudText Typo="Typo.h6">@(_performanceMetrics?.TotalRequests.ToString("N0") ?? "0")</MudText>
-                        </MudItem>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Requests/Sec</MudText>
-                            <MudText Typo="Typo.h6">@(_performanceMetrics?.RequestsPerSecond.ToString("F2") ?? "0")</MudText>
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-
-        <!-- Recent Activity -->
-        <MudPaper Class="pa-4 mt-4">
-            <MudText Typo="Typo.h6" Class="mb-3">Recent Activity</MudText>
-            @if (_recentActivities?.Any() == true)
-            {
-                <MudList T="string" Dense="true">
-                    @foreach (var activity in _recentActivities.Take(5))
-                    {
-                        <MudListItem T="string" Icon="@GetActivityIcon(activity.Icon)" IconColor="@GetActivityColor(activity.Color)">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.body2">@activity.Activity</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @activity.Description - @activity.Timestamp.ToString("MMM dd, HH:mm")
-                                </MudText>
-                            </MudStack>
-                        </MudListItem>
-                        <MudDivider />
-                    }
-                </MudList>
-            }
-            else
-            {
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Class="py-4">
-                    No recent activity
-                </MudText>
-            }
-        </MudPaper>
-    }
-</MudContainer>
+        <!-- Modules Overview -->
+        @if (ModuleLoader.Subsystems.Any())
+        {
+            <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenStack Gap="1rem">
+                    <RadzenText Text="Available Modules" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
+                    
+                    <RadzenRow Gap="1rem">
+                        @foreach (var module in ModuleLoader.Subsystems.OrderBy(s => s.Order))
+                        {
+                            <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
+                                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s ease;" 
+                                          @onclick="@(() => Nav.NavigateTo(module.Route))"
+                                          @onmouseover="@((MouseEventArgs e) => {})"
+                                          class="module-card">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                                        <div style="width: 48px; height: 48px; border-radius: 8px; background: #f3f4f6; display: flex; align-items: center; justify-content: center;">
+                                            <span class="material-icons" style="font-size: 1.75rem; color: #667eea;">@module.Icon</span>
+                                        </div>
+                                        <RadzenStack Gap="0">
+                                            <RadzenText Text="@module.Name" Style="font-weight: 600; color: #111827; margin: 0;" />
+                                            <RadzenText Text="Click to open" Style="font-size: 0.75rem; color: #6b7280;" />
+                                        </RadzenStack>
+                                    </RadzenStack>
+                                </RadzenCard>
+                            </RadzenColumn>
+                        }
+                    </RadzenRow>
+                </RadzenStack>
+            </RadzenCard>
+        }
+    </div>
+}
 
 @code {
-    private DashboardStats? _dashboardStats;
-    private SystemHealthStats? _systemHealth;
-    private SecurityMetrics? _securityMetrics;
-    private PerformanceMetrics? _performanceMetrics;
-    private List<UserGrowthData> _userGrowthData = new();
-    private List<DepartmentStats> _departmentStats = new();
-    private List<RoleDistribution> _roleDistribution = new();
-    private List<RecentActivity> _recentActivities = new();
     private bool _loading = true;
-    private bool isCloudOnline = true;
-
-    // Chart data
-    private List<ChartSeries> _userGrowthSeries = new();
-    private string[] _growthMonths = Array.Empty<string>();
-    private List<ChartSeries> _departmentDistributionSeries = new();
-    private string[] _departmentLabels = Array.Empty<string>();
-    private List<ChartSeries> _roleDistributionSeries = new();
-    private string[] _roleLabels = Array.Empty<string>();
-    private List<ChartSeries> _userStatusSeries = new();
-    private string[] _statusLabels = Array.Empty<string>();
+    private int _totalUsers = 0;
+    private int _activeUsers = 0;
+    private int _newUsersThisMonth = 0;
+    private int _totalRoles = 0;
+    private List<User> _recentUsers = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Check cloud status
-        isCloudOnline = ConnectionManager.IsCloudAvailable();
-        
-        await LoadData();
+        await LoadDashboardData();
     }
 
-    private async Task LoadData()
+    private async Task LoadDashboardData()
     {
         try
         {
             _loading = true;
 
-            // Load all dashboard data
-            _dashboardStats = await DashboardService.GetDashboardStatsAsync();
-            _systemHealth = await DashboardService.GetSystemHealthAsync();
-            _securityMetrics = await DashboardService.GetSecurityMetricsAsync();
-            _performanceMetrics = await DashboardService.GetPerformanceMetricsAsync();
-            _userGrowthData = await DashboardService.GetUserGrowthDataAsync(6);
-            _departmentStats = await DashboardService.GetDepartmentStatsAsync();
-            _roleDistribution = await DashboardService.GetRoleDistributionAsync();
-            _recentActivities = await DashboardService.GetRecentActivitiesAsync(5);
+            // Load users
+            var users = await UserService.GetAllAsync();
+            _totalUsers = users.Count();
+            _activeUsers = users.Count(u => !u.IsDeleted);
+            
+            var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            _newUsersThisMonth = users.Count(u => u.CreatedAt >= firstDayOfMonth);
+            
+            // Get recent users (last 5)
+            _recentUsers = users.OrderByDescending(u => u.CreatedAt).Take(5).ToList();
 
-            // User Growth Chart
-            _userGrowthSeries = new List<ChartSeries>
-            {
-                new ChartSeries { Name = "Users", Data = _userGrowthData.Select(u => (double)u.TotalUsers).ToArray() }
-            };
-            _growthMonths = _userGrowthData.Select(u => u.Month).ToArray();
-
-            // Department Distribution
-            _departmentDistributionSeries = new List<ChartSeries>
-            {
-                new ChartSeries { Name = "Users", Data = _departmentStats.Select(d => (double)d.UserCount).ToArray() }
-            };
-            _departmentLabels = _departmentStats.Select(d => d.DepartmentName).ToArray();
-
-            // Role Distribution
-            _roleDistributionSeries = new List<ChartSeries>
-            {
-                new ChartSeries { Name = "Users", Data = _roleDistribution.Select(r => (double)r.UserCount).ToArray() }
-            };
-            _roleLabels = _roleDistribution.Select(r => r.RoleName).ToArray();
-
-            // User Status
-            var totalUsers = _dashboardStats?.TotalUsers ?? 0;
-            var activeUsers = _dashboardStats?.ActiveUsersToday ?? 0;
-            _userStatusSeries = new List<ChartSeries>
-            {
-                new ChartSeries { Name = "Status", Data = new double[] { activeUsers, totalUsers - activeUsers } }
-            };
-            _statusLabels = new[] { "Active", "Inactive" };
+            // Load roles
+            var roles = await RoleService.GetAllAsync();
+            _totalRoles = roles.Count();
         }
-        catch
+        catch (Exception ex)
         {
-            // Initialize empty data on error
-            _dashboardStats = new DashboardStats();
-            _systemHealth = new SystemHealthStats();
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load dashboard data: {ex.Message}");
         }
         finally
         {
             _loading = false;
         }
     }
-
-    private string GetActivityIcon(string iconName) => iconName switch
-    {
-        "PersonAdd" => Icons.Material.Filled.PersonAdd,
-        "Edit" => Icons.Material.Filled.Edit,
-        "PlayArrow" => Icons.Material.Filled.PlayArrow,
-        "Delete" => Icons.Material.Filled.Delete,
-        _ => Icons.Material.Filled.Info
-    };
-
-    private Color GetActivityColor(string colorName) => colorName switch
-    {
-        "Success" => Color.Success,
-        "Info" => Color.Info,
-        "Warning" => Color.Warning,
-        "Error" => Color.Error,
-        "Primary" => Color.Primary,
-        _ => Color.Default
-    };
 }

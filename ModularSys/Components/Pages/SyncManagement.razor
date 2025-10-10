@@ -1,183 +1,246 @@
 @page "/sync-management"
 @using ModularSys.Data.Common.Interfaces.Sync
 @using ModularSys.Data.Common.Db
+@using ModularSys.Data.Common.Entities.Sync
 @using Microsoft.EntityFrameworkCore
+@using Radzen.Blazor
+@using Radzen
+@using Microsoft.JSInterop
+
 @inject ISyncService SyncService
 @inject IConnectionManager ConnectionManager
 @inject IDbContextFactory<ModularSysDbContext> ContextFactory
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
 
 <PageTitle>Sync Management</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">
-        <MudIcon Icon="@Icons.Material.Filled.Sync" Class="mr-2" />
-        Synchronization Management
-    </MudText>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">Sync Management</h1>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Manage data synchronization between local and cloud databases</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <RadzenButton Text="Test Connection" 
+                         Icon="wifi" 
+                         Variant="Variant.Outlined"
+                         Click="TestConnectionAsync"
+                         Disabled="isSyncing"
+                         Style="border-radius: 6px; border-color: #d1d5db; color: #6b7280;" />
+            <RadzenButton Text="Refresh Status" 
+                         Icon="refresh" 
+                         ButtonStyle="ButtonStyle.Primary"
+                         Click="RefreshStatusAsync"
+                         Disabled="isSyncing"
+                         Style="background: #374151; border-radius: 6px; border: none;" />
+        </div>
+    </div>
 
-    <!-- Connection Status Card -->
-    <MudCard Class="mb-4">
-        <MudCardContent>
-            <MudGrid>
-                <MudItem xs="12" md="4">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6">Connection Status</MudText>
-                        <MudChip T="string" Color="@(isOnline ? Color.Success : Color.Error)" Icon="@Icons.Material.Filled.Cloud">
-                            @(isOnline ? "Online" : "Offline")
-                        </MudChip>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Mode: @connectionMode
-                        </MudText>
-                    </MudStack>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6">Last Sync</MudText>
-                        <MudText Typo="Typo.body1">
-                            @(lastSyncTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never")
-                        </MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @(lastSyncTime.HasValue ? $"{(DateTime.UtcNow - lastSyncTime.Value).TotalMinutes:F0} minutes ago" : "")
-                        </MudText>
-                    </MudStack>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6">Pending Changes</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Primary">@pendingCount</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Records waiting to sync
-                        </MudText>
-                    </MudStack>
-                </MudItem>
-            </MudGrid>
-        </MudCardContent>
-    </MudCard>
+    <!-- Status Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <!-- Connection Status -->
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Connection Status</p>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: @(isOnline ? "#10b981" : "#ef4444");"></div>
+                        <span style="font-size: 1.125rem; font-weight: 600; color: #374151;">@(isOnline ? "Online" : "Offline")</span>
+                    </div>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: @(isOnline ? "#ecfdf5" : "#fef2f2"); display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="@(isOnline ? "wifi" : "wifi_off")" Style="@GetConnectionIconStyle()" />
+                </div>
+            </div>
+            <div style="display: flex; justify-content: between; align-items: center;">
+                <span style="color: #6b7280; font-size: 0.875rem;">Mode: @connectionMode</span>
+                @if (cloudAvailable.HasValue)
+                {
+                    <span style="color: @(cloudAvailable.Value ? "#10b981" : "#ef4444"); font-size: 0.875rem; margin-left: auto;">
+                        Cloud @(cloudAvailable.Value ? "Available" : "Unavailable")
+                    </span>
+                }
+            </div>
+        </RadzenCard>
+
+        <!-- Last Sync -->
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Last Sync</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 1.125rem; font-weight: 600; color: #374151;">
+                        @(lastSyncTime?.ToString("MMM dd, HH:mm") ?? "Never")
+                    </h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="history" Style="font-size: 1.5rem; color: #6b7280;" />
+                </div>
+            </div>
+            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                @if (lastSyncTime.HasValue)
+                {
+                    var minutes = (DateTime.UtcNow - lastSyncTime.Value).TotalMinutes;
+                    if (minutes < 60)
+                    {
+                        @($"{minutes:F0} minutes ago")
+                    }
+                    else if (minutes < 1440)
+                    {
+                        @($"{minutes/60:F0} hours ago")
+                    }
+                    else
+                    {
+                        @($"{minutes/1440:F0} days ago")
+                    }
+                }
+                else
+                {
+                    <text>No sync performed yet</text>
+                }
+            </p>
+        </RadzenCard>
+
+        <!-- Pending Changes -->
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Pending Changes</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: @(pendingCount > 0 ? "#f59e0b" : "#374151");">@pendingCount</h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: @(pendingCount > 0 ? "#fef3c7" : "#f1f5f9"); display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="@(pendingCount > 0 ? "pending" : "check_circle")" Style="@GetPendingIconStyle()" />
+                </div>
+            </div>
+            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                @(pendingCount > 0 ? "Records waiting to sync" : "All changes synced")
+            </p>
+        </RadzenCard>
+    </div>
 
     <!-- Sync Actions -->
-    <MudCard Class="mb-4">
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h6">Sync Actions</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
-        <MudCardContent>
-            <MudStack Row="true" Spacing="3">
-                <MudButton Variant="Variant.Filled" 
-                          Color="Color.Primary" 
-                          StartIcon="@Icons.Material.Filled.Sync"
-                          OnClick="SyncAllAsync"
-                          Disabled="isSyncing || !isOnline">
-                    Full Sync
-                </MudButton>
-                <MudButton Variant="Variant.Filled" 
-                          Color="Color.Secondary" 
-                          StartIcon="@Icons.Material.Filled.Update"
-                          OnClick="SyncIncrementalAsync"
-                          Disabled="isSyncing || !isOnline">
-                    Incremental Sync
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" 
-                          Color="Color.Info" 
-                          StartIcon="@Icons.Material.Filled.Upload"
-                          OnClick="PushToCloudAsync"
-                          Disabled="isSyncing || !isOnline">
-                    Push to Cloud
-                </MudButton>
-                <MudButton Variant="Variant.Outlined" 
-                          Color="Color.Info" 
-                          StartIcon="@Icons.Material.Filled.Download"
-                          OnClick="PullFromCloudAsync"
-                          Disabled="isSyncing || !isOnline">
-                    Pull from Cloud
-                </MudButton>
-                <MudButton Variant="Variant.Text" 
-                          Color="Color.Default" 
-                          StartIcon="@Icons.Material.Filled.Refresh"
-                          OnClick="RefreshStatusAsync"
-                          Disabled="isSyncing">
-                    Refresh
-                </MudButton>
-            </MudStack>
-        </MudCardContent>
-    </MudCard>
+    <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; align-items: center; margin-bottom: 20px;">
+            <RadzenIcon Icon="play_arrow" Style="margin-right: 8px; color: #6b7280;" />
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">Sync Actions</h3>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <!-- Full Sync -->
+            <RadzenButton Text="Full Sync" 
+                         Icon="sync"
+                         Click="SyncAllAsync"
+                         Disabled="isSyncing || !isOnline"
+                         ButtonStyle="ButtonStyle.Primary"
+                         Style="background: #3b82f6; border-radius: 6px; border: none; padding: 12px 16px; justify-content: flex-start;" />
+            
+            <!-- Incremental Sync -->
+            <RadzenButton Text="Incremental Sync" 
+                         Icon="update"
+                         Click="SyncIncrementalAsync"
+                         Disabled="isSyncing || !isOnline"
+                         ButtonStyle="ButtonStyle.Secondary"
+                         Style="background: #6b7280; border-radius: 6px; border: none; padding: 12px 16px; justify-content: flex-start;" />
+            
+            <!-- Push to Cloud -->
+            <RadzenButton Text="Push to Cloud" 
+                         Icon="cloud_upload"
+                         Click="PushToCloudAsync"
+                         Disabled="isSyncing || !isOnline"
+                         Variant="Variant.Outlined"
+                         Style="border-radius: 6px; border-color: #10b981; color: #10b981; padding: 12px 16px; justify-content: flex-start;" />
+            
+            <!-- Pull from Cloud -->
+            <RadzenButton Text="Pull from Cloud" 
+                         Icon="cloud_download"
+                         Click="PullFromCloudAsync"
+                         Disabled="isSyncing || !isOnline"
+                         Variant="Variant.Outlined"
+                         Style="border-radius: 6px; border-color: #f59e0b; color: #f59e0b; padding: 12px 16px; justify-content: flex-start;" />
+        </div>
+        
+        @if (!isOnline)
+        {
+            <div style="margin-top: 16px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <RadzenIcon Icon="warning" Style="color: #ef4444; font-size: 1rem;" />
+                    <span style="color: #dc2626; font-size: 0.875rem; font-weight: 500;">Offline mode - Sync operations are disabled</span>
+                </div>
+            </div>
+        }
+    </RadzenCard>
 
     <!-- Sync Progress -->
     @if (isSyncing)
     {
-        <MudCard Class="mb-4">
-            <MudCardContent>
-                <MudText Typo="Typo.h6" Class="mb-2">Synchronizing...</MudText>
-                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
-                <MudText Typo="Typo.body2">@syncStatus</MudText>
-            </MudCardContent>
-        </MudCard>
+        <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: #dbeafe; display: flex; align-items: center; justify-content: center;">
+                    <RadzenProgressBarCircular Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" Style="color: #3b82f6;" />
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">Synchronizing...</h3>
+                    <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">@syncStatus</p>
+                </div>
+            </div>
+        </RadzenCard>
     }
 
     <!-- Recent Sync History -->
-    <MudCard>
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h6">Recent Sync History</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
-        <MudCardContent>
-            <MudTable Items="@syncLogs" Hover="true" Dense="true" Loading="@loadingLogs">
-                <HeaderContent>
-                    <MudTh>Session ID</MudTh>
-                    <MudTh>Started</MudTh>
-                    <MudTh>Duration</MudTh>
-                    <MudTh>Type</MudTh>
-                    <MudTh>Status</MudTh>
-                    <MudTh>Synced</MudTh>
-                    <MudTh>Failed</MudTh>
-                    <MudTh>Conflicts</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Session">@context.SyncSessionId.ToString().Substring(0, 8)...</MudTd>
-                    <MudTd DataLabel="Started">@context.StartedAt.ToString("yyyy-MM-dd HH:mm")</MudTd>
-                    <MudTd DataLabel="Duration">
-                        @if (context.CompletedAt.HasValue)
-                        {
-                            @((context.CompletedAt.Value - context.StartedAt).TotalSeconds.ToString("F1"));
-                        }
-                        else
-                        {
-                            <text>-</text>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Type">@context.SyncType</MudTd>
-                    <MudTd DataLabel="Status">
-                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                            @context.Status
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Synced">@context.EntitiesSynced</MudTd>
-                    <MudTd DataLabel="Failed">
-                        @if (context.EntitiesFailed > 0)
-                        {
-                            <MudText Color="Color.Error">@context.EntitiesFailed</MudText>
-                        }
-                        else
-                        {
-                            <text>0</text>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Conflicts">
-                        @if (context.ConflictsDetected > 0)
-                        {
-                            <MudText Color="Color.Warning">@context.ConflictsDetected (@context.ConflictsResolved resolved)</MudText>
-                        }
-                        else
-                        {
-                            <text>0</text>
-                        }
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
-        </MudCardContent>
-    </MudCard>
-</MudContainer>
+    <RadzenCard Style="padding: 0; border-radius: 8px; border: 1px solid #f0f0f0; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="padding: 20px; border-bottom: 1px solid #f0f0f0; background: #f8fafc; border-radius: 8px 8px 0 0;">
+            <div style="display: flex; align-items: center; justify-content: between;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">Recent Sync History</h3>
+                    <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Track synchronization operations and their results</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            @if (loadingLogs)
+            {
+                <div style="display: flex; justify-content: center; padding: 40px;">
+                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                </div>
+            }
+            else if (!syncLogs.Any())
+            {
+                <div style="padding: 40px; text-align: center;">
+                    <RadzenIcon Icon="history" Style="font-size: 3rem; color: #6b7280; margin-bottom: 16px;" />
+                    <h3 style="margin: 0 0 8px 0; color: #374151;">No Sync History</h3>
+                    <p style="margin: 0; color: #6b7280;">No synchronization operations have been performed yet.</p>
+                </div>
+            }
+            else
+            {
+                <div style="padding: 16px;">
+                    @foreach (var log in syncLogs.Take(10))
+                    {
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0;">
+                            <div>
+                                <div style="font-weight: 500; color: #374151;">@log.SyncType Sync</div>
+                                <div style="font-size: 0.875rem; color: #6b7280;">@log.StartedAt.ToString("MMM dd, HH:mm")</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @GetStatusStyle(log.Status)">
+                                    @log.Status
+                                </div>
+                                <div style="font-size: 0.875rem; color: #6b7280; margin-top: 4px;">
+                                    @log.EntitiesSynced synced
+                                    @if (log.EntitiesFailed > 0)
+                                    {
+                                        <span style="color: #ef4444;">, @log.EntitiesFailed failed</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </RadzenCard>
+</div>
 
 @code {
     private bool isOnline = false;
@@ -187,7 +250,8 @@
     private DateTime? lastSyncTime;
     private int pendingCount = 0;
     private string syncStatus = "";
-    private List<ModularSys.Data.Common.Entities.Sync.SyncLog> syncLogs = new();
+    private bool? cloudAvailable = null;
+    private List<SyncLog> syncLogs = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,11 +267,41 @@
             connectionMode = ConnectionManager.GetConnectionMode().ToString();
             lastSyncTime = await SyncService.GetLastSyncTimeAsync();
             pendingCount = await SyncService.GetPendingSyncCountAsync();
+            cloudAvailable = await ConnectionManager.IsCloudReachableAsync();
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error refreshing status: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Refresh Failed", Detail = $"Error refreshing status: {ex.Message}" });
+        }
+    }
+
+    private async Task TestConnectionAsync()
+    {
+        try
+        {
+            var localTest = await ConnectionManager.TestLocalConnectionAsync();
+            var cloudTest = await ConnectionManager.TestCloudConnectionAsync();
+            
+            var message = $"Local Database: {(localTest ? "✓ Connected" : "✗ Failed")}\n" +
+                         $"Cloud Database: {(cloudTest ? "✓ Connected" : "✗ Failed")}";
+            
+            var severity = (localTest && cloudTest) ? NotificationSeverity.Success :
+                          (localTest || cloudTest) ? NotificationSeverity.Warning : NotificationSeverity.Error;
+            
+            NotificationService.Notify(new NotificationMessage 
+            { 
+                Severity = severity, 
+                Summary = "Connection Test Results", 
+                Detail = message,
+                Duration = 5000
+            });
+            
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Connection Test Failed", Detail = $"Error testing connections: {ex.Message}" });
         }
     }
 
@@ -224,7 +318,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading sync history: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = $"Error loading sync history: {ex.Message}" });
         }
         finally
         {
@@ -242,11 +336,11 @@
             
             if (result.Success)
             {
-                Snackbar.Add($"Sync completed! Synced: {result.EntitiesSynced}, Failed: {result.EntitiesFailed}", Severity.Success);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Sync Completed", Detail = $"Sync completed! Synced: {result.EntitiesSynced}, Failed: {result.EntitiesFailed}" });
             }
             else
             {
-                Snackbar.Add($"Sync completed with errors: {result.ErrorMessage}", Severity.Warning);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Sync Completed with Errors", Detail = $"Sync completed with errors: {result.ErrorMessage}" });
             }
             
             await RefreshStatusAsync();
@@ -254,7 +348,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Sync failed: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Sync Failed", Detail = $"Sync failed: {ex.Message}" });
         }
         finally
         {
@@ -273,11 +367,11 @@
             
             if (result.Success)
             {
-                Snackbar.Add($"Incremental sync completed! Synced: {result.EntitiesSynced}", Severity.Success);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Incremental Sync Completed", Detail = $"Incremental sync completed! Synced: {result.EntitiesSynced}" });
             }
             else
             {
-                Snackbar.Add($"Sync failed: {result.ErrorMessage}", Severity.Error);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Sync Failed", Detail = $"Sync failed: {result.ErrorMessage}" });
             }
             
             await RefreshStatusAsync();
@@ -285,7 +379,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Sync failed: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Sync Failed", Detail = $"Sync failed: {ex.Message}" });
         }
         finally
         {
@@ -301,13 +395,13 @@
         try
         {
             var result = await SyncService.PushToCloudAsync();
-            Snackbar.Add($"Pushed {result.EntitiesSynced} entities to cloud", Severity.Success);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Push Completed", Detail = $"Pushed {result.EntitiesSynced} entities to cloud" });
             await RefreshStatusAsync();
             await LoadSyncHistoryAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Push failed: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Push Failed", Detail = $"Push failed: {ex.Message}" });
         }
         finally
         {
@@ -323,13 +417,13 @@
         try
         {
             var result = await SyncService.PullFromCloudAsync();
-            Snackbar.Add($"Pulled {result.EntitiesSynced} entities from cloud", Severity.Success);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Pull Completed", Detail = $"Pulled {result.EntitiesSynced} entities from cloud" });
             await RefreshStatusAsync();
             await LoadSyncHistoryAsync();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Pull failed: {ex.Message}", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Pull Failed", Detail = $"Pull failed: {ex.Message}" });
         }
         finally
         {
@@ -338,15 +432,25 @@
         }
     }
 
-    private Color GetStatusColor(string status)
+    private string GetStatusStyle(string status)
     {
         return status switch
         {
-            "Completed" => Color.Success,
-            "InProgress" => Color.Info,
-            "Failed" => Color.Error,
-            "PartialSuccess" => Color.Warning,
-            _ => Color.Default
+            "Completed" => "background: #10b981; color: white;",
+            "InProgress" => "background: #3b82f6; color: white;",
+            "Failed" => "background: #ef4444; color: white;",
+            "PartialSuccess" => "background: #f59e0b; color: white;",
+            _ => "background: #6b7280; color: white;"
         };
+    }
+
+    private string GetConnectionIconStyle()
+    {
+        return $"font-size: 1.5rem; color: {(isOnline ? "#10b981" : "#ef4444")};";
+    }
+
+    private string GetPendingIconStyle()
+    {
+        return $"font-size: 1.5rem; color: {(pendingCount > 0 ? "#f59e0b" : "#6b7280")};";
     }
 }

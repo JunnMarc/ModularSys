@@ -5,34 +5,27 @@
 
 @if (!isOnline)
 {
-    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.CloudOff">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText>
-                <strong>Offline Mode:</strong> Cloud connection unavailable. Operating with local database only. Changes will sync when connection is restored.
-            </MudText>
-            <MudButton Size="Size.Small" 
-                      Variant="Variant.Text" 
-                      Color="Color.Inherit"
-                      OnClick="CheckConnectionAsync"
-                      Disabled="@checking">
-                @if (checking)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
-                    <span class="ml-1">Retry</span>
-                }
-            </MudButton>
-        </MudStack>
-    </MudAlert>
+    <RadzenAlert AlertStyle="AlertStyle.Warning" 
+                 Title="Offline Mode: Cloud connection unavailable. Operating with local database only. Changes will sync when connection is restored."
+                 Icon="cloud_off">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenText Text="Offline Mode: Cloud connection unavailable. Operating with local database only. Changes will sync when connection is restored." />
+            <RadzenButton Text="@(checking ? "Checking..." : "Retry")" 
+                        ButtonStyle="ButtonStyle.Light" 
+                        Size="ButtonSize.Small"
+                        Icon="@(checking ? "sync" : "refresh")"
+                        Click="CheckConnectionAsync"
+                        Disabled="@checking" />
+        </RadzenStack>
+    </RadzenAlert>
 }
 else if (justRestored)
 {
-    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.CloudDone" CloseIconClicked="() => justRestored = false" ShowCloseIcon="true">
-        <strong>Online:</strong> Cloud connection restored. Sync is now active.
-    </MudAlert>
+    <RadzenAlert AlertStyle="AlertStyle.Success" 
+                 Title="Online: Cloud connection restored. Sync is now active."
+                 Icon="cloud_done"
+                 ShowCloseIcon="true"
+                 Close="@(() => justRestored = false)" />
 }
 
 @code {

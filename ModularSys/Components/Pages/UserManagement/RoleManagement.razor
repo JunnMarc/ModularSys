@@ -3,363 +3,140 @@
 @using ModularSys.Core.Security
 @using ModularSys.Data.Common.Entities
 @using ModularSys.Components.Dialogs
+@using Radzen
+@using Radzen.Blazor
 @inject IRoleService RoleService
 @inject IPermissionService PermissionService
 @inject IRolePermissionService RolePermissionService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <!-- Enhanced Header with Stats -->
-    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-        <MudStack Spacing="3">
-            <div class="page-header">
-                <div class="header-content">
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.h4" Class="font-weight-bold" Style="color: white;">
-                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-2" />
-                            Role Management
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.9);">
-                            Manage system roles and their permissions
-                        </MudText>
-                    </MudStack>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Role Management</h1>
+            <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Manage system roles and their permissions</p>
+        </div>
+        <RadzenButton Text="Create Role"
+                      Icon="add"
+                      ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => CreateRole())"
+                      Style="background: #1976d2; border-radius: 8px; border: none;" />
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Roles</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_roles.Count</h2>
                 </div>
-                <div class="header-actions">
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Surface"
-                               StartIcon="@Icons.Material.Filled.Add"
-                               OnClick="CreateNewRole"
-                               Class="mr-2">
-                        Create Role
-                    </MudButton>
-                    <MudButton Variant="Variant.Outlined" 
-                               StartIcon="@Icons.Material.Filled.Security"
-                               OnClick="OpenPermissionMatrix"
-                               Style="color: white; border-color: white;">
-                        Permission Matrix
-                    </MudButton>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="admin_panel_settings" Style="font-size: 2rem; color: #2196f3;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Permissions</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_permissions.Count</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff3e0; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="lock" Style="font-size: 2rem; color: #ff9800;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Templates</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@PermissionConstants.RoleTemplates.Count</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #f3e5f5; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="assignment" Style="font-size: 2rem; color: #9c27b0;" />
+                </div>
+            </div>
+        </RadzenCard>
+    </div>
+
+    @if (_loading)
+    {
+        <div style="display: flex; justify-content: center; padding: 40px;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        </div>
+    }
+    else
+    {
+        <!-- Roles Table -->
+        <RadzenCard Style="padding: 0; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; background: white;">
+            <div style="padding: 20px; border-bottom: 1px solid #e0e0e0; background: #fafafa; border-radius: 12px 12px 0 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #212121;">System Roles</h3>
+                    <RadzenTextBox @bind-Value="_searchTerm"
+                                  Placeholder="Search roles..."
+                                  Style="width: 300px; border-radius: 6px;" />
                 </div>
             </div>
             
-            <!-- Quick Stats -->
-            <MudGrid Spacing="2">
-                <MudItem xs="4">
-                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
-                                <MudIcon Icon="@Icons.Material.Filled.Group" />
-                            </MudAvatar>
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h5" Style="color: white;">@_roles.Count</MudText>
-                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Total Roles</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-                <MudItem xs="4">
-                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
-                                <MudIcon Icon="@Icons.Material.Filled.Lock" />
-                            </MudAvatar>
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h5" Style="color: white;">@_permissions.Count</MudText>
-                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Permissions</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-                <MudItem xs="4">
-                    <MudPaper Class="pa-3" Style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 8px;">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudAvatar Color="Color.Surface" Size="Size.Medium">
-                                <MudIcon Icon="@Icons.Material.Filled.Assignment" />
-                            </MudAvatar>
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.h5" Style="color: white;">@PermissionConstants.RoleTemplates.Count</MudText>
-                                <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">Templates</MudText>
-                            </MudStack>
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
-        </MudStack>
-    </MudPaper>
-
-    <!-- Role Templates Section -->
-    <MudPaper Class="pa-4 mb-4" Elevation="2" Style="border-radius: 12px;">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-            <MudText Typo="Typo.h6">
-                <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-2" Color="Color.Primary" />
-                Quick Role Templates
-            </MudText>
-            <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">
-                @PermissionConstants.RoleTemplates.Count templates available
-            </MudChip>
-        </MudStack>
-        <MudGrid Spacing="2">
-            @foreach (var template in PermissionConstants.RoleTemplates)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Class="role-template-card" Elevation="0" Style="border: 2px solid #e2e8f0; border-radius: 12px;">
-                        <MudCardContent Class="pa-4">
-                            <MudStack Spacing="2">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudIcon Icon="@GetTemplateIcon(template.Key)" Color="@GetTemplateColor(template.Key)" Size="Size.Large" />
-                                    <MudChip T="string" Color="@GetTemplateColor(template.Key)" Size="Size.Small" Variant="Variant.Text">
-                                        @template.Value.Count
-                                    </MudChip>
-                                </MudStack>
-                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
-                                    @template.Key
-                                </MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @template.Value.Count permissions included
-                                </MudText>
-                                <MudButton Variant="Variant.Filled" 
-                                           Color="@GetTemplateColor(template.Key)" 
-                                           Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Add"
-                                           OnClick="@(() => CreateRoleFromTemplate(template.Key, template.Value))"
-                                           FullWidth="true">
-                                    Use Template
-                                </MudButton>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    </MudPaper>
-
-    <!-- Roles List -->
-    <MudPaper Class="pa-4" Elevation="2" Style="border-radius: 12px;">
-        <div class="section-header">
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.h6">
-                    <MudIcon Icon="@Icons.Material.Filled.Group" Class="mr-2" Color="Color.Primary" />
-                    System Roles
-                </MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @_roles.Count total • @FilteredRoles.Count displayed
-                </MudText>
-            </MudStack>
-            <MudTextField @bind-Value="_searchTerm"
-                          Placeholder="Search roles..."
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          Clearable="true"
-                          Class="search-field" />
-        </div>
-
-        @if (_loading)
-        {
-            <div class="loading-container">
-                <MudProgressCircular Color="Color.Primary" Size="Size.Large" />
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">Loading roles...</MudText>
-            </div>
-        }
-        else if (!FilteredRoles.Any())
-        {
-            <div class="empty-state">
-                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.h6" Color="Color.Secondary">No roles found</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @(string.IsNullOrWhiteSpace(_searchTerm) ? "Create your first role to get started" : "Try adjusting your search criteria")
-                </MudText>
-                @if (string.IsNullOrWhiteSpace(_searchTerm))
-                {
-                    <MudButton Variant="Variant.Filled" 
-                               Color="Color.Primary" 
-                               StartIcon="@Icons.Material.Filled.Add"
-                               OnClick="CreateNewRole"
-                               Class="mt-3">
-                        Create First Role
-                    </MudButton>
-                }
-            </div>
-        }
-        else
-        {
-            <MudGrid Spacing="3">
-                @foreach (var role in FilteredRoles)
-                {
-                    <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="role-card" Elevation="0" Style="border: 2px solid #e2e8f0; border-radius: 12px; height: 100%;">
-                            <MudCardContent Class="pa-4">
-                                <MudStack Spacing="3">
-                                    <div class="role-header">
-                                        <MudAvatar Color="@GetRoleColor(role.RoleName)" Size="Size.Medium">
-                                            <MudIcon Icon="@GetRoleIcon(role.RoleName)" />
-                                        </MudAvatar>
-                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Color="Color.Default">
-                                            <MudMenuItem OnClick="@(() => EditRole(role))">
-                                                <div class="menu-item">
-                                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" />
-                                                    <span>Edit</span>
-                                                </div>
-                                            </MudMenuItem>
-                                            <MudMenuItem OnClick="@(() => DuplicateRole(role))">
-                                                <div class="menu-item">
-                                                    <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Color="Color.Info" />
-                                                    <span>Duplicate</span>
-                                                </div>
-                                            </MudMenuItem>
-                                            <MudDivider />
-                                            <MudMenuItem OnClick="@(() => DeleteRole(role))">
-                                                <div class="menu-item text-danger">
-                                                    <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
-                                                    <span>Delete</span>
-                                                </div>
-                                            </MudMenuItem>
-                                        </MudMenu>
-                                    </div>
-                                    
-                                    <MudStack Spacing="1">
-                                        <MudText Typo="Typo.h6" Class="font-weight-bold">
-                                            @role.RoleName
-                                        </MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="min-height: 36px;">
-                                            @(role.Description ?? "No description provided")
-                                        </MudText>
-                                    </MudStack>
-                                    
-                                    <MudDivider />
-                                    
-                                    <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                        <MudStack Spacing="0">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Permissions</MudText>
-                                            <MudText Typo="Typo.body2" Class="font-weight-medium">
-                                                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Class="mr-1" />
-                                                @GetRolePermissionCount(role.RoleId)
-                                            </MudText>
-                                        </MudStack>
-                                        <MudStack Spacing="0">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Users</MudText>
-                                            <MudText Typo="Typo.body2" Class="font-weight-medium">
-                                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
-                                                @GetRoleUserCount(role.RoleId)
-                                            </MudText>
-                                        </MudStack>
-                                    </MudStack>
-                                </MudStack>
-                            </MudCardContent>
-                            <MudCardActions Class="pa-3 pt-0">
-                                <MudButton Variant="Variant.Outlined" 
-                                           Color="Color.Primary" 
-                                           Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Visibility"
-                                           OnClick="@(() => ViewRoleDetails(role))"
-                                           FullWidth="true">
-                                    View Details
-                                </MudButton>
-                            </MudCardActions>
-                        </MudCard>
-                    </MudItem>
-                }
-            </MudGrid>
-        }
-    </MudPaper>
-</MudContainer>
-
-<style>
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e2e8f0;
+            <RadzenDataGrid Data="@FilteredRoles" 
+                           TItem="Role" 
+                           AllowPaging="true" 
+                           PageSize="10"
+                           AllowSorting="true"
+                           GridLines="DataGridGridLines.None"
+                           Style="border: none; background: white;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Role" Property="RoleName" Title="Role Name" Sortable="true">
+                        <Template Context="role">
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0;">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                                    <RadzenIcon Icon="admin_panel_settings" Style="color: #2196f3;" />
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; color: #212121;">@role.RoleName</div>
+                                    <div style="font-size: 0.875rem; color: #757575;">@(role.Description ?? "No description")</div>
+                                </div>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Title="Permissions" Width="150px">
+                        <Template Context="role">
+                            <RadzenBadge Text="@GetRolePermissionCount(role.RoleId).ToString()" 
+                                        Style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 6px; font-weight: 500;" 
+                                        BadgeStyle="BadgeStyle.Light" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Property="CreatedAt" Title="Created" FormatString="{0:MMM dd, yyyy}" Width="150px" Sortable="true" />
+                    
+                    <RadzenDataGridColumn TItem="Role" Title="Actions" Width="150px" Sortable="false">
+                        <Template Context="role">
+                            <div style="display: flex; gap: 8px;">
+                                <RadzenButton Text="Edit" 
+                                             Variant="Variant.Text" 
+                                             Size="ButtonSize.Small" 
+                                             Click="@(() => EditRole(role))"
+                                             Style="color: #1976d2; padding: 6px 16px; border-radius: 6px;" />
+                                <RadzenButton Text="Delete" 
+                                             Variant="Variant.Text" 
+                                             Size="ButtonSize.Small" 
+                                             Click="@(() => DeleteRole(role))"
+                                             Style="color: #d32f2f; padding: 6px 16px; border-radius: 6px;" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
     }
-
-    .header-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .search-field {
-        width: 300px;
-    }
-
-    .role-template-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-    }
-
-    .role-template-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        border-color: var(--mud-palette-primary) !important;
-    }
-
-    .role-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        height: 100%;
-    }
-
-    .role-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-        border-color: var(--mud-palette-primary) !important;
-    }
-
-    .role-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .menu-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .text-danger {
-        color: #dc3545;
-    }
-
-    .loading-container, .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem;
-        text-align: center;
-    }
-
-    @@media (max-width: 768px) {
-        .page-header {
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .header-actions {
-            width: 100%;
-            justify-content: stretch;
-        }
-
-        .section-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: stretch;
-        }
-
-        .search-field {
-            width: 100%;
-        }
-    }
-</style>
+</div>
 
 @code {
     private List<Role> _roles = new();
@@ -401,7 +178,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading roles: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error loading roles: {ex.Message}");
         }
         finally
         {
@@ -409,156 +186,53 @@
         }
     }
 
-    private Color GetRoleColor(string roleName) => roleName.ToLower() switch
-    {
-        var name when name.Contains("super") => Color.Error,
-        var name when name.Contains("admin") => Color.Warning,
-        var name when name.Contains("manager") => Color.Info,
-        var name when name.Contains("user") => Color.Primary,
-        var name when name.Contains("read") => Color.Secondary,
-        _ => Color.Primary
-    };
-    
-    private string GetRoleIcon(string roleName) => roleName.ToLower() switch
-    {
-        var name when name.Contains("super") => Icons.Material.Filled.Shield,
-        var name when name.Contains("admin") => Icons.Material.Filled.AdminPanelSettings,
-        var name when name.Contains("manager") => Icons.Material.Filled.ManageAccounts,
-        var name when name.Contains("user") => Icons.Material.Filled.Person,
-        var name when name.Contains("read") => Icons.Material.Filled.Visibility,
-        _ => Icons.Material.Filled.Group
-    };
-    
-    private Color GetTemplateColor(string templateName) => templateName.ToLower() switch
-    {
-        var name when name.Contains("super") => Color.Error,
-        var name when name.Contains("system") => Color.Warning,
-        var name when name.Contains("hr") => Color.Info,
-        var name when name.Contains("department") => Color.Primary,
-        var name when name.Contains("regular") => Color.Success,
-        var name when name.Contains("read") => Color.Secondary,
-        _ => Color.Primary
-    };
-    
-    private string GetTemplateIcon(string templateName) => templateName.ToLower() switch
-    {
-        var name when name.Contains("super") => Icons.Material.Filled.Shield,
-        var name when name.Contains("system") => Icons.Material.Filled.AdminPanelSettings,
-        var name when name.Contains("hr") => Icons.Material.Filled.People,
-        var name when name.Contains("department") => Icons.Material.Filled.Business,
-        var name when name.Contains("regular") => Icons.Material.Filled.Person,
-        var name when name.Contains("read") => Icons.Material.Filled.Visibility,
-        _ => Icons.Material.Filled.Assignment
-    };
-
     private int GetRolePermissionCount(int roleId) =>
         _rolePermissionCounts.GetValueOrDefault(roleId, 0);
 
     private int GetRoleUserCount(int roleId) =>
         _roleUserCounts.GetValueOrDefault(roleId, 0);
 
-    private async Task CreateNewRole()
+    private async Task CreateRole()
     {
-        var parameters = new DialogParameters();
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
-        
-        var dialog = await DialogService.ShowAsync<RoleDialog>("Create New Role", parameters, options);
-        var result = await dialog.Result;
-        
-        if (!result.Canceled)
-        {
-            await LoadData();
-        }
-    }
+        var result = await DialogService.OpenAsync<RoleDialog>("Create New Role", null, 
+            new DialogOptions() { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
 
-    private async Task CreateRoleFromTemplate(string templateName, List<string> permissions)
-    {
-        var parameters = new DialogParameters
-        {
-            ["TemplateToApply"] = templateName
-        };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
-        
-        var dialog = await DialogService.ShowAsync<RoleDialog>($"Create Role from {templateName} Template", parameters, options);
-        var result = await dialog.Result;
-        
-        if (!result.Canceled)
+        if (result == true)
         {
             await LoadData();
+            StateHasChanged();
         }
     }
 
     private async Task EditRole(Role role)
     {
-        var parameters = new DialogParameters
-        {
-            ["ExistingRole"] = role
-        };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
-        
-        var dialog = await DialogService.ShowAsync<RoleDialog>($"Edit Role: {role.RoleName}", parameters, options);
-        var result = await dialog.Result;
-        
-        if (!result.Canceled)
-        {
-            await LoadData();
-        }
-    }
+        var parameters = new Dictionary<string, object> { { "ExistingRole", role } };
+        var result = await DialogService.OpenAsync<RoleDialog>($"Edit Role: {role.RoleName}", parameters, 
+            new DialogOptions() { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
 
-    private async Task DuplicateRole(Role role)
-    {
-        var parameters = new DialogParameters
-        {
-            ["ExistingRole"] = new Role 
-            { 
-                RoleName = $"{role.RoleName} (Copy)", 
-                Description = role.Description 
-            }
-        };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true };
-        
-        var dialog = await DialogService.ShowAsync<RoleDialog>($"Duplicate Role: {role.RoleName}", parameters, options);
-        var result = await dialog.Result;
-        
-        if (!result.Canceled)
+        if (result == true)
         {
             await LoadData();
+            StateHasChanged();
         }
     }
 
     private async Task DeleteRole(Role role)
     {
-        var result = await DialogService.ShowMessageBox(
-            "Delete Role",
-            $"Are you sure you want to delete the role '{role.RoleName}'? This action cannot be undone.",
-            yesText: "Delete",
-            cancelText: "Cancel");
-
-        if (result == true)
+        try
         {
-            try
+            var confirmed = await DialogService.Confirm($"Are you sure you want to delete the role '{role.RoleName}'?", "Delete Role", new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+            
+            if (confirmed == true)
             {
-                // TODO: Implement role deletion
-                Snackbar.Add($"Role '{role.RoleName}' deleted successfully", Severity.Success);
+                await RoleService.DeleteAsync(role.RoleId);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", $"Role '{role.RoleName}' deleted successfully");
                 await LoadData();
             }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"Error deleting role: {ex.Message}", Severity.Error);
-            }
         }
-    }
-
-    private async Task ViewRoleDetails(Role role)
-    {
-        // TODO: Open role details dialog
-        Snackbar.Add($"View details for: {role.RoleName} - Coming soon!", Severity.Info);
-    }
-
-    private async Task OpenPermissionMatrix()
-    {
-        // Navigate to existing permission matrix
-        // TODO: Navigate to enhanced permission matrix
-        Snackbar.Add("Opening enhanced permission matrix - Coming soon!", Severity.Info);
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to delete role: {ex.Message}");
+        }
     }
 }

@@ -4,179 +4,137 @@
 @using ModularSys.Core.Interfaces
 @using ModularSys.Core.Models
 @using ModularSys.Data.Common.Entities
+@using Radzen
+@using Radzen.Blazor
 
 @inject IUserService UserService
 @inject IRoleService RoleService
 @inject IDepartmentService DepartmentService
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
 @inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
-    <MudPaper Class="pa-6" Elevation="2">
-        <!-- Header -->
-        <div class="d-flex align-center mb-6">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
-                           OnClick="@(() => Nav.NavigateTo("/users"))" 
-                           Class="mr-2" />
-            <div>
-                <MudText Typo="Typo.h4" Class="font-weight-bold">
-                    @(_model.IsEditMode ? "Edit User" : "Create New User")
-                </MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @(_model.IsEditMode ? "Update user information and permissions" : "Add a new user to the system")
-                </MudText>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <div style="max-width: 800px; margin: 0 auto;">
+        <RadzenCard Style="padding: 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                <RadzenButton Icon="arrow_back" 
+                             Click="@(() => Nav.NavigateTo("/users"))" 
+                             Variant="Variant.Text" 
+                             Style="border-radius: 50%; width: 40px; height: 40px; min-width: 40px; padding: 0;" />
+                <div>
+                    <h1 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #212121;">
+                        @(_model.IsEditMode ? "Edit User" : "Create New User")
+                    </h1>
+                    <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">
+                        @(_model.IsEditMode ? "Update user information and permissions" : "Add a new user to the system")
+                    </p>
+                </div>
             </div>
-        </div>
 
-        @if (_loading)
-        {
-            <div class="d-flex justify-center pa-8">
-                <MudProgressCircular Indeterminate="true" />
-            </div>
-        }
+            @if (_loading)
+            {
+                <div style="display: flex; justify-content: center; padding: 40px;">
+                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                </div>
+            }
         else
         {
             <EditForm Model="_model" OnValidSubmit="SaveUser">
                 <DataAnnotationsValidator />
                 
-                <MudGrid Spacing="4">
-                    <!-- Basic Information -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.h6" Class="mb-3">Basic Information</MudText>
-                        <MudDivider Class="mb-4" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_model.FirstName"
-                                      Label="First Name"
-                                      Required="true"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Person"
-                                      HelperText="User's first name" />
+                <!-- Basic Information -->
+                <h3 style="margin: 0 0 8px 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Basic Information</h3>
+                <hr style="margin: 0 0 24px 0; border: none; border-top: 1px solid #e0e0e0;" />
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">First Name *</label>
+                        <RadzenTextBox @bind-Value="_model.FirstName"
+                                      Placeholder="First Name"
+                                      Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.FirstName)" />
-                    </MudItem>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_model.LastName"
-                                      Label="Last Name"
-                                      Required="true"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Person"
-                                      HelperText="User's last name" />
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Last Name *</label>
+                        <RadzenTextBox @bind-Value="_model.LastName"
+                                      Placeholder="Last Name"
+                                      Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.LastName)" />
-                    </MudItem>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_model.Username"
-                                      Label="Username"
-                                      Required="true"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.AccountCircle"
-                                      HelperText="Unique username for login" />
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Username *</label>
+                        <RadzenTextBox @bind-Value="_model.Username"
+                                      Placeholder="Username"
+                                      Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.Username)" />
-                    </MudItem>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_model.Email"
-                                      Label="Email Address"
-                                      Required="true"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Email"
-                                      HelperText="Valid email address" />
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Email Address *</label>
+                        <RadzenTextBox @bind-Value="_model.Email"
+                                      Placeholder="Email"
+                                      Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.Email)" />
-                    </MudItem>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="_model.ContactNumber"
-                                      Label="Contact Number"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Phone"
-                                      HelperText="Phone number (optional)" />
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Contact Number</label>
+                        <RadzenTextBox @bind-Value="_model.ContactNumber"
+                                      Placeholder="Contact Number"
+                                      Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.ContactNumber)" />
-                    </MudItem>
+                    </div>
+                </div>
 
-                    <!-- Role and Department -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.h6" Class="mb-3 mt-4">Permissions & Access</MudText>
-                        <MudDivider Class="mb-4" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="int" @bind-Value="_model.RoleId"
-                                   Label="Role"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   AnchorOrigin="Origin.BottomCenter">
-                            @if (_roles != null)
-                            {
-                                @foreach (var role in _roles)
-                                {
-                                    <MudSelectItem T="int" Value="role.RoleId">
-                                        <div class="d-flex align-center">
-                                            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="mr-2" />
-                                            @role.RoleName
-                                        </div>
-                                    </MudSelectItem>
-                                }
-                            }
-                        </MudSelect>
+                <!-- Role and Department -->
+                <h3 style="margin: 24px 0 8px 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Permissions & Access</h3>
+                <hr style="margin: 0 0 24px 0; border: none; border-top: 1px solid #e0e0e0;" />
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Role *</label>
+                        <RadzenDropDown @bind-Value="_model.RoleId"
+                                       Data="@_roles"
+                                       TextProperty="RoleName"
+                                       ValueProperty="RoleId"
+                                       Placeholder="Select Role"
+                                       Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.RoleId)" />
-                    </MudItem>
+                    </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="int" @bind-Value="_model.DepartmentId"
-                                   Label="Department"
-                                   Required="true"
-                                   Variant="Variant.Outlined"
-                                   AnchorOrigin="Origin.BottomCenter">
-                            @if (_departments != null)
-                            {
-                                @foreach (var dept in _departments)
-                                {
-                                    <MudSelectItem T="int" Value="dept.DepartmentId">
-                                        <div class="d-flex align-center">
-                                            <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Class="mr-2" />
-                                            @dept.DepartmentName
-                                        </div>
-                                    </MudSelectItem>
-                                }
-                            }
-                        </MudSelect>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Department *</label>
+                        <RadzenDropDown @bind-Value="_model.DepartmentId"
+                                       Data="@_departments"
+                                       TextProperty="DepartmentName"
+                                       ValueProperty="DepartmentId"
+                                       Placeholder="Select Department"
+                                       Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => _model.DepartmentId)" />
-                    </MudItem>
+                    </div>
+                </div>
 
-                    <!-- Actions -->
-                    <MudItem xs="12" Class="d-flex justify-end gap-2 mt-6">
-                        <MudButton Variant="Variant.Text" 
-                                   OnClick="@(() => Nav.NavigateTo("/users"))">
-                            Cancel
-                        </MudButton>
-                        <MudButton ButtonType="ButtonType.Submit" 
-                                   Variant="Variant.Filled" 
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Save"
-                                   Disabled="_saving">
-                            @if (_saving)
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                                <span class="ml-2">Saving...</span>
-                            }
-                            else
-                            {
-                                <span>@(_model.IsEditMode ? "Update User" : "Create User")</span>
-                            }
-                        </MudButton>
-                    </MudItem>
-                </MudGrid>
+                <!-- Actions -->
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                    <RadzenButton Text="Cancel" 
+                                 Variant="Variant.Text" 
+                                 Click="@(() => Nav.NavigateTo("/users"))"
+                                 Style="border-radius: 6px;" />
+                    <RadzenButton Text="@(_model.IsEditMode ? "Update User" : "Create User")" 
+                                 ButtonType="ButtonType.Submit" 
+                                 ButtonStyle="ButtonStyle.Primary"
+                                 Icon="save"
+                                 Disabled="_saving"
+                                 Style="background: #1976d2; border-radius: 6px; border: none;" />
+                </div>
             </EditForm>
         }
-    </MudPaper>
-</MudContainer>
+        </RadzenCard>
+    </div>
+</div>
 
 @code {
     [Parameter] public int? Id { get; set; }
@@ -226,7 +184,7 @@
         }
         else
         {
-            Snackbar.Add("User not found", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "User not found");
             Nav.NavigateTo("/users");
         }
     }
@@ -252,12 +210,12 @@
                     var success = await UserService.UpdateAsync(user);
                     if (success)
                     {
-                        Snackbar.Add("User updated successfully", Severity.Success);
+                        NotificationService.Notify(NotificationSeverity.Success, "Success", "User updated successfully");
                         Nav.NavigateTo("/users");
                     }
                     else
                     {
-                        Snackbar.Add("Failed to update user", Severity.Error);
+                        NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to update user");
                     }
                 }
             }
@@ -275,13 +233,13 @@
                 };
 
                 await UserService.CreateAsync(user, _model.Password!);
-                Snackbar.Add("User created successfully", Severity.Success);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "User created successfully");
                 Nav.NavigateTo("/users");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error: {ex.Message}");
         }
         finally
         {

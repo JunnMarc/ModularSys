@@ -1,235 +1,167 @@
-@using MudBlazor
 @using ModularSys.Inventory.Models
 @using ModularSys.Inventory.Interface
 @using System.IO
 @inject IAnalyticalReportService AnalyticalReportService
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
 
-<MudDialog>
-    <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0">
-            <MudPaper Class="pa-6" Style="min-height: 800px; background: white;">
-                
-                <!-- Report Header -->
-                <MudStack Spacing="4">
-                    <MudGrid>
-                        <MudItem xs="8">
-                            <MudStack Spacing="1">
-                                <MudText Typo="Typo.h4" Color="Color.Primary" Style="font-weight: 600;">
-                                    ModularSys Enterprise
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    123 Business District, Metro Manila, Philippines
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Phone: +63 2 8123 4567 | Email: info@modularsys.com
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Tax ID: 123-456-789-000
-                                </MudText>
-                            </MudStack>
-                        </MudItem>
-                        <MudItem xs="4" Class="text-right">
-                            <MudStack Spacing="1">
-                                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
-                                    @ReportType.ToString().Replace("_", " ")
-                                </MudText>
-                                <MudText Typo="Typo.body2">
-                                    Report Date: @DateTime.Now.ToString("MMMM dd, yyyy")
-                                </MudText>
-                                <MudText Typo="Typo.body2">
-                                    Period: @StartDate.ToString("MMM dd") - @EndDate.ToString("MMM dd, yyyy")
-                                </MudText>
-                                <MudText Typo="Typo.body2">
-                                    Prepared by: System Administrator
-                                </MudText>
-                            </MudStack>
-                        </MudItem>
-                    </MudGrid>
+<RadzenCard>
+    <RadzenStack Gap="1rem" Style="padding: 1rem;">
+        <!-- Report Header -->
+        <RadzenStack Gap="1rem">
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="8">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText Text="ModularSys Enterprise" Style="font-size: 1.5rem; font-weight: 600; color: var(--rz-primary);" />
+                        <RadzenText Text="123 Business District, Metro Manila, Philippines" Style="color: var(--rz-text-secondary);" />
+                        <RadzenText Text="Phone: +63 2 8123 4567 | Email: info@modularsys.com" Style="color: var(--rz-text-secondary);" />
+                        <RadzenText Text="Tax ID: 123-456-789-000" Style="color: var(--rz-text-secondary);" />
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenStack Gap="0.25rem" Style="text-align: right;">
+                        <RadzenText Text="@ReportType.ToString().Replace("_", " ")" Style="font-size: 1.25rem; font-weight: 600; color: var(--rz-primary);" />
+                        <RadzenText Text="@($"Report Date: {DateTime.Now:MMMM dd, yyyy}")" />
+                        <RadzenText Text="@($"Period: {StartDate:MMM dd} - {EndDate:MMM dd, yyyy}")" />
+                        <RadzenText Text="Prepared by: System Administrator" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
 
-                    <MudDivider />
+            <RadzenSeparator />
 
-                    <!-- Report Preview Content -->
-                    <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">
-                        Report Preview
-                    </MudText>
+            <!-- Report Preview Content -->
+            <RadzenText Text="Report Preview" Style="font-size: 1.25rem; font-weight: 600; color: var(--rz-primary);" />
 
-                    @if (ReportType == AnalyticalReportType.InventoryValuation && ReportData is InventoryValuationReport valuationReport)
-                    {
-                        <MudGrid>
-                            <MudItem xs="12" sm="6" md="4">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total Inventory Value</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                ₱@valuationReport.TotalInventoryValue.ToString("N2")
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="4">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Categories</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                @valuationReport.CategoryBreakdown.Count
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="4">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Total SKUs</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                @valuationReport.Items.Count
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                        </MudGrid>
-                    }
-                    else if (ReportType == AnalyticalReportType.CostOfGoodsSold && ReportData is COGSReport cogsReport)
-                    {
-                        <MudGrid>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Net Sales</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                ₱@cogsReport.NetSales.ToString("N2")
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">COGS</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                ₱@cogsReport.CostOfGoodsSold.ToString("N2")
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Gross Profit</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                ₱@cogsReport.GrossProfit.ToString("N2")
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                            <MudItem xs="12" sm="6" md="3">
-                                <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
-                                    <MudCardContent Class="pa-0">
-                                        <MudStack Spacing="1">
-                                            <MudText Typo="Typo.body2" Style="opacity: 0.9;">Profit Margin</MudText>
-                                            <MudText Typo="Typo.h4" Style="font-weight: 600;">
-                                                @cogsReport.GrossProfitMargin.ToString("F1")%
-                                            </MudText>
-                                        </MudStack>
-                                    </MudCardContent>
-                                </MudCard>
-                            </MudItem>
-                        </MudGrid>
-                    }
-                    else
-                    {
-                        <MudAlert Severity="Severity.Info" Dense="true">
-                            <MudText>Report preview will be available after generating the @ReportType report.</MudText>
-                        </MudAlert>
-                    }
-
-                    <!-- Report Description -->
-                    <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
-                        Report Description
-                    </MudText>
-                    
-                    <MudText Typo="Typo.body1" Class="mb-4">
-                        This @ReportType.ToString().Replace("_", " ") report provides comprehensive analysis of your inventory data 
-                        using GAAP-compliant accounting methods. The report includes detailed breakdowns, performance metrics, 
-                        and actionable business insights to help optimize your inventory management.
-                    </MudText>
-
-                    <!-- GAAP Compliance Notes -->
-                    <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 600;">
-                        GAAP Compliance Notes
-                    </MudText>
-                    <MudList T="string" Dense Class="mb-4">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                            <MudText Typo="Typo.body2">This report follows Generally Accepted Accounting Principles (GAAP)</MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                            <MudText Typo="Typo.body2">Inventory valuation uses Weighted Average Cost method</MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                            <MudText Typo="Typo.body2">COGS calculation: Beginning Inventory + Purchases - Ending Inventory</MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                            <MudText Typo="Typo.body2">All figures are in Philippine Pesos (₱)</MudText>
-                        </MudListItem>
-                    </MudList>
-
-                    <!-- Footer -->
-                    <MudDivider Class="my-4" />
-                    <MudGrid>
-                        <MudItem xs="6">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                Generated on @DateTime.Now.ToString("MMMM dd, yyyy 'at' hh:mm tt")
-                            </MudText>
-                        </MudItem>
-                        <MudItem xs="6" Class="text-right">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                ModuERP Inventory Management System
-                            </MudText>
-                        </MudItem>
-                    </MudGrid>
-                </MudStack>
-            </MudPaper>
-        </MudContainer>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">Close Preview</MudButton>
-        <MudButton OnClick="ExportToPdf" Variant="Variant.Filled" Color="Color.Primary" 
-                   StartIcon="@Icons.Material.Filled.PictureAsPdf" Disabled="@_exporting">
-            @if (_exporting)
+            @if (ReportType == AnalyticalReportType.InventoryValuation && ReportData is InventoryValuationReport valuationReport)
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate />
-                <span class="ml-2">Exporting...</span>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Total Inventory Value" Style="opacity: 0.9;" />
+                                <RadzenText Text="@($"₱{valuationReport.TotalInventoryValue:N2}")" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Categories" Style="opacity: 0.9;" />
+                                <RadzenText Text="@valuationReport.CategoryBreakdown.Count.ToString()" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenCard Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Total SKUs" Style="opacity: 0.9;" />
+                                <RadzenText Text="@valuationReport.Items.Count.ToString()" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
+            }
+            else if (ReportType == AnalyticalReportType.CostOfGoodsSold && ReportData is COGSReport cogsReport)
+            {
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Net Sales" Style="opacity: 0.9;" />
+                                <RadzenText Text="@($"₱{cogsReport.NetSales:N2}")" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenCard Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="COGS" Style="opacity: 0.9;" />
+                                <RadzenText Text="@($"₱{cogsReport.CostOfGoodsSold:N2}")" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Gross Profit" Style="opacity: 0.9;" />
+                                <RadzenText Text="@($"₱{cogsReport.GrossProfit:N2}")" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenCard Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Text="Profit Margin" Style="opacity: 0.9;" />
+                                <RadzenText Text="@($"{cogsReport.GrossProfitMargin:F1}%")" Style="font-size: 1.5rem; font-weight: 600;" />
+                            </RadzenStack>
+                        </RadzenCard>
+                    </RadzenColumn>
+                </RadzenRow>
             }
             else
             {
-                <span>Export to PDF</span>
+                <RadzenAlert AlertStyle="AlertStyle.Info" Title="@($"Report preview will be available after generating the {ReportType} report.")" />
             }
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+
+            <!-- Report Description -->
+            <RadzenText Text="Report Description" Style="font-size: 1.125rem; font-weight: 600; color: var(--rz-primary);" />
+            
+            <RadzenText Text="@($"This {ReportType.ToString().Replace("_", " ")} report provides comprehensive analysis of your inventory data using GAAP-compliant accounting methods. The report includes detailed breakdowns, performance metrics, and actionable business insights to help optimize your inventory management.")" />
+
+            <!-- GAAP Compliance Notes -->
+            <RadzenText Text="GAAP Compliance Notes" Style="font-size: 1.125rem; font-weight: 600; color: var(--rz-primary);" />
+            <RadzenList>
+                <RadzenListItem>
+                    <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); margin-right: 0.5rem;" />
+                    <RadzenText Text="This report follows Generally Accepted Accounting Principles (GAAP)" />
+                </RadzenListItem>
+                <RadzenListItem>
+                    <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); margin-right: 0.5rem;" />
+                    <RadzenText Text="Inventory valuation uses Weighted Average Cost method" />
+                </RadzenListItem>
+                <RadzenListItem>
+                    <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); margin-right: 0.5rem;" />
+                    <RadzenText Text="COGS calculation: Beginning Inventory + Purchases - Ending Inventory" />
+                </RadzenListItem>
+                <RadzenListItem>
+                    <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); margin-right: 0.5rem;" />
+                    <RadzenText Text="All figures are in Philippine Pesos (₱)" />
+                </RadzenListItem>
+            </RadzenList>
+
+            <!-- Footer -->
+            <RadzenSeparator />
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenText Text="@($"Generated on {DateTime.Now:MMMM dd, yyyy 'at' hh:mm tt}")" Style="color: var(--rz-text-secondary); font-size: 0.875rem;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenText Text="ModuERP Inventory Management System" Style="color: var(--rz-text-secondary); font-size: 0.875rem; text-align: right;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenStack>
+    </RadzenStack>
+</RadzenCard>
+
+<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="padding: 1rem;">
+    <RadzenButton Text="Close Preview" ButtonStyle="ButtonStyle.Light" Click="Cancel" />
+    <RadzenButton Text="@(_exporting ? "Exporting..." : "Export to PDF")" 
+                  ButtonStyle="ButtonStyle.Primary" 
+                  Icon="picture_as_pdf"
+                  Click="ExportToPdf"
+                  Disabled="@_exporting" />
+</RadzenStack>
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public AnalyticalReportType ReportType { get; set; }
     [Parameter] public DateTime StartDate { get; set; }
     [Parameter] public DateTime EndDate { get; set; }
     [Parameter] public object? ReportData { get; set; }
+    [Parameter] public EventCallback<string> OnResult { get; set; }
 
     private bool _exporting = false;
 
-    private void Cancel() => MudDialog.Cancel();
+    private async Task Cancel() => await OnResult.InvokeAsync("");
 
     private async Task ExportToPdf()
     {
@@ -258,13 +190,13 @@
             
             await File.WriteAllBytesAsync(filePath, pdfBytes);
             
-            Snackbar.Add($"Report exported successfully to Downloads folder: {fileName}", Severity.Success);
-            MudDialog.Close(DialogResult.Ok($"Report exported to: {fileName}"));
+            NotificationService.Notify(NotificationSeverity.Success, "Success", $"Report exported successfully to Downloads folder: {fileName}");
+            await OnResult.InvokeAsync($"Report exported to: {fileName}");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error exporting report: {ex.Message}", Severity.Error);
-            MudDialog.Close(DialogResult.Cancel());
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error exporting report: {ex.Message}");
+            await OnResult.InvokeAsync("");
         }
         finally
         {
@@ -272,5 +204,4 @@
             StateHasChanged();
         }
     }
-
 }

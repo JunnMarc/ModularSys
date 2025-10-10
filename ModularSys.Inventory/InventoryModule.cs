@@ -2,13 +2,12 @@ using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Core.Interfaces;
 using ModularSys.Inventory.Interface;
 using ModularSys.Inventory.Services;
-using MudBlazor;
 
 public class InventoryModule : ISubsystem
 {
     public string Name => "Inventory";
     public string Route => "/inventory";
-    public string? Icon => Icons.Material.Outlined.Inventory;
+    public string? Icon => "inventory";
     public int Order => 2;
 
     public void RegisterServices(IServiceCollection services)

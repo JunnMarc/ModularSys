@@ -2,745 +2,612 @@
 @using ModularSys.Inventory.Interface
 @using ModularSys.Inventory.Models
 @using ModularSys.Inventory.Components
-@using MudBlazor
 @using Microsoft.JSInterop
 @using System.IO
+@using Radzen.Blazor
 @inject IBusinessAnalyticsService BusinessAnalyticsService
 @inject IInventoryDashboardService InventoryDashboardService
 @inject IAnalyticalReportService AnalyticalReportService
-@inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject DialogService DialogService
+@inject NotificationService NotificationService
 @inject IJSRuntime JSRuntime
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <MudStack Spacing="4">
+<RadzenStack Style="padding: 16px;">
+    <RadzenStack Spacing="4">
         <!-- Enhanced ERP-Style Header -->
-        <MudCard Class="reports-header-card" Elevation="3">
-            <MudCardContent Class="pa-6">
-                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h3" Style="font-weight: 400; color: #1976D2;">
-                            <MudIcon Icon="@Icons.Material.Filled.Analytics" Class="mr-3" Size="Size.Large" />
+        <RadzenCard Elevation="3">
+            <RadzenCardContent Style="padding: 24px;">
+                <RadzenStack Row="true" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                    <RadzenStack Spacing="2">
+                        <RadzenText Style="font-weight: 400; font-size: 2rem; color: #1976D2;">
+                            <RadzenIcon Icon="analytics" Style="margin-right: 12px; font-size: 2rem;" />
                             Analytical Accounting Reports
-                        </MudText>
-                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 400;">
+                        </RadzenText>
+                        <RadzenText Style="font-size: 1.125rem; color: #1976D2; font-weight: 400;">
                             Comprehensive financial analysis with GAAP-compliant inventory accounting reports
-                        </MudText>
-                    </MudStack>
-                    <MudStack Spacing="2" AlignItems="@AlignItems.End">
-                        <MudButton Variant="Variant.Outlined" 
-                                  StartIcon="@Icons.Material.Filled.Refresh" 
-                                  OnClick="RefreshReports"
-                                  Loading="_loading"
-                                  Class="action-button">
+                        </RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Spacing="2" AlignItems="AlignItems.End">
+                        <RadzenButton Variant="Variant.Outlined" 
+                                      Icon="refresh"
+                                      Click="RefreshReports"
+                                      Loading="_loading"
+                                      Style="action-button">
                             Refresh Data
-                        </MudButton>
-                    </MudStack>
-                </MudStack>
-            </MudCardContent>
-        </MudCard>
+                        </RadzenButton>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCardContent>
+        </RadzenCard>
 
         @if (_loading)
         {
-            <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
-                <MudProgressCircular Indeterminate="true" Size="Size.Large" />
-                <MudText>Loading analytical reports...</MudText>
-            </MudStack>
+            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 32px;">
+                <RadzenProgressBarCircular Indeterminate="true" Size="ProgressBarCircularSize.Large" />
+                <RadzenText>Loading analytical reports...</RadzenText>
+            </RadzenStack>
         }
         else if (_errorMessage != null)
         {
-            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Dense="true" Style="margin-bottom: 16px;">
                 @_errorMessage
-            </MudAlert>
+            </RadzenAlert>
         }
         else
         {
             <!-- Report Type Selection Section -->
-            <MudCard Class="mb-4" Elevation="2">
-                <MudCardContent Class="pa-4">
-                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                        <MudStack Spacing="2">
-                        </MudStack>
-                        <MudStack Row="true" Spacing="2" AlignItems="@AlignItems.Center">
-                            <MudDateRangePicker @bind-DateRange="_dateRange" 
-                                               Label="Report Period" 
-                                               Variant="Variant.Outlined"
-                                               Style="min-width: 280px;"
-                                               Class="report-date-picker" />
-                            <MudSelect T="AnalyticalReportType" @bind-Value="_selectedReportType" 
-                                      Label="Report Type" Variant="Variant.Outlined" 
-                                      Style="min-width: 250px;">
-                                <MudSelectItem Value="AnalyticalReportType.InventoryValuation">Inventory Valuation Report</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.CostOfGoodsSold">Cost of Goods Sold (COGS)</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.InventoryTurnover">Inventory Turnover Analysis</MudSelectItem>
-                                <MudSelectItem Value="AnalyticalReportType.ProfitAndLossStatement">Profit & Loss Statement</MudSelectItem>
-                            </MudSelect>
-                            <MudButton Variant="Variant.Filled" 
-                                      Color="Color.Primary"
-                                      StartIcon="@Icons.Material.Filled.Analytics"
-                                      OnClick="GenerateAnalyticalReport"
-                                      Disabled="_loading || _generatingReport">
+            <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                <RadzenCardContent Style="padding: 16px;">
+                    <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Spacing="2">
+                        </RadzenStack>
+                        <RadzenStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <RadzenDatePicker @bind-Value="_startDate"
+                                              Placeholder="Start Date"
+                                              Style="min-width: 140px;" />
+                            <RadzenDatePicker @bind-Value="_endDate"
+                                              Placeholder="End Date"
+                                              Style="min-width: 140px;" />
+                            <RadzenDropDown T="AnalyticalReportType" @bind-Value="_selectedReportType"
+                                            Placeholder="Report Type"
+                                            Style="min-width: 250px;">
+                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.InventoryValuation">Inventory Valuation Report</RadzenDropDownItem>
+                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.CostOfGoodsSold">Cost of Goods Sold (COGS)</RadzenDropDownItem>
+                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.InventoryTurnover">Inventory Turnover Analysis</RadzenDropDownItem>
+                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.ProfitAndLossStatement">Profit & Loss Statement</RadzenDropDownItem>
+                            </RadzenDropDown>
+                            <RadzenButton Variant="Variant.Filled" 
+                                          Style="background-color: #1976D2; color: white;"
+                                          Icon="analytics"
+                                          Click="GenerateAnalyticalReport"
+                                          Disabled="_loading || _generatingReport">
                                 Generate Report
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined" 
-                                      Color="Color.Info"
-                                      StartIcon="@Icons.Material.Filled.Preview"
-                                      OnClick="PreviewReport"
-                                      Disabled="_loading || _generatingReport || _currentReportData == null">
+                            </RadzenButton>
+                            <RadzenButton Variant="Variant.Outlined" 
+                                          Style="border-color: #2196F3; color: #2196F3;"
+                                          Icon="preview"
+                                          Click="PreviewReport"
+                                          Disabled="_loading || _generatingReport || _currentReportData == null">
                                 Preview Report
-                            </MudButton>
-                            <MudButton Variant="Variant.Filled" 
-                                      Color="Color.Secondary"
-                                      StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                                      OnClick="ExportToCrystalReports"
-                                      Disabled="_loading || _generatingReport || _currentReportData == null">
+                            </RadzenButton>
+                            <RadzenButton Variant="Variant.Filled" 
+                                          Style="background-color: #9C27B0; color: white;"
+                                          Icon="picture_as_pdf"
+                                          Click="ExportToCrystalReports"
+                                          Disabled="_loading || _generatingReport || _currentReportData == null">
                                 Export PDF
-                            </MudButton>
-                        </MudStack>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
+                            </RadzenButton>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCardContent>
+            </RadzenCard>
 
             <!-- Report Display Section -->
             @if (_generatingReport)
             {
-                <MudCard Class="mb-4" Elevation="2">
-                    <MudCardContent Class="pa-6">
-                        <MudStack AlignItems="@AlignItems.Center" Spacing="3">
-                            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
-                            <MudText Typo="Typo.h6">Generating @_selectedReportType Report...</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                    <RadzenCardContent Style="padding: 24px;">
+                        <RadzenStack AlignItems="AlignItems.Center" Spacing="3">
+                            <RadzenProgressBarCircular Indeterminate="true" Size="ProgressBarCircularSize.Large" Style="color: #1976D2;" />
+                            <RadzenText Style="font-size: 1.25rem;">Generating @_selectedReportType Report...</RadzenText>
+                            <RadzenText Style="color: #666; font-size: 0.875rem;">
                                 Processing data with GAAP-compliant calculations
-                            </MudText>
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenCardContent>
+                </RadzenCard>
             }
             else if (_currentReportData != null)
             {
                 <!-- Dynamic Report Display -->
                 @if (_selectedReportType == AnalyticalReportType.InventoryValuation && _inventoryValuationReport != null)
                 {
-                    <MudCard Class="mb-4" Elevation="2">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1976D2;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
-                                    Inventory Valuation Report
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    As of @_inventoryValuationReport.ReportDate.ToString("MMMM dd, yyyy") • Method: @_inventoryValuationReport.ValuationMethod
-                                </MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
+                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                        <RadzenCardHeader>
+                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
+                                <RadzenIcon Icon="inventory" Style="margin-right: 8px;" />
+                                Inventory Valuation Report
+                            </RadzenText>
+                            <RadzenText Style="color: #666; font-size: 0.875rem;">
+                                As of @_inventoryValuationReport.ReportDate.ToString("MMMM dd, yyyy") • Method: @_inventoryValuationReport.ValuationMethod
+                            </RadzenText>
+                        </RadzenCardHeader>
+                        <RadzenCardContent>
                             <!-- Summary Cards -->
-                            <MudGrid Class="mb-4">
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_inventoryValuationReport.TotalInventoryValue.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.body1">Total Inventory Value</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_inventoryValuationReport.CategoryBreakdown.Count</MudText>
-                                                <MudText Typo="Typo.body1">Categories</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_inventoryValuationReport.Items.Count</MudText>
-                                                <MudText Typo="Typo.body1">SKUs</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                            </MudGrid>
+                            <RadzenRow Style="margin-bottom: 16px;">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.TotalInventoryValue.ToString("C0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Total Inventory Value</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="category" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.CategoryBreakdown.Count</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Categories</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="inventory_2" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.Items.Count</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">SKUs</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                            </RadzenRow>
 
                             <!-- Category Breakdown Table -->
-                            <MudText Typo="Typo.h6" Class="mb-3">Category Breakdown</MudText>
-                            <MudTable Items="_inventoryValuationReport.CategoryBreakdown" Dense="true" Hover="true" Class="mb-4">
-                                <HeaderContent>
-                                    <MudTh>Category</MudTh>
-                                    <MudTh Style="text-align: right">Products</MudTh>
-                                    <MudTh Style="text-align: right">Total Quantity</MudTh>
-                                    <MudTh Style="text-align: right">Total Value</MudTh>
-                                    <MudTh Style="text-align: right">% of Total</MudTh>
-                                    <MudTh Style="text-align: right">Avg Cost</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd>@context.CategoryName</MudTd>
-                                    <MudTd Style="text-align: right">@context.ProductCount</MudTd>
-                                    <MudTd Style="text-align: right">@context.TotalQuantity.ToString("N0")</MudTd>
-                                    <MudTd Style="text-align: right">@context.TotalValue.ToString("C")</MudTd>
-                                    <MudTd Style="text-align: right">@context.PercentageOfTotal.ToString("F1")%</MudTd>
-                                    <MudTd Style="text-align: right">@context.AverageCost.ToString("C")</MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        </MudCardContent>
-                    </MudCard>
+                            <RadzenText Style="font-size: 1.125rem; margin-bottom: 12px;">Category Breakdown</RadzenText>
+                            <RadzenDataGrid Data="_inventoryValuationReport.CategoryBreakdown" Dense="true" AllowSorting="true" AllowFiltering="true" Style="margin-bottom: 16px;">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="CategoryName" Title="Category" />
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="ProductCount" Title="Products" TextAlign="TextAlign.Right" />
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="TotalQuantity" Title="Total Quantity" TextAlign="TextAlign.Right" FormatString="N0" />
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="TotalValue" Title="Total Value" TextAlign="TextAlign.Right" FormatString="C" />
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="PercentageOfTotal" Title="% of Total" TextAlign="TextAlign.Right" FormatString="F1%" />
+                                    <RadzenDataGridColumn TItem="CategoryValuation" Property="AverageCost" Title="Avg Cost" TextAlign="TextAlign.Right" FormatString="C" />
+                                </Columns>
+                            </RadzenDataGrid>
+                        </RadzenCardContent>
+                    </RadzenCard>
                 }
 
                 @if (_selectedReportType == AnalyticalReportType.CostOfGoodsSold && _cogsReport != null)
                 {
-                    <MudCard Class="mb-4" Elevation="2">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1976D2;">
-                                    <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Class="mr-2" />
-                                    Cost of Goods Sold (COGS) Report
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Period: @_cogsReport.StartDate.ToString("MMM dd, yyyy") - @_cogsReport.EndDate.ToString("MMM dd, yyyy")
-                                </MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
+                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                        <RadzenCardHeader>
+                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
+                                <RadzenIcon Icon="trending_down" Style="margin-right: 8px;" />
+                                Cost of Goods Sold (COGS) Report
+                            </RadzenText>
+                            <RadzenText Style="color: #666; font-size: 0.875rem;">
+                                Period: @_cogsReport.StartDate.ToString("MMM dd, yyyy") - @_cogsReport.EndDate.ToString("MMM dd, yyyy")
+                            </RadzenText>
+                        </RadzenCardHeader>
+                        <RadzenCardContent>
                             <!-- COGS Summary -->
-                            <MudGrid Class="mb-4">
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" />
-                                                <MudText Typo="Typo.h5">@_cogsReport.NetSales.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.body1">Net Sales</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Large" />
-                                                <MudText Typo="Typo.h5">@_cogsReport.CostOfGoodsSold.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.body1">COGS</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" />
-                                                <MudText Typo="Typo.h5">@_cogsReport.GrossProfit.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.body1">Gross Profit</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Large" />
-                                                <MudText Typo="Typo.h5">@_cogsReport.GrossProfitMargin.ToString("F1")%</MudText>
-                                                <MudText Typo="Typo.body1">Profit Margin</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                            </MudGrid>
+                            <RadzenRow Style="margin-bottom: 16px;">
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="attach_money" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.NetSales.ToString("C0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Net Sales</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="trending_down" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.CostOfGoodsSold.ToString("C0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">COGS</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.GrossProfit.ToString("C0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Gross Profit</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="percent" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.GrossProfitMargin.ToString("F1")%</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Profit Margin</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                            </RadzenRow>
 
                             <!-- Category COGS Breakdown -->
-                            <MudText Typo="Typo.h6" Class="mb-3">COGS by Category</MudText>
-                            <MudTable Items="_cogsReport.CategoryBreakdown" Dense="true" Hover="true">
-                                <HeaderContent>
-                                    <MudTh>Category</MudTh>
-                                    <MudTh Style="text-align: right">COGS</MudTh>
-                                    <MudTh Style="text-align: right">Revenue</MudTh>
-                                    <MudTh Style="text-align: right">Gross Profit</MudTh>
-                                    <MudTh Style="text-align: right">Margin %</MudTh>
-                                    <MudTh Style="text-align: right">% of Total COGS</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd>@context.CategoryName</MudTd>
-                                    <MudTd Style="text-align: right">@context.COGS.ToString("C")</MudTd>
-                                    <MudTd Style="text-align: right">@context.Revenue.ToString("C")</MudTd>
-                                    <MudTd Style="text-align: right">@context.GrossProfit.ToString("C")</MudTd>
-                                    <MudTd Style="text-align: right">
-                                        <MudChip T="string" Size="Size.Small" Color="@(context.GrossProfitMargin >= 30 ? Color.Success : context.GrossProfitMargin >= 15 ? Color.Warning : Color.Error)">
-                                            @context.GrossProfitMargin.ToString("F1")%
-                                        </MudChip>
-                                    </MudTd>
-                                    <MudTd Style="text-align: right">@context.PercentageOfTotalCOGS.ToString("F1")%</MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        </MudCardContent>
-                    </MudCard>
+                            <RadzenText Style="font-size: 1.125rem; margin-bottom: 12px;">COGS by Category</RadzenText>
+                            <RadzenDataGrid Data="_cogsReport.CategoryBreakdown" Dense="true" AllowSorting="true" AllowFiltering="true">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="CategoryName" Title="Category" />
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="COGS" Title="COGS" TextAlign="TextAlign.Right" FormatString="C" />
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="Revenue" Title="Revenue" TextAlign="TextAlign.Right" FormatString="C" />
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="GrossProfit" Title="Gross Profit" TextAlign="TextAlign.Right" FormatString="C" />
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="GrossProfitMargin" Title="Margin %" TextAlign="TextAlign.Right">
+                                        <Template Context="data">
+                                            <RadzenBadge Text="@($"{data.GrossProfitMargin:F1}%")"
+                                                        BadgeStyle="@(data.GrossProfitMargin >= 30 ? BadgeStyle.Success : data.GrossProfitMargin >= 15 ? BadgeStyle.Warning : BadgeStyle.Danger)" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="COGSByCategory" Property="PercentageOfTotalCOGS" Title="% of Total COGS" TextAlign="TextAlign.Right" FormatString="F1%" />
+                                </Columns>
+                            </RadzenDataGrid>
+                        </RadzenCardContent>
+                    </RadzenCard>
                 }
 
                 @if (_selectedReportType == AnalyticalReportType.InventoryTurnover && _turnoverReport != null)
                 {
-                    <MudCard Class="mb-4" Elevation="2">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1976D2;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Autorenew" Class="mr-2" />
-                                    Inventory Turnover Analysis
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    As of @_turnoverReport.ReportDate.ToString("MMMM dd, yyyy")
-                                </MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
+                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                        <RadzenCardHeader>
+                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
+                                <RadzenIcon Icon="autorenew" Style="margin-right: 8px;" />
+                                Inventory Turnover Analysis
+                            </RadzenText>
+                            <RadzenText Style="color: #666; font-size: 0.875rem;">
+                                As of @_turnoverReport.ReportDate.ToString("MMMM dd, yyyy")
+                            </RadzenText>
+                        </RadzenCardHeader>
+                        <RadzenCardContent>
                             <!-- Turnover Summary -->
-                            <MudGrid Class="mb-4">
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Autorenew" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_turnoverReport.OverallTurnoverRatio.ToString("F1")</MudText>
-                                                <MudText Typo="Typo.body1">Overall Turnover Ratio</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_turnoverReport.DaysSalesInInventory.ToString("F0")</MudText>
-                                                <MudText Typo="Typo.body1">Days Sales in Inventory</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="4">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">@_turnoverReport.AverageInventoryValue.ToString("C0")</MudText>
-                                                <MudText Typo="Typo.body1">Avg Inventory Value</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                            </MudGrid>
+                            <RadzenRow Style="margin-bottom: 16px;">
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="autorenew" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.OverallTurnoverRatio.ToString("F1")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Overall Turnover Ratio</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="schedule" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.DaysSalesInInventory.ToString("F0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Days Sales in Inventory</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="4">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.AverageInventoryValue.ToString("C0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Avg Inventory Value</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                            </RadzenRow>
 
                             <!-- Top Products by Turnover -->
-                            <MudText Typo="Typo.h6" Class="mb-3">Top Products by Turnover Ratio</MudText>
-                            <MudTable Items="_turnoverReport.ProductTurnover.Take(15)" Dense="true" Hover="true">
-                                <HeaderContent>
-                                    <MudTh>Product</MudTh>
-                                    <MudTh>Category</MudTh>
-                                    <MudTh Style="text-align: right">Turnover Ratio</MudTh>
-                                    <MudTh Style="text-align: right">Days in Inventory</MudTh>
-                                    <MudTh Style="text-align: center">Classification</MudTh>
-                                    <MudTh>Recommendation</MudTh>
-                                </HeaderContent>
-                                <RowTemplate>
-                                    <MudTd>@context.ProductName</MudTd>
-                                    <MudTd>@context.Category</MudTd>
-                                    <MudTd Style="text-align: right">@context.TurnoverRatio.ToString("F2")</MudTd>
-                                    <MudTd Style="text-align: right">@context.DaysSalesInInventory.ToString("F0")</MudTd>
-                                    <MudTd Style="text-align: center">
-                                        <MudChip T="string" Size="Size.Small" Color="@(context.TurnoverClassification == "Fast" ? Color.Success : context.TurnoverClassification == "Medium" ? Color.Warning : Color.Error)">
-                                            @context.TurnoverClassification
-                                        </MudChip>
-                                    </MudTd>
-                                    <MudTd>@context.RecommendedAction</MudTd>
-                                </RowTemplate>
-                            </MudTable>
-                        </MudCardContent>
-                    </MudCard>
+                            <RadzenText Style="font-size: 1.125rem; margin-bottom: 12px;">Top Products by Turnover Ratio</RadzenText>
+                            <RadzenDataGrid Data="_turnoverReport.ProductTurnover.Take(15)" Dense="true" AllowSorting="true" AllowFiltering="true">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="ProductName" Title="Product" />
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="Category" Title="Category" />
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="TurnoverRatio" Title="Turnover Ratio" TextAlign="TextAlign.Right" FormatString="F2" />
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="DaysSalesInInventory" Title="Days in Inventory" TextAlign="TextAlign.Right" FormatString="F0" />
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="TurnoverClassification" Title="Classification" TextAlign="TextAlign.Center">
+                                        <Template Context="data">
+                                            <RadzenBadge Text="@data.TurnoverClassification" 
+                                                        BadgeStyle="@(data.TurnoverClassification == "Fast" ? BadgeStyle.Success : data.TurnoverClassification == "Medium" ? BadgeStyle.Warning : BadgeStyle.Danger)" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="ProductTurnover" Property="RecommendedAction" Title="Recommendation" />
+                                </Columns>
+                            </RadzenDataGrid>
+                        </RadzenCardContent>
+                    </RadzenCard>
                 }
 
                 @if (_selectedReportType == AnalyticalReportType.ProfitAndLossStatement && _profitAndLossReport != null)
                 {
-                    <MudCard Class="mb-4" Elevation="2">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.h5" Style="font-weight: 600; color: #1976D2;">
-                                    <MudIcon Icon="@Icons.Material.Filled.Assessment" Class="mr-2" />
-                                    Profit & Loss Statement
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Period: @_profitAndLossReport.PeriodStart.ToString("MMM dd") - @_profitAndLossReport.PeriodEnd.ToString("MMM dd, yyyy") • Status: @_profitAndLossReport.ProfitabilityStatus
-                                </MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardContent>
+                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                        <RadzenCardHeader>
+                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
+                                <RadzenIcon Icon="assessment" Style="margin-right: 8px;" />
+                                Profit & Loss Statement
+                            </RadzenText>
+                            <RadzenText Style="color: #666; font-size: 0.875rem;">
+                                Period: @_profitAndLossReport.PeriodStart.ToString("MMM dd") - @_profitAndLossReport.PeriodEnd.ToString("MMM dd, yyyy") • Status: @_profitAndLossReport.ProfitabilityStatus
+                            </RadzenText>
+                        </RadzenCardHeader>
+                        <RadzenCardContent>
                             <!-- Profitability Status Alert -->
-                            <MudAlert Severity="@(_profitAndLossReport.NetIncome >= 0 ? Severity.Success : Severity.Error)" 
-                                     Dense="true" Class="mb-4">
-                                <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                            <RadzenAlert AlertStyle="@(_profitAndLossReport.NetIncome >= 0 ? AlertStyle.Success : AlertStyle.Danger)" 
+                                         Dense="true" Style="margin-bottom: 16px;">
+                                <RadzenText Style="font-weight: 600; font-size: 1.125rem;">
                                     🏢 Business Status: @_profitAndLossReport.ProfitabilityStatus (@_profitAndLossReport.HealthRating)
-                                </MudText>
-                                <MudText>💰 Net Income: ₱@_profitAndLossReport.NetIncome.ToString("N2") | 📊 Net Profit Margin: @_profitAndLossReport.NetProfitMargin.ToString("F1")%</MudText>
-                            </MudAlert>
+                                </RadzenText>
+                                <RadzenText>💰 Net Income: ₱@_profitAndLossReport.NetIncome.ToString("N2") | 📊 Net Profit Margin: @_profitAndLossReport.NetProfitMargin.ToString("F1")%</RadzenText>
+                            </RadzenAlert>
                             
                             <!-- Summary Cards -->
-                            <MudGrid Class="mb-4">
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.Revenue.NetRevenue.ToString("N0")</MudText>
-                                                <MudText Typo="Typo.body1">Net Revenue</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.CostOfGoodsSold.TotalCOGS.ToString("N0")</MudText>
-                                                <MudText Typo="Typo.body1">Total COGS</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.GrossProfit.ToString("N0")</MudText>
-                                                <MudText Typo="Typo.body1">Gross Profit</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                                <MudItem xs="12" md="3">
-                                    <MudCard Class="summary-card" Style="@($"background: linear-gradient(135deg, {(_profitAndLossReport.NetIncome >= 0 ? "#4CAF50 0%, #45a049 100%" : "#F44336 0%, #D32F2F 100%")}); color: white;")">
-                                        <MudCardContent>
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@(_profitAndLossReport.NetIncome >= 0 ? Icons.Material.Filled.AttachMoney : Icons.Material.Filled.MoneyOff)" Size="Size.Large" />
-                                                <MudText Typo="Typo.h4">₱@_profitAndLossReport.NetIncome.ToString("N0")</MudText>
-                                                <MudText Typo="Typo.body1">Net Income</MudText>
-                                            </MudStack>
-                                        </MudCardContent>
-                                    </MudCard>
-                                </MudItem>
-                            </MudGrid>
+                            <RadzenRow Style="margin-bottom: 16px;">
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.Revenue.NetRevenue.ToString("N0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Net Revenue</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="trending_down" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.CostOfGoodsSold.TotalCOGS.ToString("N0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Total COGS</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.GrossProfit.ToString("N0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Gross Profit</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="3">
+                                    <RadzenCard Style="@($"background: linear-gradient(135deg, {(_profitAndLossReport.NetIncome >= 0 ? "#4CAF50 0%, #45a049 100%" : "#F44336 0%, #D32F2F 100%")}); color: white;")">
+                                        <RadzenCardContent>
+                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <RadzenIcon Icon="@(_profitAndLossReport.NetIncome >= 0 ? "attach_money" : "money_off")" Size="ButtonSize.Large" />
+                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.NetIncome.ToString("N0")</RadzenText>
+                                                <RadzenText Style="font-size: 0.875rem;">Net Income</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCardContent>
+                                    </RadzenCard>
+                                </RadzenColumn>
+                            </RadzenRow>
 
                             <!-- Monthly P&L Breakdown -->
                             @if (_profitAndLossReport.MonthlyBreakdown.Any())
                             {
-                                <MudText Typo="Typo.h6" Class="mb-3">Monthly Profit & Loss Breakdown</MudText>
-                                <MudTable Items="_profitAndLossReport.MonthlyBreakdown" Dense="true" Hover="true">
-                                    <HeaderContent>
-                                        <MudTh>Month</MudTh>
-                                        <MudTh Style="text-align: right">Revenue</MudTh>
-                                        <MudTh Style="text-align: right">COGS</MudTh>
-                                        <MudTh Style="text-align: right">Gross Profit</MudTh>
-                                        <MudTh Style="text-align: right">Operating Expenses</MudTh>
-                                        <MudTh Style="text-align: right">Net Income</MudTh>
-                                        <MudTh Style="text-align: right">Net Margin</MudTh>
-                                        <MudTh Style="text-align: center">Status</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        <MudTd>@context.Month</MudTd>
-                                        <MudTd Style="text-align: right">₱@context.Revenue.ToString("N0")</MudTd>
-                                        <MudTd Style="text-align: right">₱@context.COGS.ToString("N0")</MudTd>
-                                        <MudTd Style="text-align: right">₱@context.GrossProfit.ToString("N0")</MudTd>
-                                        <MudTd Style="text-align: right">₱@context.OperatingExpenses.ToString("N0")</MudTd>
-                                        <MudTd Style="@($"text-align: right; color: {(context.NetIncome >= 0 ? "green" : "red")}")">
-                                            ₱@context.NetIncome.ToString("N0")
-                                        </MudTd>
-                                        <MudTd Style="text-align: right">@context.NetMargin.ToString("F1")%</MudTd>
-                                        <MudTd Style="text-align: center">
-                                            <MudChip T="string" Size="Size.Small" Color="@(context.Status == "Profit" ? Color.Success : Color.Error)">
-                                                @context.Status
-                                            </MudChip>
-                                        </MudTd>
-                                    </RowTemplate>
-                                </MudTable>
+                                <RadzenText Style="font-size: 1.125rem; margin-bottom: 12px;">Monthly Profit & Loss Breakdown</RadzenText>
+                                <RadzenDataGrid Data="_profitAndLossReport.MonthlyBreakdown" Dense="true" AllowSorting="true" AllowFiltering="true">
+                                    <Columns>
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="Month" Title="Month" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="Revenue" Title="Revenue" TextAlign="TextAlign.Right" FormatString="N0" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="COGS" Title="COGS" TextAlign="TextAlign.Right" FormatString="N0" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="GrossProfit" Title="Gross Profit" TextAlign="TextAlign.Right" FormatString="N0" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="OperatingExpenses" Title="Operating Expenses" TextAlign="TextAlign.Right" FormatString="N0" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="NetIncome" Title="Net Income" TextAlign="TextAlign.Right">
+                                            <Template Context="data">
+                                                <span style="color: @(data.NetIncome >= 0 ? "green" : "red")">₱@data.NetIncome.ToString("N0")</span>
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="NetMargin" Title="Net Margin" TextAlign="TextAlign.Right" FormatString="F1%" />
+                                        <RadzenDataGridColumn TItem="MonthlyProfitLoss" Property="Status" Title="Status" TextAlign="TextAlign.Center">
+                                            <Template Context="data">
+                                                <RadzenBadge Text="@data.Status" 
+                                                            BadgeStyle="@(data.Status == "Profit" ? BadgeStyle.Success : BadgeStyle.Danger)" />
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                    </Columns>
+                                </RadzenDataGrid>
                             }
 
                             <!-- Key Business Insights -->
                             @if (_profitAndLossReport.KeyInsights.Any())
                             {
-                                <MudText Typo="Typo.h6" Class="mt-4 mb-3">📊 Key Business Insights</MudText>
-                                <MudList T="string" Dense="true">
-                                    @foreach (var insight in _profitAndLossReport.KeyInsights)
-                                    {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.TrendingUp" IconColor="Color.Info">
-                                            <MudText>@insight</MudText>
-                                        </MudListItem>
-                                    }
-                                </MudList>
+                                <RadzenText Style="font-size: 1.125rem; margin-top: 16px; margin-bottom: 12px;">📊 Key Business Insights</RadzenText>
+                                <RadzenListBox TValue="string" Data="_profitAndLossReport.KeyInsights" Dense="true" Style="margin-top: 16px;">
+                                    <Template Context="insight">
+                                        <RadzenStack Row="true" AlignItems="AlignItems.Center">
+                                            <RadzenIcon Icon="trending_up" Style="color: #2196F3; margin-right: 8px;" />
+                                            <RadzenText>@insight</RadzenText>
+                                        </RadzenStack>
+                                    </Template>
+                                </RadzenListBox>
                             }
 
                             <!-- Business Recommendations -->
                             @if (_profitAndLossReport.Recommendations.Any())
                             {
-                                <MudText Typo="Typo.h6" Class="mt-4 mb-3">💡 Business Recommendations</MudText>
-                                <MudList T="string" Dense="true">
-                                    @foreach (var recommendation in _profitAndLossReport.Recommendations)
-                                    {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.Lightbulb" 
-                                                    IconColor="@(recommendation.StartsWith("URGENT") ? Color.Error : Color.Warning)">
-                                            <MudText>@recommendation</MudText>
-                                        </MudListItem>
-                                    }
-                                </MudList>
+                                <RadzenText Style="font-size: 1.125rem; margin-top: 16px; margin-bottom: 12px;">💡 Business Recommendations</RadzenText>
+                                <RadzenListBox TValue="string" Data="_profitAndLossReport.Recommendations" Dense="true" Style="margin-top: 16px;">
+                                    <Template Context="recommendation">
+                                        <RadzenStack Row="true" AlignItems="AlignItems.Center">
+                                            <RadzenIcon Icon="lightbulb" Style="@($"color: {(recommendation.StartsWith("URGENT") ? "#F44336" : "#FF9800")}; margin-right: 8px;")" />
+                                            <RadzenText>@recommendation</RadzenText>
+                                        </RadzenStack>
+                                    </Template>
+                                </RadzenListBox>
                             }
-                        </MudCardContent>
-                    </MudCard>
+                        </RadzenCardContent>
+                    </RadzenCard>
                 }
             }
 
             <!-- Executive Dashboard Section -->
-            <MudText Typo="Typo.h5" Style="font-weight: 600;" Class="mb-3">
-                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mr-2" />
+            <RadzenText Style="font-weight: 600; font-size: 1.5rem; margin-bottom: 12px;">
+                <RadzenIcon Icon="trending_up" Style="margin-right: 8px;" />
                 Executive Dashboard
-            </MudText>
+            </RadzenText>
 
             <!-- KPI Cards -->
-            <MudGrid>
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; min-height: 120px;">
-                        <MudCardContent Class="pa-0">
-                            <MudStack Spacing="2">
-                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Style="opacity: 0.8;" />
-                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+            <RadzenRow>
+                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
+                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; min-height: 120px;">
+                        <RadzenCardContent Style="padding: 0;">
+                            <RadzenStack Spacing="2">
+                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" Style="opacity: 0.8;" />
+                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
                                         ₱@(_analyticsData?.TotalRevenue.ToString("N0") ?? "0")
-                                    </MudText>
-                                </MudStack>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Total Revenue</MudText>
-                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Total Revenue</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
                                     @(_analyticsData?.TotalOrders ?? 0) transactions
-                                </MudText>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenCardContent>
+                    </RadzenCard>
+                </RadzenColumn>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; min-height: 120px;">
-                        <MudCardContent Class="pa-0">
-                            <MudStack Spacing="2">
-                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Large" Style="opacity: 0.8;" />
-                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
+                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; min-height: 120px;">
+                        <RadzenCardContent Style="padding: 0;">
+                            <RadzenStack Spacing="2">
+                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" Style="opacity: 0.8;" />
+                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
                                         ₱@(_analyticsData?.GrossProfit.ToString("N0") ?? "0")
-                                    </MudText>
-                                </MudStack>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Gross Profit</MudText>
-                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Gross Profit</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
                                     @(_analyticsData?.ProfitMargin.ToString("F1") ?? "0")% margin
-                                </MudText>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenCardContent>
+                    </RadzenCard>
+                </RadzenColumn>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; min-height: 120px;">
-                        <MudCardContent Class="pa-0">
-                            <MudStack Spacing="2">
-                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Style="opacity: 0.8;" />
-                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
+                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; min-height: 120px;">
+                        <RadzenCardContent Style="padding: 0;">
+                            <RadzenStack Spacing="2">
+                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenIcon Icon="inventory" Size="ButtonSize.Large" Style="opacity: 0.8;" />
+                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
                                         @(_dashboardData?.TotalProducts.ToString("N0") ?? "0")
-                                    </MudText>
-                                </MudStack>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Active Products</MudText>
-                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Active Products</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
                                     @(_dashboardData?.LowStockCount ?? 0) alerts
-                                </MudText>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenCardContent>
+                    </RadzenCard>
+                </RadzenColumn>
 
-                <MudItem xs="12" sm="6" md="3">
-                    <MudCard Class="pa-4" Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; min-height: 120px;">
-                        <MudCardContent Class="pa-0">
-                            <MudStack Spacing="2">
-                                <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Large" Style="opacity: 0.8;" />
-                                    <MudText Typo="Typo.h3" Style="font-weight: 700;">
+                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
+                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; min-height: 120px;">
+                        <RadzenCardContent Style="padding: 0;">
+                            <RadzenStack Spacing="2">
+                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenIcon Icon="cancel" Size="ButtonSize.Large" Style="opacity: 0.8;" />
+                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
                                         @(_analyticsData?.CancellationRate.ToString("F1") ?? "0")%
-                                    </MudText>
-                                </MudStack>
-                                <MudText Typo="Typo.body1" Style="font-weight: 500;">Cancellation Rate</MudText>
-                                <MudText Typo="Typo.caption" Style="opacity: 0.9;">
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Cancellation Rate</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
                                     @(_analyticsData?.CancelledOrders ?? 0) cancelled
-                                </MudText>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            </MudGrid>
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenCardContent>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
 
             <!-- AI Business Summary Section -->
             @if (_analyticsData != null)
             {
-                <MudCard Class="mb-4" Elevation="2">
-                    <MudCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                        <CardHeaderContent>
-                            <MudStack Row="true" AlignItems="@AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Large" />
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.h6" Style="font-weight: 600;">AI Business Insights</MudText>
-                                    <MudText Typo="Typo.caption">Automated analysis of your business performance</MudText>
-                                </MudStack>
-                            </MudStack>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent Class="pa-4">
-                        <MudStack Spacing="3">
+                <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
+                    <RadzenCardHeader Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <RadzenCardContent>
+                            <RadzenStack Row="true" AlignItems="AlignItems.Center">
+                                <RadzenIcon Icon="psychology" Size="ButtonSize.Large" />
+                                <RadzenStack Spacing="0">
+                                    <RadzenText Style="font-size: 1.25rem; font-weight: 600;">AI Business Insights</RadzenText>
+                                    <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">Automated analysis of your business performance</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenCardContent>
+                    </RadzenCardHeader>
+                    <RadzenCardContent Style="padding: 16px;">
+                        <RadzenStack Spacing="3">
                             <!-- Performance Summary -->
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: #f5f5f5; border-left: 4px solid #4CAF50;">
-                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #4CAF50;">
+                            <div Style="padding: 12px; background: #f5f5f5; border-left: 4px solid #4CAF50;">
+                                <RadzenText Style="font-size: 0.875rem; font-weight: 600; color: #4CAF50;">
                                     📊 Performance Summary
-                                </MudText>
-                                <MudText Typo="Typo.body2" Class="mt-2">
-                                    @GetPerformanceSummary()
-                                </MudText>
-                            </MudPaper>
-
-                            <!-- Profitability Analysis -->
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: #f5f5f5; border-left: 4px solid #2196F3;">
-                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #2196F3;">
-                                    💰 Profitability Analysis
-                                </MudText>
-                                <MudText Typo="Typo.body2" Class="mt-2">
-                                    @GetProfitabilityAnalysis()
-                                </MudText>
-                            </MudPaper>
-
-                            <!-- Risk Assessment -->
-                            @if (_analyticsData.CancellationRate > 10)
-                            {
-                                <MudPaper Class="pa-3" Elevation="0" Style="background: #fff3e0; border-left: 4px solid #FF9800;">
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600; color: #FF9800;">
-                                        ⚠️ Risk Assessment
-                                    </MudText>
-                                    <MudText Typo="Typo.body2" Class="mt-2">
-                                        @GetRiskAssessment()
-                                    </MudText>
-                                </MudPaper>
-                            }
-
-                            <!-- Recommendations -->
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: #e8f5e9; border-left: 4px solid #4CAF50;">
-                                <MudText Typo="Typo.body1" Style="font-weight: 600; color: #4CAF50;">
-                                    💡 Key Recommendations
-                                </MudText>
-                                <MudList T="string" Dense="true" Class="mt-2">
-                                    @foreach (var recommendation in GetRecommendations())
-                                    {
-                                        <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                                            <MudText Typo="Typo.body2">@recommendation</MudText>
-                                        </MudListItem>
-                                    }
-                                </MudList>
-                            </MudPaper>
-                        </MudStack>
-                    </MudCardContent>
-                </MudCard>
-            }
-
-            <!-- Enterprise Charts Grid -->
-            @if (_enterpriseCharts.Any())
-            {
-                <MudText Typo="Typo.h5" Style="font-weight: 600;" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.BarChart" Class="mr-2" />
-                    Business Intelligence Charts
-                </MudText>
-
-                <MudGrid Spacing="4">
-                    @foreach (var chart in _enterpriseCharts)
-                    {
-                        <MudItem xs="12" lg="6">
-                            <MudCard Elevation="2" Class="enterprise-chart-card">
-                                <MudCardHeader Class="chart-header">
-                                    <CardHeaderContent>
-                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                            <MudStack Spacing="1">
-                                                <MudText Typo="Typo.h6" Style="font-weight: 600; color: #1976D2;">
-                                                    @chart.Title
-                                                </MudText>
-                                                @if (!string.IsNullOrEmpty(chart.Subtitle))
-                                                {
-                                                    <MudText Typo="Typo.body2" Style="color: #666; font-size: 0.875rem;">
-                                                        @chart.Subtitle
-                                                    </MudText>
-                                                }
-                                            </MudStack>
-                                            <MudIcon Icon="@GetChartIcon(chart.ChartType)" Style="color: #1976D2; font-size: 1.5rem;" />
-                                        </MudStack>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                                <MudCardContent Class="chart-content">
-                                    <div class="chart-container">
-                                        <EnterpriseChart ChartConfig="chart" />
-                                    </div>
-                                </MudCardContent>
-                            </MudCard>
-                        </MudItem>
-                    }
-                </MudGrid>
+                                </RadzenText>
+                                <RadzenText Style="font-size: 0.875rem; margin-top: 8px;">
+                                    Your business generated ₱@(_analyticsData?.TotalRevenue.ToString("N0") ?? "0") in revenue with @(_analyticsData?.ProfitMargin.ToString("F1") ?? "0")% profit margin. Total orders: @(_analyticsData?.TotalOrders ?? 0) with @(_analyticsData?.CancellationRate.ToString("F1") ?? "0")% cancellation rate.
+                                </RadzenText>
+                            </div>
+                        </RadzenStack>
+                    </RadzenCardContent>
+                </RadzenCard>
             }
         }
-    </MudStack>
-</MudContainer>
+    </RadzenStack>
+</RadzenStack>
 
 @code {
-    private DateRange? _dateRange = new DateRange(DateTime.Now.AddDays(-30), DateTime.Now);
     private bool _loading = true;
     private bool _generatingReport = false;
     private string? _errorMessage;
-    
-    // Data models
     private BusinessAnalyticsData? _analyticsData;
     private InventoryDashboardData? _dashboardData;
-    private List<EnterpriseChartConfig> _enterpriseCharts = new();
-    
-    // Analytical Report Data
-    private AnalyticalReportType _selectedReportType = AnalyticalReportType.InventoryValuation;
-    private object? _currentReportData;
+    private ProfitAndLossReport? _profitAndLossReport;
     private InventoryValuationReport? _inventoryValuationReport;
     private COGSReport? _cogsReport;
     private InventoryTurnoverReport? _turnoverReport;
-    private StockAgingReport? _stockAgingReport;
-    private ProductProfitabilityReport? _profitabilityReport;
-    private ProfitAndLossReport? _profitAndLossReport;
+    private object? _currentReportData;
+    private AnalyticalReportType _selectedReportType = AnalyticalReportType.ProfitAndLossStatement;
+    private DateTime _startDate = DateTime.Now.AddMonths(-1);
+    private DateTime _endDate = DateTime.Now;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load the chart.js script
-        await JSRuntime.InvokeVoidAsync("eval", @"
-            if (!window.chartJsLoaded) {
-                var script = document.createElement('script');
-                script.src = '_content/ModularSys.Inventory/js/chart.min.js';
-                script.onload = function() { window.chartJsLoaded = true; };
-                document.head.appendChild(script);
-            }
-        ");
-
-        await LoadReportsAsync();
+        await LoadReportsData();
     }
 
-    private async Task LoadReportsAsync()
+    private async Task LoadReportsData()
     {
         try
         {
@@ -748,20 +615,25 @@
             _errorMessage = null;
             StateHasChanged();
 
-            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
-            var endDate = _dateRange?.End ?? DateTime.Now;
-
-            // Load analytics data
-            _analyticsData = await BusinessAnalyticsService.GetBusinessAnalyticsAsync(startDate, endDate);
+            // Load business analytics data
+            _analyticsData = await BusinessAnalyticsService.GetBusinessAnalyticsAsync(_startDate, _endDate);
+            
+            // Load dashboard data
             _dashboardData = await InventoryDashboardService.GetDashboardDataAsync();
-
-            // Load enterprise charts - using sample data for now
-            _enterpriseCharts = GetSampleEnterpriseCharts();
+            
+            // Load profit and loss report
+            var request = new AnalyticalReportRequest
+            {
+                ReportType = AnalyticalReportType.ProfitAndLossStatement,
+                StartDate = _startDate,
+                EndDate = _endDate
+            };
+            _profitAndLossReport = await AnalyticalReportService.GenerateProfitAndLossReportAsync(request);
         }
         catch (Exception ex)
         {
             _errorMessage = $"Error loading reports: {ex.Message}";
-            Snackbar.Add(_errorMessage, Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", _errorMessage);
         }
         finally
         {
@@ -772,79 +644,55 @@
 
     private async Task RefreshReports()
     {
-        await LoadReportsAsync();
-        Snackbar.Add("Reports refreshed successfully", Severity.Success);
+        await LoadReportsData();
+        NotificationService.Notify(NotificationSeverity.Success, "Success", "Reports refreshed successfully");
     }
 
+    private async Task OnDateRangeChanged()
+    {
+        await LoadReportsData();
+    }
 
     private async Task GenerateAnalyticalReport()
     {
         try
         {
             _generatingReport = true;
-            _errorMessage = null;
+            _currentReportData = null;
             StateHasChanged();
-
-            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
-            var endDate = _dateRange?.End ?? DateTime.Now;
 
             var request = new AnalyticalReportRequest
             {
                 ReportType = _selectedReportType,
-                StartDate = startDate,
-                EndDate = endDate,
-                IncludeCharts = true,
-                IncludeDetailedBreakdown = true
+                StartDate = _startDate,
+                EndDate = _endDate
             };
 
-            // Generate the selected report type
             switch (_selectedReportType)
             {
                 case AnalyticalReportType.InventoryValuation:
                     _inventoryValuationReport = await AnalyticalReportService.GenerateInventoryValuationReportAsync(request);
                     _currentReportData = _inventoryValuationReport;
                     break;
-
                 case AnalyticalReportType.CostOfGoodsSold:
                     _cogsReport = await AnalyticalReportService.GenerateCOGSReportAsync(request);
                     _currentReportData = _cogsReport;
                     break;
-
                 case AnalyticalReportType.InventoryTurnover:
                     _turnoverReport = await AnalyticalReportService.GenerateInventoryTurnoverReportAsync(request);
                     _currentReportData = _turnoverReport;
                     break;
-
-                case AnalyticalReportType.StockAging:
-                    _stockAgingReport = await AnalyticalReportService.GenerateStockAgingReportAsync(request);
-                    _currentReportData = _stockAgingReport;
-                    break;
-
-                case AnalyticalReportType.ProfitabilityByProduct:
-                    _profitabilityReport = await AnalyticalReportService.GenerateProductProfitabilityReportAsync(request);
-                    _currentReportData = _profitabilityReport;
-                    break;
-
                 case AnalyticalReportType.ProfitAndLossStatement:
                     _profitAndLossReport = await AnalyticalReportService.GenerateProfitAndLossReportAsync(request);
                     _currentReportData = _profitAndLossReport;
                     break;
-
-                case AnalyticalReportType.ComprehensiveFinancial:
-                    // Generate all reports for comprehensive view
-                    _inventoryValuationReport = await AnalyticalReportService.GenerateInventoryValuationReportAsync(request);
-                    _cogsReport = await AnalyticalReportService.GenerateCOGSReportAsync(request);
-                    _turnoverReport = await AnalyticalReportService.GenerateInventoryTurnoverReportAsync(request);
-                    _currentReportData = new { Valuation = _inventoryValuationReport, COGS = _cogsReport, Turnover = _turnoverReport };
-                    break;
             }
 
-            Snackbar.Add($"{_selectedReportType} report generated successfully!", Severity.Success);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Report generated successfully");
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Error generating {_selectedReportType} report: {ex.Message}";
-            Snackbar.Add(_errorMessage, Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Report generation failed: {ex.Message}");
         }
         finally
         {
@@ -855,44 +703,14 @@
 
     private async Task PreviewReport()
     {
-        try
+        if (_currentReportData == null)
         {
-            if (_currentReportData == null)
-            {
-                Snackbar.Add("Please generate a report first before previewing", Severity.Warning);
-                return;
-            }
-
-            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
-            var endDate = _dateRange?.End ?? DateTime.Now;
-
-            var parameters = new DialogParameters
-            {
-                ["ReportType"] = _selectedReportType,
-                ["StartDate"] = startDate,
-                ["EndDate"] = endDate,
-                ["ReportData"] = _currentReportData
-            };
-
-            var dialog = DialogService.Show<ReportPreviewDialog>("Report Preview", parameters,
-                new DialogOptions 
-                { 
-                    CloseButton = true, 
-                    MaxWidth = MaxWidth.ExtraLarge, 
-                    FullWidth = true,
-                    CloseOnEscapeKey = true
-                });
-
-            var result = await dialog.Result;
-            if (!result.Canceled && result.Data is string message)
-            {
-                Snackbar.Add(message, Severity.Success);
-            }
+            NotificationService.Notify(NotificationSeverity.Warning, "Warning", "Please generate a report first");
+            return;
         }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error showing report preview: {ex.Message}", Severity.Error);
-        }
+
+        // For now, just show a success message - preview functionality can be enhanced later
+        NotificationService.Notify(NotificationSeverity.Info, "Preview", "Report preview functionality coming soon");
     }
 
     private async Task ExportToCrystalReports()
@@ -901,409 +719,31 @@
         {
             if (_currentReportData == null)
             {
-                Snackbar.Add("Please generate a report first before exporting", Severity.Warning);
+                NotificationService.Notify(NotificationSeverity.Warning, "Warning", "Please generate a report first");
                 return;
             }
-
-            _generatingReport = true;
-            StateHasChanged();
-
-            var startDate = _dateRange?.Start ?? DateTime.Now.AddDays(-30);
-            var endDate = _dateRange?.End ?? DateTime.Now;
 
             var request = new AnalyticalReportRequest
             {
                 ReportType = _selectedReportType,
-                StartDate = startDate,
-                EndDate = endDate,
-                IncludeCharts = true,
-                IncludeDetailedBreakdown = true,
-                ExportFormat = ReportExportFormat.PDF
+                StartDate = _startDate,
+                EndDate = _endDate
             };
 
-            // Generate PDF using QuestPDF
             var pdfBytes = await AnalyticalReportService.GenerateCrystalReportAsync(request);
-            
-            // Save PDF to Downloads folder
             var fileName = $"{_selectedReportType}_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-            var downloadsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-            var filePath = Path.Combine(downloadsPath, fileName);
             
-            await File.WriteAllBytesAsync(filePath, pdfBytes);
-
-            Snackbar.Add($"Professional PDF report exported successfully to Downloads folder: {fileName}", Severity.Success);
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(pdfBytes));
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Report exported successfully");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error exporting report: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            _generatingReport = false;
-            StateHasChanged();
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Export failed: {ex.Message}");
         }
     }
 
-    private List<EnterpriseChartConfig> GetSampleEnterpriseCharts()
+    private async Task ExportToPdf()
     {
-        return new List<EnterpriseChartConfig>
-        {
-            new EnterpriseChartConfig
-            {
-                ChartType = "Line",
-                Title = "Revenue vs Costs Trend",
-                Subtitle = "Daily performance analysis",
-                Data = new List<ChartData>
-                {
-                    new ChartData { Label = "Mon", Value = 1200, Series = "Revenue" },
-                    new ChartData { Label = "Tue", Value = 1500, Series = "Revenue" },
-                    new ChartData { Label = "Wed", Value = 1100, Series = "Revenue" },
-                    new ChartData { Label = "Thu", Value = 1800, Series = "Revenue" },
-                    new ChartData { Label = "Fri", Value = 2200, Series = "Revenue" },
-                    new ChartData { Label = "Sat", Value = 1900, Series = "Revenue" }
-                },
-                ShowLegend = true,
-                Height = "350px"
-            },
-            new EnterpriseChartConfig
-            {
-                ChartType = "Pie",
-                Title = "Revenue by Category",
-                Subtitle = "Category performance breakdown",
-                Data = new List<ChartData>
-                {
-                    new ChartData { Label = "Electronics", Value = 5000, Color = "#1976D2" },
-                    new ChartData { Label = "Clothing", Value = 3000, Color = "#388E3C" },
-                    new ChartData { Label = "Books", Value = 2000, Color = "#F57C00" },
-                    new ChartData { Label = "Home & Garden", Value = 1500, Color = "#7B1FA2" }
-                },
-                ShowLegend = true,
-                Height = "350px"
-            },
-            new EnterpriseChartConfig
-            {
-                ChartType = "Bar",
-                Title = "Monthly Profit Margins",
-                Subtitle = "Profitability analysis",
-                Data = new List<ChartData>
-                {
-                    new ChartData { Label = "Jan", Value = 25 },
-                    new ChartData { Label = "Feb", Value = 30 },
-                    new ChartData { Label = "Mar", Value = 22 },
-                    new ChartData { Label = "Apr", Value = 35 }
-                },
-                ShowLegend = false,
-                Height = "350px"
-            }
-        };
-    }
-
-    private string GetPerformanceSummary()
-    {
-        if (_analyticsData == null) return "No data available.";
-        
-        var period = (_dateRange?.End - _dateRange?.Start)?.Days ?? 30;
-        var avgDailyRevenue = _analyticsData.TotalRevenue / period;
-        var completionRate = _analyticsData.TotalOrders > 0 ? (_analyticsData.CompletedOrders / (decimal)_analyticsData.TotalOrders) * 100 : 0;
-        
-        return $"During the {period}-day period, your business generated ₱{_analyticsData.TotalRevenue:N0} in total revenue from {_analyticsData.TotalOrders} orders (₱{avgDailyRevenue:N0}/day average). " +
-               $"You successfully completed {_analyticsData.CompletedOrders} orders ({completionRate:F1}% completion rate) with {_analyticsData.CancelledOrders} cancellations. " +
-               $"Your average order value is ₱{_analyticsData.AverageOrderValue:N0}, indicating {(completionRate >= 90 ? "excellent" : completionRate >= 75 ? "good" : "moderate")} operational efficiency.";
-    }
-
-    private string GetProfitabilityAnalysis()
-    {
-        if (_analyticsData == null) return "No data available.";
-        
-        var profitStatus = _analyticsData.GrossProfit >= 0 ? "profitable" : "operating at a loss";
-        var marginQuality = _analyticsData.ProfitMargin switch
-        {
-            >= 40 => "excellent",
-            >= 25 => "healthy",
-            >= 15 => "moderate",
-            >= 5 => "thin",
-            _ => "concerning"
-        };
-        
-        return $"Your business is currently {profitStatus} with a gross profit of ₱{_analyticsData.GrossProfit:N0} and a {marginQuality} profit margin of {_analyticsData.ProfitMargin:F1}%. " +
-               $"Total costs amount to ₱{_analyticsData.TotalCosts:N0}, representing {(_analyticsData.TotalRevenue > 0 ? (_analyticsData.TotalCosts / _analyticsData.TotalRevenue) * 100 : 0):F1}% of revenue. " +
-               $"{(marginQuality == "excellent" || marginQuality == "healthy" ? "This indicates strong pricing power and cost management." : "Consider reviewing pricing strategy and cost optimization opportunities.")}";
-    }
-
-    private string GetRiskAssessment()
-    {
-        if (_analyticsData == null) return "No data available.";
-        
-        var riskLevel = _analyticsData.CancellationRate switch
-        {
-            >= 20 => "HIGH RISK",
-            >= 15 => "Moderate Risk",
-            >= 10 => "Elevated Risk",
-            _ => "Low Risk"
-        };
-        
-        return $"Your cancellation rate of {_analyticsData.CancellationRate:F1}% is classified as {riskLevel}. " +
-               $"With {_analyticsData.CancelledOrders} cancelled orders out of {_analyticsData.TotalOrders} total, this represents potential lost revenue of approximately ₱{(_analyticsData.TotalRevenue * (_analyticsData.CancellationRate / 100)):N0}. " +
-               $"Immediate action is recommended to identify and address the root causes of order cancellations.";
-    }
-
-    private List<string> GetRecommendations()
-    {
-        if (_analyticsData == null) return new List<string>();
-        
-        var recommendations = new List<string>();
-        
-        // Profit margin recommendations
-        if (_analyticsData.ProfitMargin < 15)
-            recommendations.Add($"Increase profit margins: Current {_analyticsData.ProfitMargin:F1}% is below industry standard (25-40%). Review pricing strategy and negotiate better supplier terms.");
-        else if (_analyticsData.ProfitMargin >= 40)
-            recommendations.Add($"Excellent margins at {_analyticsData.ProfitMargin:F1}%! Consider reinvesting profits into marketing and inventory expansion.");
-        
-        // Cancellation recommendations
-        if (_analyticsData.CancellationRate > 10)
-            recommendations.Add($"Reduce cancellation rate from {_analyticsData.CancellationRate:F1}% to below 10%. Analyze cancellation reasons and improve order fulfillment processes.");
-        
-        // Order value recommendations
-        if (_analyticsData.AverageOrderValue < 1000)
-            recommendations.Add($"Increase average order value from ₱{_analyticsData.AverageOrderValue:N0}. Implement upselling strategies, bundle deals, and minimum order incentives.");
-        
-        // Volume recommendations
-        var period = (_dateRange?.End - _dateRange?.Start)?.Days ?? 30;
-        var avgDailyOrders = _analyticsData.TotalOrders / (decimal)period;
-        if (avgDailyOrders < 5)
-            recommendations.Add($"Boost order volume from {avgDailyOrders:F1} orders/day. Invest in marketing campaigns and customer acquisition strategies.");
-        
-        // Cost management
-        var costRatio = _analyticsData.TotalRevenue > 0 ? (_analyticsData.TotalCosts / _analyticsData.TotalRevenue) * 100 : 0;
-        if (costRatio > 70)
-            recommendations.Add($"Optimize costs: Current cost ratio of {costRatio:F1}% is high. Focus on supplier negotiations and operational efficiency.");
-        
-        // Default recommendation
-        if (recommendations.Count == 0)
-            recommendations.Add("Business performance is strong. Continue monitoring key metrics and maintain current strategies.");
-        
-        return recommendations;
-    }
-
-    private string GetChartIcon(string chartType)
-    {
-        return chartType switch
-        {
-            "Line" => Icons.Material.Filled.ShowChart,
-            "Bar" => Icons.Material.Filled.BarChart,
-            "Pie" => Icons.Material.Filled.PieChart,
-            "Doughnut" => Icons.Material.Filled.DonutSmall,
-            "Area" => Icons.Material.Filled.AreaChart,
-            _ => Icons.Material.Filled.Analytics
-        };
+        await ExportToCrystalReports();
     }
 }
-
-<style>
-    /* Enterprise Chart Card Styling */
-    .enterprise-chart-card {
-        border-radius: 12px !important;
-        border: 1px solid #E0E7FF !important;
-        background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%) !important;
-        box-shadow: 0 4px 20px rgba(25, 118, 210, 0.08) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        overflow: hidden !important;
-    }
-
-    .enterprise-chart-card:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 30px rgba(25, 118, 210, 0.15) !important;
-        border-color: #1976D2 !important;
-    }
-
-    .chart-header {
-        background: linear-gradient(135deg, #F8FAFF 0%, #EEF4FF 100%) !important;
-        border-bottom: 1px solid #E3F2FD !important;
-        padding: 20px 24px 16px 24px !important;
-    }
-
-    .chart-content {
-        padding: 0 !important;
-        background: #FFFFFF !important;
-    }
-
-    .chart-container {
-        height: 400px;
-        padding: 20px;
-        position: relative;
-        background: linear-gradient(135deg, #FFFFFF 0%, #FAFBFF 100%);
-        border-radius: 0 0 12px 12px;
-    }
-
-    .chart-container canvas {
-        border-radius: 8px;
-        background: #FFFFFF;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
-    }
-
-    /* Modern KPI Cards */
-    .kpi-card {
-        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFF 100%) !important;
-        border: 1px solid #E3F2FD !important;
-        border-radius: 16px !important;
-        box-shadow: 0 2px 12px rgba(25, 118, 210, 0.06) !important;
-        transition: all 0.3s ease !important;
-        overflow: hidden !important;
-        position: relative !important;
-    }
-
-    .kpi-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #1976D2, #42A5F5);
-    }
-
-    .kpi-card:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 20px rgba(25, 118, 210, 0.12) !important;
-    }
-
-    .kpi-value {
-        font-size: 2rem !important;
-        font-weight: 700 !important;
-        background: linear-gradient(135deg, #1976D2, #1565C0) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        background-clip: text !important;
-    }
-
-    .kpi-label {
-        color: #546E7A !important;
-        font-weight: 500 !important;
-        font-size: 0.875rem !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-    }
-
-    .kpi-icon {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        border-radius: 12px !important;
-        padding: 12px !important;
-        color: #1976D2 !important;
-    }
-
-    /* Enhanced Header Styling */
-    .reports-header {
-        background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
-        color: white !important;
-        border-radius: 16px !important;
-        padding: 32px !important;
-        margin-bottom: 32px !important;
-        box-shadow: 0 8px 32px rgba(25, 118, 210, 0.3) !important;
-    }
-
-    .reports-title {
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
-        margin-bottom: 8px !important;
-    }
-
-    .reports-subtitle {
-        font-size: 1.125rem !important;
-        opacity: 0.9 !important;
-        font-weight: 400 !important;
-    }
-
-    /* Section Headers */
-    .section-header {
-        color: #1976D2 !important;
-        font-weight: 600 !important;
-        font-size: 1.5rem !important;
-        margin-bottom: 24px !important;
-        padding-bottom: 8px !important;
-        border-bottom: 2px solid #E3F2FD !important;
-        position: relative !important;
-    }
-
-    .section-header::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 60px;
-        height: 2px;
-        background: linear-gradient(90deg, #1976D2, #42A5F5);
-    }
-
-    /* Loading States */
-    .loading-overlay {
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(4px) !important;
-        border-radius: 12px !important;
-    }
-
-    /* Responsive Design */
-    @@media (max-width: 960px) {
-        .chart-container {
-            height: 320px;
-            padding: 16px;
-        }
-        
-        .reports-title {
-            font-size: 2rem !important;
-        }
-        
-        .kpi-value {
-            font-size: 1.5rem !important;
-        }
-    }
-
-    @@media (max-width: 600px) {
-        .chart-container {
-            height: 280px;
-            padding: 12px;
-        }
-        
-        .enterprise-chart-card {
-            margin-bottom: 16px !important;
-        }
-        
-        .chart-header {
-            padding: 16px !important;
-        }
-    }
-
-    /* Animation for chart loading */
-    @@keyframes chartFadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .chart-container {
-        animation: chartFadeIn 0.6s ease-out;
-    }
-
-    /* Custom scrollbar for better UX */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #F5F5F5;
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #1976D2, #42A5F5);
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, #1565C0, #1976D2);
-    }
-</style>

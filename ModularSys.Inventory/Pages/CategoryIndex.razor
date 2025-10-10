@@ -1,258 +1,258 @@
-@using MudBlazor
-@using ModularSys.Data.Common.Entities.Inventory
+@page "/categories"
 @using ModularSys.Inventory.Interface
-@using ModularSys.Inventory.Services
+@using ModularSys.Data.Common.Entities.Inventory
+@using Radzen.Blazor
 @inject ICategoryService CategoryService
 @inject IProductService ProductService
-@inject IDialogService Dialogs
-@inject ISnackbar Snack
+@inject DialogService DialogService
+@inject NotificationService NotificationService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-    <MudStack Spacing="4">
-        <!-- Header Section -->
-        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Primary" Size="Size.Large" />
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.h4">Category Management</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Organize your products into categories
-                    </MudText>
-                </MudStack>
-            </MudStack>
-            <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Outlined" 
-                          StartIcon="@Icons.Material.Filled.Refresh" 
-                          OnClick="RefreshData"
-                          Loading="_loading">
-                    Refresh
-                </MudButton>
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="Create">
-                    Add Category
-                </MudButton>
-            </MudStack>
-        </MudStack>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">Categories</h1>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Organize your products into categories for better management</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <RadzenButton Text="Refresh" 
+                         Icon="refresh" 
+                         Click="RefreshData"
+                         Disabled="_loading"
+                         Variant="Variant.Outlined"
+                         Style="border-radius: 6px; border-color: #d1d5db; color: #6b7280;" />
+            <RadzenButton Text="Add Category"
+                         ButtonStyle="ButtonStyle.Primary"
+                         Icon="add"
+                         Click="Create"
+                         Style="background: #374151; border-radius: 6px; border: none;" />
+        </div>
+    </div>
 
-        <!-- Stats Cards -->
-        <MudGrid>
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard Elevation="2" Class="pa-4">
-                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                        <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Primary" Size="Size.Large" />
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.h4">@_categories.Count</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Categories</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard Elevation="2" Class="pa-4">
-                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Large" />
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.h4">@_totalProducts</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Total Products</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard Elevation="2" Class="pa-4">
-                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Large" />
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.h4">@_revenueCriticalCount</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Revenue Critical</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudCard Elevation="2" Class="pa-4">
-                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3">
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Large" />
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.h4">@_activeCount</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Active Categories</MudText>
-                        </MudStack>
-                    </MudStack>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Total Categories</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: #374151;">@_categories.Count</h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="category" Style="font-size: 1.5rem; color: #6b7280;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Total Products</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: #374151;">@_totalProducts</h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="inventory_2" Style="font-size: 1.5rem; color: #10b981;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Active Categories</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: #374151;">@_activeCategories</h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: #dbeafe; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="trending_up" Style="font-size: 1.5rem; color: #3b82f6;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Empty Categories</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 1.875rem; font-weight: 600; color: @(_emptyCategories > 0 ? "#f59e0b" : "#374151");">@_emptyCategories</h2>
+                </div>
+                <div style="width: 48px; height: 48px; border-radius: 8px; background: @(_emptyCategories > 0 ? "#fef3c7" : "#f1f5f9"); display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="@(_emptyCategories > 0 ? "warning" : "check_circle")" Style="@GetEmptyIconStyle()" />
+                </div>
+            </div>
+        </RadzenCard>
+    </div>
 
-        <!-- Search -->
-        <MudCard Elevation="1" Class="pa-4">
-            <MudTextField @bind-Value="_searchText" 
-                         Label="Search Categories" 
-                         Variant="Variant.Outlined" 
-                         Adornment="Adornment.Start" 
-                         AdornmentIcon="@Icons.Material.Filled.Search"
-                         OnKeyUp="OnSearchChanged"
-                         Style="max-width: 400px;" />
-        </MudCard>
+    <!-- Search and Filter -->
+    <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <RadzenTextBox Value="_searchText" 
+                          ValueChanged="@((string value) => { _searchText = value; FilterCategories(); })" 
+                          Placeholder="Search categories..." 
+                          Icon="search" 
+                          Style="flex: 1; border-radius: 6px;" />
+            <RadzenDropDown Data="@_statusOptions" 
+                           Value="_selectedStatus" 
+                           ValueChanged="@((string value) => { _selectedStatus = value; FilterCategories(); })" 
+                           Placeholder="All Status" 
+                           Style="min-width: 150px; border-radius: 6px;" />
+        </div>
+    </RadzenCard>
 
-        <!-- Categories Grid -->
-        <MudCard Elevation="2" Class="pa-4">
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">Categories (@_filteredCategories.Count())</MudText>
-                </CardHeaderContent>
-            </MudCardHeader>
-            <MudCardContent>
-                @if (_loading)
+    <!-- Categories Table -->
+    <RadzenCard Style="padding: 0; border-radius: 8px; border: 1px solid #f0f0f0; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="padding: 20px; border-bottom: 1px solid #f0f0f0; background: #f8fafc;">
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">Category Management</h3>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Organize and manage your product categories</p>
+        </div>
+        
+        @if (_loading)
+        {
+            <div style="display: flex; justify-content: center; padding: 40px;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            </div>
+        }
+        else if (_filteredCategories?.Any() == true)
+        {
+            <RadzenDataGrid Data="_filteredCategories" 
+                           TItem="Category" 
+                           AllowSorting="true" 
+                           PageSize="25"
+                           GridLines="DataGridGridLines.None"
+                           Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Category" Property="CategoryName" Title="Category Name" Width="250px">
+                        <Template Context="category">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 32px; height: 32px; border-radius: 6px; background: @(!string.IsNullOrEmpty(category.Color) ? category.Color : "#f1f5f9"); display: flex; align-items: center; justify-content: center;">
+                                    <RadzenIcon Icon="@(!string.IsNullOrEmpty(category.Icon) ? category.Icon : "category")" Style="color: white; font-size: 1rem;" />
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; color: #374151;">@category.CategoryName</div>
+                                    @if (!string.IsNullOrEmpty(category.Description))
+                                    {
+                                        <div style="font-size: 0.875rem; color: #6b7280;">@category.Description</div>
+                                    }
+                                </div>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Category" Property="ProductCount" Title="Products" Width="120px">
+                        <Template Context="category">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 500; color: @(category.Products.Count > 0 ? "#374151" : "#6b7280");">@category.Products.Count</span>
+                                @if (category.Products.Count == 0)
+                                {
+                                    <RadzenIcon Icon="warning" Style="color: #f59e0b; font-size: 0.875rem;" />
+                                }
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Category" Property="IsActive" Title="Status" Width="120px">
+                        <Template Context="category">
+                            <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @(category.IsActive ? "background: #dcfce7; color: #166534;" : "background: #f1f5f9; color: #6b7280;")">
+                                @(category.IsActive ? "Active" : "Inactive")
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Category" Property="IsRevenueCritical" Title="Revenue Critical" Width="140px">
+                        <Template Context="category">
+                            @if (category.IsRevenueCritical)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <RadzenIcon Icon="star" Style="color: #f59e0b; font-size: 1rem;" />
+                                    <span style="color: #f59e0b; font-size: 0.875rem; font-weight: 500;">Critical</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color: #6b7280; font-size: 0.875rem;">Standard</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Category" Title="Actions" Width="120px" Sortable="false">
+                        <Template Context="category">
+                            <div style="display: flex; gap: 8px;">
+                                <RadzenButton Icon="edit" 
+                                             Size="ButtonSize.Small" 
+                                             Click="@(() => Edit(category.CategoryId))"
+                                             Variant="Variant.Outlined"
+                                             Style="border-radius: 4px; border-color: #d1d5db; color: #6b7280;" />
+                                <RadzenButton Icon="delete" 
+                                             Size="ButtonSize.Small" 
+                                             Click="@(() => Delete(category.CategoryId))"
+                                             ButtonStyle="ButtonStyle.Danger"
+                                             Variant="Variant.Outlined"
+                                             Style="border-radius: 4px;" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+        else
+        {
+            <div style="padding: 40px; text-align: center;">
+                <RadzenIcon Icon="category" Style="font-size: 3rem; color: #6b7280; margin-bottom: 16px;" />
+                <h3 style="margin: 0 0 8px 0; color: #374151;">No Categories Found</h3>
+                <p style="margin: 0 0 16px 0; color: #6b7280;">@(_searchText.Length > 0 || _selectedStatus != "All" ? "No categories match your search criteria." : "Create your first category to get started.")</p>
+                @if (_searchText.Length == 0 && _selectedStatus == "All")
                 {
-                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
-                        <MudProgressCircular Indeterminate="true" />
-                        <MudText>Loading categories...</MudText>
-                    </MudStack>
+                    <RadzenButton Text="Add First Category" 
+                                 Icon="add" 
+                                 Click="Create"
+                                 ButtonStyle="ButtonStyle.Primary"
+                                 Style="background: #374151; border-radius: 6px; border: none;" />
                 }
-                else if (_filteredCategories.Any())
-                {
-                    <MudGrid>
-                        @foreach (var category in _filteredCategories)
-                        {
-                            <MudItem xs="12" sm="6" md="4" lg="3">
-                                <MudCard Elevation="1" Class="pa-4 h-100" Style="@($"border-left: 4px solid {category.Color ?? "#1976d2"}")">
-                                    <MudStack Spacing="3" Class="h-100">
-                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                            <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@(category.Icon ?? Icons.Material.Filled.Category)" 
-                                                        Style="@($"color: {category.Color ?? "#1976d2"}")" 
-                                                        Size="Size.Medium" />
-                                                @if (category.IsRevenueCritical)
-                                                {
-                                                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
-                                                }
-                                            </MudStack>
-                                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
-                                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(category))">
-                                                    Edit
-                                                </MudMenuItem>
-                                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => Remove(category))">
-                                                    Delete
-                                                </MudMenuItem>
-                                            </MudMenu>
-                                        </MudStack>
-
-                                        <MudStack Spacing="1" Class="flex-grow-1">
-                                            <MudText Typo="Typo.h6">@category.CategoryName</MudText>
-                                            @if (!string.IsNullOrEmpty(category.Description))
-                                            {
-                                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                                    @category.Description
-                                                </MudText>
-                                            }
-                                        </MudStack>
-
-                                        <MudStack Spacing="2">
-                                            <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Products</MudText>
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
-                                                    @GetProductCount(category.CategoryId)
-                                                </MudChip>
-                                            </MudStack>
-                                            
-                                            @if (category.DefaultMinThreshold > 0)
-                                            {
-                                                <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Min Threshold</MudText>
-                                                    <MudText Typo="Typo.caption">@category.DefaultMinThreshold</MudText>
-                                                </MudStack>
-                                            }
-
-                                            <MudStack Row="true" Justify="@Justify.SpaceBetween" AlignItems="@AlignItems.Center">
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Status</MudText>
-                                                <MudChip T="string" Size="Size.Small" 
-                                                        Color="@(category.IsActive ? Color.Success : Color.Default)">
-                                                    @(category.IsActive ? "Active" : "Inactive")
-                                                </MudChip>
-                                            </MudStack>
-                                        </MudStack>
-                                    </MudStack>
-                                </MudCard>
-                            </MudItem>
-                        }
-                    </MudGrid>
-                }
-                else
-                {
-                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
-                        <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" Color="Color.Secondary" />
-                        <MudText Typo="Typo.h6" Color="Color.Secondary">No categories yet</MudText>
-                        <MudText Color="Color.Secondary">Get started by creating your first category</MudText>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Create" Class="mt-4">
-                            Create First Category
-                        </MudButton>
-                    </MudStack>
-                }
-            </MudCardContent>
-        </MudCard>
-    </MudStack>
-</MudContainer>
+            </div>
+        }
+    </RadzenCard>
+</div>
 
 @code {
     private List<Category> _categories = new();
-    private List<Product> _products = new();
-    private IEnumerable<Category> _filteredCategories = new List<Category>();
+    private List<Category> _filteredCategories = new();
     private bool _loading = true;
     private string _searchText = string.Empty;
-    private int _totalProducts;
-    private int _revenueCriticalCount;
-    private int _activeCount;
+    private string _selectedStatus = "All";
+    
+    private int _totalProducts = 0;
+    private int _activeCategories = 0;
+    private int _emptyCategories = 0;
 
-    // Legacy property for compatibility
-    private string _search = "";
+    private readonly List<string> _statusOptions = new() { "All", "Active", "Inactive" };
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
     }
 
-    protected override void OnParametersSet()
-    {
-        FilterCategories();
-    }
-
     private async Task LoadData()
     {
-        _loading = true;
-        StateHasChanged();
-
         try
         {
-            var categoriesTask = CategoryService.GetAllAsync();
-            var productsTask = ProductService.GetAllAsync();
+            _loading = true;
+            StateHasChanged();
 
-            await Task.WhenAll(categoriesTask, productsTask);
-
-            _categories = categoriesTask.Result.ToList();
-            _products = productsTask.Result.ToList();
-
-            _totalProducts = _products.Count;
-            _revenueCriticalCount = _categories.Count(c => c.IsRevenueCritical);
-            _activeCount = _categories.Count(c => c.IsActive);
+            _categories = (await CategoryService.GetAllAsync()).ToList();
+            
+            // Calculate stats
+            _totalProducts = _categories.Sum(c => c.Products.Count);
+            _activeCategories = _categories.Count(c => c.IsActive);
+            _emptyCategories = _categories.Count(c => c.Products.Count == 0);
 
             FilterCategories();
         }
         catch (Exception ex)
         {
-            Snack.Add($"Error loading data: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error loading categories: {ex.Message}");
         }
         finally
         {
             _loading = false;
             StateHasChanged();
         }
-    }
-
-    private async Task RefreshData()
-    {
-        await LoadData();
-        Snack.Add("Data refreshed successfully", Severity.Success);
     }
 
     private void FilterCategories()
@@ -266,70 +266,73 @@
                 (c.Description?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false));
         }
 
-        _filteredCategories = filtered.OrderBy(c => c.CategoryName);
+        if (_selectedStatus != "All")
+        {
+            filtered = filtered.Where(c => _selectedStatus == "Active" ? c.IsActive : !c.IsActive);
+        }
+
+        _filteredCategories = filtered.OrderBy(c => c.CategoryName).ToList();
         StateHasChanged();
     }
 
-    private void OnSearchChanged()
+    private async Task RefreshData()
     {
-        FilterCategories();
-    }
-
-    private int GetProductCount(int categoryId)
-    {
-        return _products.Count(p => p.CategoryId == categoryId);
+        await LoadData();
+        NotificationService.Notify(NotificationSeverity.Success, "Success", "Categories refreshed");
     }
 
     private async Task Create()
     {
-        var dialog = Dialogs.Show<CategoryForm>("Add Category", 
-            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await DialogService.OpenAsync<CategoryForm>("Add Category", new Dictionary<string, object>(), new DialogOptions() { Width = "600px", Height = "700px" });
         
-        var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result == true)
         {
             await LoadData();
-            Snack.Add("Category created successfully", Severity.Success);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category created successfully");
         }
     }
 
-    private async Task Edit(Category category)
+    private async Task Edit(int categoryId)
     {
-        var parameters = new DialogParameters { ["Id"] = category.CategoryId };
-        var dialog = Dialogs.Show<CategoryForm>("Edit Category", parameters, 
-            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await DialogService.OpenAsync<CategoryForm>("Edit Category", new Dictionary<string, object>() { { "Id", categoryId } }, new DialogOptions() { Width = "600px", Height = "700px" });
         
-        var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result == true)
         {
             await LoadData();
-            Snack.Add("Category updated successfully", Severity.Success);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category updated successfully");
         }
     }
 
-    private async Task Remove(Category category)
+    private async Task Delete(int categoryId)
     {
-        var productCount = GetProductCount(category.CategoryId);
-        
-        string message = productCount > 0 
-            ? $"This category contains {productCount} products. Are you sure you want to delete '{category.CategoryName}'?"
-            : $"Are you sure you want to delete '{category.CategoryName}'?";
+        var category = _categories.FirstOrDefault(c => c.CategoryId == categoryId);
+        if (category == null) return;
 
-        bool? confirm = await Dialogs.ShowMessageBox("Delete Category", message, 
-            yesText: "Delete", cancelText: "Cancel");
+        if (category.Products.Count > 0)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Warning", "Cannot delete category with products. Please move or delete products first.");
+            return;
+        }
+
+        var confirmed = await DialogService.Confirm($"Are you sure you want to delete '{category.CategoryName}'?", "Delete Category", new ConfirmOptions() { OkButtonText = "Delete", CancelButtonText = "Cancel" });
         
-        if (confirm == true)
+        if (confirmed == true)
         {
             try
             {
-                await CategoryService.DeleteAsync(category.CategoryId, "System");
+                await CategoryService.DeleteAsync(categoryId, "System");
                 await LoadData();
-                Snack.Add($"Category '{category.CategoryName}' deleted successfully", Severity.Success);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Category deleted successfully");
             }
             catch (Exception ex)
             {
-                Snack.Add($"Error deleting category: {ex.Message}", Severity.Error);
+                NotificationService.Notify(NotificationSeverity.Error, "Error", $"Error deleting category: {ex.Message}");
             }
         }
+    }
+
+    private string GetEmptyIconStyle()
+    {
+        return $"font-size: 1.5rem; color: {(_emptyCategories > 0 ? "#f59e0b" : "#6b7280")};";
     }
 }

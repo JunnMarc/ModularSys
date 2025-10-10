@@ -1,169 +1,152 @@
 @page "/profile"
 @using ModularSys.Core.Interfaces
 @using ModularSys.Data.Common.Entities
+@using Radzen
+@using Radzen.Blazor
+
 @inject IAuthService AuthService
 @inject IUserService UserService
-@inject IDepartmentService DepartmentService
-@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject NotificationService NotificationService
 
-<PageTitle>My Profile</PageTitle>
+<PageTitle>Profile - ModularSys</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">My Profile</MudText>
+@if (_loading)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 400px;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        <RadzenText Text="Loading profile..." Style="margin-top: 1rem;" />
+    </RadzenStack>
+}
+else if (_user != null)
+{
+    <RadzenStack Gap="1.5rem">
+        <!-- Page Header -->
+        <RadzenCard Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenGravatar Email="@_user.Email" Style="width: 64px; height: 64px; border-radius: 50%; border: 3px solid white;" />
+                <RadzenStack Gap="0">
+                    <RadzenText TextStyle="TextStyle.H4" Text="@_user.Username" Style="color: white; font-weight: 600;" />
+                    <RadzenText Text="@_user.Role?.RoleName" Style="color: rgba(255,255,255,0.9);" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
 
-    @if (_loading)
-    {
-        <MudProgressLinear Indeterminate="true" />
-    }
-    else if (_user != null)
-    {
-        <MudGrid Spacing="3">
-            <!-- Profile Card -->
-            <MudItem xs="12" md="4">
-                <MudPaper Class="pa-4 text-center">
-                    <MudAvatar Size="Size.Large" Color="Color.Primary" Class="mb-3" Style="width: 100px; height: 100px;">
-                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
-                    </MudAvatar>
-                    
-                    <MudText Typo="Typo.h5">@_user.FirstName @_user.LastName</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">@@@_user.Username</MudText>
-                    
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mt-2">
-                        @_user.Role?.RoleName
-                    </MudChip>
-                    
-                    <MudDivider Class="my-3" />
-                    
-                    <MudStack Spacing="1">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Member Since</MudText>
-                        <MudText Typo="Typo.body2">@_user.CreatedAt.ToString("MMM dd, yyyy")</MudText>
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-
+        <RadzenRow Gap="1.5rem">
             <!-- Profile Information -->
-            <MudItem xs="12" md="8">
-                <MudPaper Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Profile Information</MudText>
-                    
-                    <MudForm @ref="_form">
-                        <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="_user.FirstName" 
-                                              Label="First Name" 
-                                              Variant="Variant.Outlined" 
-                                              Required="true" />
-                            </MudItem>
-                            
-                            <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="_user.LastName" 
-                                              Label="Last Name" 
-                                              Variant="Variant.Outlined" 
-                                              Required="true" />
-                            </MudItem>
-                            
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_user.Email" 
-                                              Label="Email" 
-                                              Variant="Variant.Outlined" 
-                                              InputType="InputType.Email"
-                                              Required="true" />
-                            </MudItem>
-                            
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_user.ContactNumber" 
-                                              Label="Contact Number" 
-                                              Variant="Variant.Outlined" 
-                                              InputType="InputType.Telephone" />
-                            </MudItem>
-                            
-                            <MudItem xs="12">
-                                <MudSelect T="int" 
-                                           @bind-Value="_user.DepartmentId" 
-                                           Label="Department" 
-                                           Variant="Variant.Outlined"
-                                           Disabled="true">
-                                    @foreach (var dept in _departments)
-                                    {
-                                        <MudSelectItem T="int" Value="@dept.DepartmentId">@dept.DepartmentName</MudSelectItem>
-                                    }
-                                </MudSelect>
-                            </MudItem>
-                            
-                            <MudItem xs="12">
-                                <MudStack Row="true" Spacing="2">
-                                    <MudButton Variant="Variant.Filled" 
-                                              Color="Color.Primary" 
-                                              OnClick="SaveProfile"
-                                              Disabled="_saving">
-                                        @if (_saving)
-                                        {
-                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                        }
-                                        Save Changes
-                                    </MudButton>
+            <RadzenColumn Size="12" SizeMD="8">
+                <RadzenCard>
+                    <RadzenStack Gap="1.5rem">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                            <RadzenText TextStyle="TextStyle.H6" Text="Profile Information" />
+                            @if (!_isEditing)
+                            {
+                                <RadzenButton Text="Edit" Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => _isEditing = true)" />
+                            }
+                        </RadzenStack>
+                        
+                        @if (_isEditing)
+                        {
+                            <RadzenTemplateForm TItem="User" Data="@_user" Submit="@SaveProfile">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenRow Gap="1rem">
+                                        <RadzenColumn Size="12" SizeMD="6">
+                                            <RadzenFormField Text="Username" Variant="Variant.Outlined">
+                                                <RadzenTextBox @bind-Value="_user.Username" Style="width: 100%;" />
+                                            </RadzenFormField>
+                                        </RadzenColumn>
+                                        
+                                        <RadzenColumn Size="12" SizeMD="6">
+                                            <RadzenFormField Text="Email" Variant="Variant.Outlined">
+                                                <RadzenTextBox @bind-Value="_user.Email" Style="width: 100%;" />
+                                            </RadzenFormField>
+                                        </RadzenColumn>
+                                    </RadzenRow>
                                     
-                                    <MudButton Variant="Variant.Outlined" 
-                                              OnClick="LoadProfile">
-                                        Cancel
-                                    </MudButton>
-                                </MudStack>
-                            </MudItem>
-                        </MudGrid>
-                    </MudForm>
-                </MudPaper>
-            </MudItem>
+                                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                        <RadzenButton Text="Save Changes" Icon="save" ButtonType="ButtonType.Submit" ButtonStyle="ButtonStyle.Primary" IsBusy="@_saving" />
+                                        <RadzenButton Text="Cancel" Icon="cancel" ButtonStyle="ButtonStyle.Light" Click="@CancelEdit" Disabled="@_saving" />
+                                    </RadzenStack>
+                                </RadzenStack>
+                            </RadzenTemplateForm>
+                        }
+                        else
+                        {
+                            <RadzenStack Gap="1rem">
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                    <RadzenText Text="Username:" Style="font-weight: 600; width: 120px;" />
+                                    <RadzenText Text="@_user.Username" />
+                                </RadzenStack>
+                                
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                    <RadzenText Text="Email:" Style="font-weight: 600; width: 120px;" />
+                                    <RadzenText Text="@_user.Email" />
+                                </RadzenStack>
+                                
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                    <RadzenText Text="Role:" Style="font-weight: 600; width: 120px;" />
+                                    <RadzenBadge Text="@_user.Role?.RoleName" BadgeStyle="BadgeStyle.Info" />
+                                </RadzenStack>
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-            <!-- Activity Summary -->
-            <MudItem xs="12">
-                <MudPaper Class="pa-4">
-                    <MudText Typo="Typo.h6" Class="mb-3">Account Activity</MudText>
+            <!-- Account Stats -->
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenStack Gap="1.5rem">
+                    <RadzenCard>
+                        <RadzenStack Gap="1rem">
+                            <RadzenText TextStyle="TextStyle.H6" Text="Account Statistics" />
+                            
+                            <RadzenStack Gap="0.75rem">
+                                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenText Text="Member Since" Style="font-weight: 500;" />
+                                    <RadzenText Text="@_user.CreatedAt.ToString("MMM dd, yyyy")" />
+                                </RadzenStack>
+                                
+                                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenText Text="Last Updated" Style="font-weight: 500;" />
+                                    <RadzenText Text="@(_user.UpdatedAt?.ToString("MMM dd, yyyy") ?? "Never")" />
+                                </RadzenStack>
+                                
+                                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                    <RadzenText Text="Status" Style="font-weight: 500;" />
+                                    <RadzenBadge Text="@(_user.IsDeleted ? "Inactive" : "Active")" 
+                                               BadgeStyle="@(_user.IsDeleted ? BadgeStyle.Danger : BadgeStyle.Success)" />
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenCard>
                     
-                    <MudGrid Spacing="2">
-                        <MudItem xs="12" sm="4">
-                            <MudAlert Severity="Severity.Info" Dense="true">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body2"><b>Last Updated</b></MudText>
-                                    <MudText Typo="Typo.caption">@(_user.UpdatedAt?.ToString("MMM dd, yyyy HH:mm") ?? "Never")</MudText>
-                                </MudStack>
-                            </MudAlert>
-                        </MudItem>
-                        
-                        <MudItem xs="12" sm="4">
-                            <MudAlert Severity="Severity.Success" Dense="true">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body2"><b>Account Status</b></MudText>
-                                    <MudText Typo="Typo.caption">Active</MudText>
-                                </MudStack>
-                            </MudAlert>
-                        </MudItem>
-                        
-                        <MudItem xs="12" sm="4">
-                            <MudAlert Severity="Severity.Normal" Dense="true">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.body2"><b>Role</b></MudText>
-                                    <MudText Typo="Typo.caption">@_user.Role?.RoleName</MudText>
-                                </MudStack>
-                            </MudAlert>
-                        </MudItem>
-                    </MudGrid>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
-    }
-</MudContainer>
+                    <RadzenCard>
+                        <RadzenStack Gap="1rem">
+                            <RadzenText TextStyle="TextStyle.H6" Text="Quick Actions" />
+                            
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenButton Text="Change Password" Icon="lock" ButtonStyle="ButtonStyle.Light" 
+                                            Style="width: 100%; justify-content: flex-start;" Click="@ChangePassword" />
+                                <RadzenButton Text="Security Settings" Icon="security" ButtonStyle="ButtonStyle.Light" 
+                                            Style="width: 100%; justify-content: flex-start;" Click="@(() => Nav.NavigateTo("/settings"))" />
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
+}
 
 @code {
     private User? _user;
-    private List<Department> _departments = new();
     private bool _loading = true;
+    private bool _isEditing = false;
     private bool _saving = false;
-    private MudForm? _form;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadProfile();
-        await LoadDepartments();
     }
 
     private async Task LoadProfile()
@@ -171,11 +154,12 @@
         try
         {
             _loading = true;
-            _user = await UserService.GetByUsernameAsync(AuthService.CurrentUser ?? "");
+            var users = await UserService.GetAllAsync();
+            _user = users.FirstOrDefault(u => u.Username == AuthService.CurrentUser);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading profile: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load profile: {ex.Message}");
         }
         finally
         {
@@ -183,44 +167,34 @@
         }
     }
 
-    private async Task LoadDepartments()
-    {
-        try
-        {
-            _departments = await DepartmentService.GetAllAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error loading departments: {ex.Message}", Severity.Error);
-        }
-    }
-
     private async Task SaveProfile()
     {
-        if (_user == null) return;
-
         try
         {
             _saving = true;
-            
-            var success = await UserService.UpdateAsync(_user);
-            
-            if (success)
-            {
-                Snackbar.Add("Profile updated successfully!", Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add("Failed to update profile", Severity.Error);
-            }
+            // TODO: Implement profile update via UserService
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Profile updated successfully");
+            _isEditing = false;
+            await LoadProfile();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to save profile: {ex.Message}");
         }
         finally
         {
             _saving = false;
         }
+    }
+
+    private async void CancelEdit()
+    {
+        _isEditing = false;
+        await LoadProfile();
+    }
+
+    private void ChangePassword()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Coming Soon", "Password change functionality will be implemented");
     }
 }

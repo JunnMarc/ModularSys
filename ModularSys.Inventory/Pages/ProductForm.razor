@@ -1,5 +1,4 @@
 @using Microsoft.AspNetCore.Components.Web
-@using MudBlazor
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
 @using ModularSys.Inventory.Models
@@ -7,162 +6,120 @@
 
 @inject IProductService ProductService
 @inject ICategoryService CategoryService
-@inject IDialogService Dialogs
-@inject ISnackbar Snack
+@inject Radzen.DialogService DialogService
+@inject NotificationService NotificationService
 
-<MudDialogContent Class="pa-4">
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">
-            @_errorMessage
-        </MudAlert>
-    }
+<RadzenCard>
+    <RadzenStack Gap="1rem" Style="padding: 1rem;">
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Title="@_errorMessage" />
+        }
 
-    <MudForm @ref="_form" Model="_model">
-        <MudStack Spacing="3">
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.SKU"
-                                  Label="SKU (Stock Keeping Unit)"
-                                  FullWidth
-                                  Margin="Margin.Normal"
-                                  HelperText="Unique product identifier" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.Barcode"
-                                  Label="Barcode"
-                                  FullWidth
-                                  Margin="Margin.Normal"
-                                  HelperText="Product barcode for scanning" />
-                </MudItem>
-            </MudGrid>
+        <RadzenStack Gap="0.75rem">
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenTextBox Value="_model.SKU" ValueChanged="@((string value) => _model.SKU = value)"
+                                  Placeholder="SKU (Stock Keeping Unit)"
+                                  Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenTextBox Value="_model.Barcode" ValueChanged="@((string value) => _model.Barcode = value)"
+                                  Placeholder="Product barcode for scanning"
+                                  Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <MudTextField @bind-Value="_model.Name"
-                          Label="Product Name"
-                          Required
-                          FullWidth
-                          Margin="Margin.Normal" />
+            <RadzenTextBox Value="_model.Name" ValueChanged="@((string value) => _model.Name = value)"
+                          Placeholder="Product Name"
+                          Style="width: 100%;" />
 
-            <MudTextField @bind-Value="_model.Description"
-                          Label="Description"
-                          Lines="3"
-                          FullWidth
-                          Margin="Margin.Normal"
-                          HelperText="Detailed product description" />
+            <RadzenTextArea Value="_model.Description" ValueChanged="@((string value) => _model.Description = value)"
+                          Placeholder="Detailed product description"
+                          Rows="3"
+                          Style="width: 100%;" />
 
-            <MudSelect T="int" @bind-Value="_model.CategoryId"
-                       Label="Category"
-                       Required
-                       FullWidth
-                       Margin="Margin.Normal">
-                <MudSelectItem T="int" Value="0" Disabled="true">Select a category...</MudSelectItem>
-                @foreach (var cat in _categories)
-                {
-                    <MudSelectItem T="int" Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
-                }
-            </MudSelect>
+            <RadzenDropDown Data="_categories" Value="_model.CategoryId" ValueChanged="@((int value) => _model.CategoryId = value)" 
+                          TextProperty="CategoryName" ValueProperty="CategoryId"
+                          Placeholder="Select a category..."
+                          Style="width: 100%;" />
 
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="decimal" @bind-Value="_model.UnitPrice"
-                                     Label="Unit Price (Selling)"
-                                     Required
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0"
-                                     Adornment="Adornment.Start"
-                                     AdornmentText="₱" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="decimal?" @bind-Value="_model.CostPrice"
-                                     Label="Cost Price (Purchase)"
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0"
-                                     Adornment="Adornment.Start"
-                                     AdornmentText="₱" />
-                </MudItem>
-            </MudGrid>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenNumeric TValue="decimal" Value="_model.UnitPrice" ValueChanged="@((decimal value) => _model.UnitPrice = value)"
+                                 Placeholder="Unit Price (Selling)"
+                                 Format="C"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenNumeric TValue="decimal?" Value="_model.CostPrice" ValueChanged="@((decimal? value) => _model.CostPrice = value)"
+                                 Placeholder="Cost Price (Purchase)"
+                                 Format="C"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <MudGrid>
-                <MudItem xs="12" sm="4">
-                    <MudNumericField T="int" @bind-Value="_model.QuantityOnHand"
-                                     Label="Quantity On Hand"
-                                     Required
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudNumericField T="int" @bind-Value="_model.ReorderLevel"
-                                     Label="Reorder Level"
-                                     Required
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0"
-                                     HelperText="Low stock alert threshold" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudNumericField T="int?" @bind-Value="_model.MinStockLevel"
-                                     Label="Min Stock Level"
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0"
-                                     HelperText="Critical stock level" />
-                </MudItem>
-            </MudGrid>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="4">
+                    <RadzenNumeric TValue="int" Value="_model.QuantityOnHand" ValueChanged="@((int value) => _model.QuantityOnHand = value)"
+                                 Placeholder="Quantity On Hand"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenNumeric TValue="int" Value="_model.ReorderLevel" ValueChanged="@((int value) => _model.ReorderLevel = value)"
+                                 Placeholder="Reorder Level"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="4">
+                    <RadzenNumeric TValue="int?" Value="_model.MinStockLevel" ValueChanged="@((int? value) => _model.MinStockLevel = value)"
+                                 Placeholder="Min Stock Level"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="int?" @bind-Value="_model.MaxStockLevel"
-                                     Label="Max Stock Level"
-                                     FullWidth
-                                     Margin="Margin.Normal"
-                                     Min="0"
-                                     HelperText="Maximum optimal stock" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker @bind-Date="_model.ExpiryDate"
-                                   Label="Expiry Date"
-                                   FullWidth
-                                   Margin="Margin.Normal"
-                                   HelperText="Product expiration date (if applicable)" />
-                </MudItem>
-            </MudGrid>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenNumeric TValue="int?" Value="_model.MaxStockLevel" ValueChanged="@((int? value) => _model.MaxStockLevel = value)"
+                                 Placeholder="Max Stock Level"
+                                 Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenDatePicker Value="_model.ExpiryDate" ValueChanged="@((DateTime? value) => _model.ExpiryDate = value)"
+                                    Placeholder="Product expiration date (if applicable)"
+                                    Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
 
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.BatchNumber"
-                                  Label="Batch Number"
-                                  FullWidth
-                                  Margin="Margin.Normal"
-                                  HelperText="Manufacturing batch identifier" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField @bind-Value="_model.Supplier"
-                                  Label="Supplier"
-                                  FullWidth
-                                  Margin="Margin.Normal"
-                                  HelperText="Primary supplier name" />
-                </MudItem>
-            </MudGrid>
-        </MudStack>
-    </MudForm>
-</MudDialogContent>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenTextBox Value="_model.BatchNumber" ValueChanged="@((string value) => _model.BatchNumber = value)"
+                                  Placeholder="Manufacturing batch identifier"
+                                  Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenTextBox Value="_model.Supplier" ValueChanged="@((string value) => _model.Supplier = value)"
+                                  Placeholder="Primary supplier name"
+                                  Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenStack>
+    </RadzenStack>
+</RadzenCard>
 
-<MudDialogActions Class="justify-end pa-3">
-    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@(Id.HasValue ? "Update Product" : "Add Product")</MudButton>
-</MudDialogActions>
+<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="padding: 1rem;">
+    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="Cancel" />
+    <RadzenButton Text="@(Id.HasValue ? "Update Product" : "Add Product")" 
+                  ButtonStyle="ButtonStyle.Primary" 
+                  Click="Save" />
+</RadzenStack>
 
 @code {
     private ProductInputModel _model = new();
-    private MudForm _form;
     private List<Category> _categories = new();
-    private string _errorMessage; // <-- store UI error message
+    private string _errorMessage = "";
 
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public int? Id { get; set; }
+    [Parameter] public EventCallback<bool> OnResult { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -192,17 +149,11 @@
 
     private async Task Save()
     {
-        _errorMessage = null; // reset error
+        _errorMessage = "";
 
-        await _form.Validate();
-        if (!_form.IsValid) return;
-
-        bool? confirm = await Dialogs.ShowMessageBox(
+        bool? confirm = await DialogService.Confirm($"Are you sure you want to {(_model.ProductId == 0 ? "add" : "update")} '{_model.Name}'?",
             Id == null ? "Add Product" : "Update Product",
-            Id == null
-                ? $"Are you sure you want to add '{_model.Name}'?"
-                : $"Are you sure you want to update '{_model.Name}'?",
-            yesText: "Yes", cancelText: "Cancel");
+            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "Cancel" });
 
         if (confirm != true) return;
 
@@ -211,15 +162,15 @@
             if (_model.ProductId == 0)
             {
                 await ProductService.CreateAsync(_model);
-                Snack.Add("Product created successfully.", Severity.Success);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Product created successfully.");
             }
             else
             {
                 await ProductService.UpdateAsync(_model);
-                Snack.Add("Product updated successfully.", Severity.Success);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Product updated successfully.");
             }
 
-            MudDialog.Close(DialogResult.Ok(true));
+            await OnResult.InvokeAsync(true);
         }
         catch (ValidationException ex)
         {
@@ -228,5 +179,5 @@
         }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private async Task Cancel() => await OnResult.InvokeAsync(false);
 }

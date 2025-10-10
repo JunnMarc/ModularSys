@@ -4,186 +4,200 @@
 @using ModularSys.Core.Models
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Radzen.Blazor
+@using Radzen
+@using Microsoft.JSInterop
 
 @inject IUserService UserService
 @inject IRoleService RoleService
-@inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+@inject NotificationService NotificationService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IAuthService AuthService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
     <!-- Header -->
-    <div class="d-flex justify-space-between align-center mb-4">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
-            <MudText Typo="Typo.h4" Class="font-weight-bold">User Management</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage system users and their permissions</MudText>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">System Users</h1>
+            <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Manage user accounts and role permissions</p>
         </div>
-        <div class="d-flex gap-2">
-            @if (HasPermission("Users.Delete"))
-            {
-                <MudButton Variant="Variant.Outlined" 
-                           StartIcon="@Icons.Material.Filled.RestoreFromTrash"
-                           OnClick="@(() => ToggleDeletedView())"
-                           Color="@(_showDeleted ? Color.Warning : Color.Default)">
-                    @(_showDeleted ? "Hide Deleted" : "Show Deleted")
-                </MudButton>
-            }
-            @if (HasPermission("Users.Create"))
-            {
-                <MudButton Variant="Variant.Filled" 
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Color="Color.Primary"
-                           OnClick="CreateUser">
-                    Add User
-                </MudButton>
-            }
-        </div>
+        @if (HasPermission("Users.Create"))
+        {
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" 
+                          Icon="add"
+                          Click="CreateUser"
+                          Style="background: #1976d2; border-radius: 8px; padding: 10px 20px; border: none;">
+                New User
+            </RadzenButton>
+        }
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <!-- Card outer radius: 12px, padding: 20px, inner radius: 12px - 20px = 0px (no inner elements with radius) -->
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Users</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalCount</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="group" Style="font-size: 2rem; color: #2196f3;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Admin Users</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_users.Count(u => u.Role?.RoleName == "Admin")</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #ffebee; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="admin_panel_settings" Style="font-size: 2rem; color: #f44336;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Regular Users</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_users.Count(u => u.Role?.RoleName != "Admin")</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #e8f5e9; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="person" Style="font-size: 2rem; color: #4caf50;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Current Page</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_searchModel.Page</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #f3e5f5; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="filter_alt" Style="font-size: 2rem; color: #9c27b0;" />
+                </div>
+            </div>
+        </RadzenCard>
     </div>
 
     <!-- Search and Filters -->
-    <MudPaper Class="pa-4 mb-4" Elevation="1">
-        <MudGrid Spacing="2" AlignItems="Center">
-            <MudItem xs="12" sm="6" md="4">
-                <MudTextField @bind-Value="_searchModel.SearchTerm"
-                              Placeholder="Search users..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              OnKeyUp="@(async (e) => { if (e.Key == "Enter") await SearchUsers(); })"
-                              Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int?" @bind-Value="_searchModel.RoleId" 
-                           Label="Filter by Role" 
-                           Clearable="true">
-                    @if (_roles != null)
-                    {
-                        @foreach (var role in _roles)
-                        {
-                            <MudSelectItem T="int?" Value="role.RoleId">@role.RoleName</MudSelectItem>
-                        }
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="int" @bind-Value="_searchModel.PageSize" Label="Page Size">
-                    <MudSelectItem T="int" Value="10">10</MudSelectItem>
-                    <MudSelectItem T="int" Value="25">25</MudSelectItem>
-                    <MudSelectItem T="int" Value="50">50</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="2">
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           OnClick="SearchUsers"
-                           FullWidth="true">
-                    Search
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <!-- Card outer radius: 12px, padding: 20px -->
+    <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <RadzenIcon Icon="search" Style="margin-right: 8px; color: #212121;" />
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Search Users</h3>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Name</label>
+                <!-- Input radius: 6px (smaller than card for visual hierarchy) -->
+                <RadzenTextBox @bind-Value="_searchModel.SearchTerm"
+                              Placeholder="Search by name..."
+                              Style="width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;"
+                              KeyUp="@(async (KeyboardEventArgs args) => { if (args.Key == "Enter") await SearchUsers(); })" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Email</label>
+                <RadzenTextBox Placeholder="Search by email..."
+                              Style="width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Role</label>
+                <RadzenDropDown @bind-Value="_searchModel.RoleId"
+                                Placeholder="All Roles"
+                                Style="width: 100%; border-radius: 6px; border: 1px solid #e0e0e0;"
+                                Data="@_roles"
+                                TextProperty="RoleName"
+                                ValueProperty="RoleId"
+                                AllowClear="true" />
+            </div>
+            <RadzenButton ButtonStyle="ButtonStyle.Primary"
+                          Click="SearchUsers"
+                          Style="background: #1976d2; border-radius: 6px; padding: 10px 24px; border: none;">
+                Search
+            </RadzenButton>
+        </div>
+    </RadzenCard>
 
     <!-- Users Table -->
-    <MudPaper Elevation="1">
-        <MudTable T="User" 
-                  Items="_users" 
-                  Loading="_loading"
-                  Hover="true"
-                  Striped="true"
-                  FixedHeader="true"
-                  Height="600px">
-            <HeaderContent>
-                <MudTh>User</MudTh>
-                <MudTh>Role</MudTh>
-                <MudTh>Department</MudTh>
-                <MudTh>Created</MudTh>
-                @if (_showDeleted)
-                {
-                    <MudTh>Status</MudTh>
-                }
-                <MudTh>Actions</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>
-                    <div class="d-flex align-center">
-                        <MudAvatar Size="Size.Small" Color="Color.Primary" Class="mr-2">
-                            @context.FirstName.Substring(0, 1).ToUpper()@context.LastName.Substring(0, 1).ToUpper()
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.body2" Class="font-weight-medium">@context.FirstName @context.LastName</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Username</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Email</MudText>
+    <!-- Card outer radius: 12px, no padding on card, inner header has padding: 20px -->
+    <RadzenCard Style="padding: 0; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; background: white;">
+        <!-- Header section with padding: 20px, so inner elements would be radius: 12px - 20px = 0px (but we use border-radius on top corners) -->
+        <div style="padding: 20px; border-bottom: 1px solid #e0e0e0; background: #fafafa; border-radius: 12px 12px 0 0;">
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Users List</h3>
+        </div>
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_users" 
+                        TItem="User" 
+                        AllowPaging="true"
+                        PageSize="10"
+                        AllowSorting="true"
+                        GridLines="DataGridGridLines.None"
+                        Style="border: none; background: white;">
+            <Columns>
+                <RadzenDataGridColumn TItem="User" Width="60px" Sortable="false">
+                    <HeaderTemplate>
+                        <input type="checkbox" style="cursor: pointer; width: 18px; height: 18px; border-radius: 4px;" />
+                    </HeaderTemplate>
+                    <Template Context="context">
+                        <input type="checkbox" style="cursor: pointer; width: 18px; height: 18px; border-radius: 4px;" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="User" Property="FirstName" Title="Name" Sortable="true">
+                    <Template Context="context">
+                        <div style="display: flex; align-items: center; padding: 8px 0;">
+                            <!-- Avatar radius: 50% for perfect circle -->
+                            <RadzenAvatar Size="Size.Medium" 
+                                         Text="@GetUserInitials(context)" 
+                                         Style="margin-right: 12px; background: #1976d2; color: white; font-weight: 600; width: 40px; height: 40px; border-radius: 50%;" />
+                            <div>
+                                <div style="font-weight: 500; color: #212121;">@context.FirstName @context.LastName</div>
+                                <div style="font-size: 0.875rem; color: #757575;">@context.Username</div>
+                            </div>
                         </div>
-                    </div>
-                </MudTd>
-                <MudTd>
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
-                        @context.Role?.RoleName
-                    </MudChip>
-                </MudTd>
-                <MudTd>@context.Department?.DepartmentName</MudTd>
-                <MudTd>
-                    <MudText Typo="Typo.body2">@context.CreatedAt.ToString("MMM dd, yyyy")</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.CreatedAt.ToString("HH:mm")</MudText>
-                </MudTd>
-                @if (_showDeleted)
-                {
-                    <MudTd>
-                        @if (context.IsDeleted)
-                        {
-                            <MudChip T="string" Color="Color.Error" Size="Size.Small">Deleted</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Color="Color.Success" Size="Size.Small">Active</MudChip>
-                        }
-                    </MudTd>
-                }
-                <MudTd>
-                    <div class="d-flex gap-1">
-                        @if (CanEditUser(context))
-                        {
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                           Color="Color.Primary" 
-                                           Size="Size.Small"
-                                           OnClick="@(() => EditUser(context.Id))" />
-                        }
-                        
-                        @if (context.IsDeleted && CanRestoreUser())
-                        {
-                            <MudIconButton Icon="@Icons.Material.Filled.Restore" 
-                                           Color="Color.Success" 
-                                           Size="Size.Small"
-                                           OnClick="@(() => RestoreUser(context.Id))" />
-                        }
-                        else if (!context.IsDeleted && CanDeleteUser(context))
-                        {
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                           Color="Color.Error" 
-                                           Size="Size.Small"
-                                           OnClick="@(() => DeleteUser(context.Id))" 
-                                           Disabled="@IsCurrentUser(context)" />
-                        }
-                        
-                        @if (IsCurrentUser(context) && !context.IsDeleted)
-                        {
-                            <MudTooltip Text="You cannot delete your own account">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                               Color="Color.Default" 
-                                               Size="Size.Small"
-                                               Disabled="true" />
-                            </MudTooltip>
-                        }
-                    </div>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudPaper>
-</MudContainer>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="User" Property="Email" Title="Email" Sortable="true">
+                    <Template Context="context">
+                        <div style="color: #1976d2;">@context.Email</div>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="User" Property="Role.RoleName" Title="Role" Width="200px" Sortable="true">
+                    <Template Context="context">
+                        <!-- Display role as badge instead of dropdown for better UX -->
+                        <RadzenBadge Text="@context.Role?.RoleName" 
+                                    Style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 6px; font-weight: 500;" 
+                                    BadgeStyle="BadgeStyle.Light" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="User" Title="Actions" Width="120px" Sortable="false">
+                    <Template Context="context">
+                        <div style="display: flex; gap: 8px;">
+                            @if (CanEditUser(context))
+                            {
+                                <!-- Button radius: 6px (consistent with other buttons) -->
+                                <RadzenButton Text="Edit" 
+                                             Variant="Variant.Text" 
+                                             Size="ButtonSize.Small" 
+                                             Click="@(() => EditUser(context.Id))"
+                                             Style="color: #1976d2; padding: 6px 16px; border-radius: 6px;" />
+                            }
+                        </div>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+</div>
 
 @code {
-
+    private RadzenDataGrid<User>? _grid;
     private List<User> _users = new();
     private List<Role>? _roles;
     private UserSearchModel _searchModel = new();
@@ -292,84 +306,72 @@
         var userToDelete = await UserService.GetByIdAsync(id);
         if (userToDelete == null)
         {
-            Snackbar.Add("User not found", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = "User not found" });
             return;
         }
-        
+
         // Prevent self-deletion
         if (IsCurrentUser(userToDelete))
         {
-            Snackbar.Add("You cannot delete your own account", Severity.Warning);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Warning, Summary = "Action Denied", Detail = "You cannot delete your own account" });
             return;
         }
-        
+
         // Check permission
         if (!HasPermission("Users.Delete"))
         {
-            Snackbar.Add("You don't have permission to delete users", Severity.Error);
+            NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Permission Denied", Detail = "You don't have permission to delete users" });
             return;
         }
         
-        var result = await DialogService.ShowMessageBox(
-            "Confirm Delete",
-            $"Are you sure you want to delete {userToDelete.FirstName} {userToDelete.LastName}? This action can be undone later.",
-            yesText: "Delete", cancelText: "Cancel");
+        var result = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {userToDelete.FirstName} {userToDelete.LastName}? This action can be undone later.");
 
-        if (result == true)
+        if (result)
         {
             var success = await UserService.DeleteAsync(id);
             if (success)
             {
-                Snackbar.Add("User deleted successfully", Severity.Success);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Success", Detail = "User deleted successfully" });
                 await LoadUsers();
             }
             else
             {
-                Snackbar.Add("Failed to delete user", Severity.Error);
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = "Failed to delete user" });
             }
         }
     }
 
-
-
     private async Task RestoreUser(int id)
-
     {
+        var result = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to restore this user?");
 
-        var result = await DialogService.ShowMessageBox(
-
-            "Confirm Restore",
-
-            "Are you sure you want to restore this user?",
-
-            yesText: "Restore", cancelText: "Cancel");
-
-
-
-        if (result == true)
-
+        if (result)
         {
-
             var success = await UserService.RestoreAsync(id);
-
             if (success)
-
             {
-
-                Snackbar.Add("User restored successfully", Severity.Success);
-
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Success, Summary = "Success", Detail = "User restored successfully" });
                 await LoadUsers();
-
             }
-
             else
-
             {
-
-                Snackbar.Add("Failed to restore user", Severity.Error);
-
+                NotificationService.Notify(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = "Failed to restore user" });
             }
-
         }
+    }
+
+    private string GetUserInitials(User user)
+    {
+        var firstInitial = !string.IsNullOrEmpty(user.FirstName) && user.FirstName.Length > 0 
+            ? user.FirstName.Substring(0, 1).ToUpper() 
+            : "";
+        var lastInitial = !string.IsNullOrEmpty(user.LastName) && user.LastName.Length > 0 
+            ? user.LastName.Substring(0, 1).ToUpper() 
+            : "";
+        
+        if (string.IsNullOrEmpty(firstInitial) && string.IsNullOrEmpty(lastInitial))
+            return user.Username.Substring(0, Math.Min(2, user.Username.Length)).ToUpper();
+        
+        return firstInitial + lastInitial;
     }
 }

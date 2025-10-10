@@ -1,289 +1,256 @@
-@using Microsoft.AspNetCore.Components.Web
-@using MudBlazor
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
 @using ModularSys.Inventory.Models
-@using System.ComponentModel.DataAnnotations
+@using Radzen.Blazor
+@using Radzen
 
 @inject IProductService ProductService
 @inject ISalesOrderService SalesOrderService
-@inject IDialogService Dialogs
-@inject ISnackbar Snack
+@inject DialogService DialogService
+@inject NotificationService NotificationService
 
-<MudDialog>
-    <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="pa-0">
-            <MudStack Spacing="4">
-                <!-- Header -->
-                <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="3" Class="pb-2">
-                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Primary" Size="Size.Large" />
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.h5">@(_isEditMode ? "Edit Sales Order" : "New Sales Order")</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @(_isEditMode ? "Modify existing sales order details" : "Create a new sales order for customer")
-                        </MudText>
-                    </MudStack>
-                </MudStack>
+<RadzenTemplateForm TItem="SalesOrderMultiInputModel" Data="@_model" Submit="@OnSubmit">
+    <RadzenStack Gap="1rem">
+        <!-- Header -->
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Class="pb-2">
+            <RadzenIcon Icon="receipt_long" Size="IconSize.Large" Style="color: var(--rz-primary-color);" />
+            <RadzenStack Gap="0">
+                <RadzenText TextStyle="TextStyle.H5" Text="@(_isEditMode ? "Edit Sales Order" : "New Sales Order")" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-secondary-text-color);">
+                    @(_isEditMode ? "Modify existing sales order details" : "Create a new sales order for customer")
+                </RadzenText>
+            </RadzenStack>
+        </RadzenStack>
 
-                @if (!string.IsNullOrEmpty(_errorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = null">
-                        @_errorMessage
-                    </MudAlert>
-                }
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" AllowClose="true" Close="@(() => _errorMessage = null)">
+                @_errorMessage
+            </RadzenAlert>
+        }
 
-                <MudForm @ref="_form" Model="_model">
-                    <MudStack Spacing="4">
-                        <!-- Order Information -->
-                        <MudCard Elevation="1" Class="pa-4">
-                            <MudCardHeader>
-                                <CardHeaderContent>
-                                    <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Primary" />
-                                        <MudText Typo="Typo.h6">Order Information</MudText>
-                                    </MudStack>
-                                </CardHeaderContent>
-                            </MudCardHeader>
-                            <MudCardContent>
-                                <MudGrid>
-                                    <MudItem xs="12" md="6">
-                                        <MudTextField @bind-Value="_model.CustomerName" 
-                                                     Label="Customer Name" 
-                                                     Variant="Variant.Outlined"
-                                                     Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Filled.Person" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="6">
-                                        <MudTextField @bind-Value="_model.CustomerEmail" 
-                                                     Label="Customer Email" 
-                                                     Variant="Variant.Outlined"
-                                                     Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Filled.Email" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="6">
-                                        <MudDatePicker @bind-Date="_model.OrderDate" 
-                                                      Label="Order Date" 
-                                                      Variant="Variant.Outlined"
-                                                      Adornment="Adornment.Start"
-                                                      AdornmentIcon="@Icons.Material.Filled.CalendarToday" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="6">
-                                        <MudDatePicker @bind-Date="_model.DeliveryDate" 
-                                                      Label="Expected Delivery" 
-                                                      Variant="Variant.Outlined"
-                                                      Clearable="true"
-                                                      Adornment="Adornment.Start"
-                                                      AdornmentIcon="@Icons.Material.Filled.LocalShipping" />
-                                    </MudItem>
-                                    <MudItem xs="12">
-                                        <MudTextField @bind-Value="_model.Notes" 
-                                                     Label="Order Notes" 
-                                                     Variant="Variant.Outlined"
-                                                     Lines="3"
-                                                     Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Filled.Notes" />
-                                    </MudItem>
-                                </MudGrid>
-                            </MudCardContent>
-                        </MudCard>
+        <RadzenStack Gap="1rem">
+            <!-- Order Information -->
+            <RadzenCard Elevation="1" Class="pa-4">
+                <RadzenCardHeader>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="info" Style="color: var(--rz-primary-color);" />
+                        <RadzenText TextStyle="TextStyle.H6" Text="Order Information" />
+                    </RadzenStack>
+                </RadzenCardHeader>
+                <RadzenCardContent>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenLabel Text="Customer Name" />
+                            <RadzenTextBox @bind-Value="_model.CustomerName"
+                                         Placeholder="Enter customer name"
+                                         Style="width: 100%;"
+                                         Required="true" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenLabel Text="Customer Email" />
+                            <RadzenTextBox @bind-Value="_model.CustomerEmail"
+                                         Placeholder="customer@example.com"
+                                         Style="width: 100%;" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenLabel Text="Order Date" />
+                            <RadzenDatePicker @bind-Value="_model.OrderDate"
+                                            Style="width: 100%;"
+                                            Required="true" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenLabel Text="Expected Delivery" />
+                            <RadzenDatePicker @bind-Value="_model.DeliveryDate"
+                                            Style="width: 100%;"
+                                            AllowClear="true" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="12">
+                            <RadzenLabel Text="Order Notes" />
+                            <RadzenTextArea @bind-Value="_model.Notes"
+                                          Placeholder="Additional order notes or special instructions"
+                                          Rows="3"
+                                          Style="width: 100%;" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCardContent>
+            </RadzenCard>
 
-                        <!-- Order Lines -->
-                        <MudCard Elevation="1" Class="pa-4">
-                            <MudCardHeader>
-                                <CardHeaderContent>
-                                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
-                                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" />
-                                            <MudText Typo="Typo.h6">Order Items (@_model.Lines.Count)</MudText>
-                                        </MudStack>
-                                        <MudButton Variant="Variant.Filled" 
-                                                  Color="Color.Primary" 
-                                                  StartIcon="@Icons.Material.Filled.Add" 
-                                                  OnClick="AddLine"
-                                                  Size="Size.Small">
-                                            Add Item
-                                        </MudButton>
-                                    </MudStack>
-                                </CardHeaderContent>
-                            </MudCardHeader>
-                            <MudCardContent>
-                                @if (_model.Lines.Any())
-                                {
-                                    <MudStack Spacing="3">
-                                        @foreach (var (line, index) in _model.Lines.Select((line, i) => (line, i)))
-                                        {
-                                            <MudCard Elevation="0" Class="border-solid border mud-border-lines-default pa-3">
-                                                <MudStack Spacing="3">
-                                                    <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">Item #@(index + 1)</MudText>
-                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                                      Color="Color.Error"
-                                                                      Size="Size.Small"
-                                                                      Title="Remove Item"
-                                                                      OnClick="@(() => RemoveLine(line))" />
-                                                    </MudStack>
-                                                    
-                                                    <MudGrid>
-                                                        <MudItem xs="12" md="5">
-                                                            <MudSelect T="int?"
-                                                                      Label="Product"
-                                                                      Required="true"
-                                                                      Variant="Variant.Outlined"
-                                                                      Value="@(line.ProductId == 0 ? (int?)null : line.ProductId)"
-                                                                      ValueChanged="@(id => OnProductChanged(line, id ?? 0))"
-                                                                      Adornment="Adornment.Start"
-                                                                      AdornmentIcon="@Icons.Material.Filled.Inventory">
-                                                                <MudSelectItem T="int?" Value="@((int?)null)" Disabled="true">Select a product...</MudSelectItem>
-                                                                @foreach (var product in _products)
-                                                                {
-                                                                    <MudSelectItem T="int?" Value="@product.ProductId">
-                                                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Justify="@Justify.SpaceBetween">
-                                                                            <MudStack Spacing="0">
-                                                                                <MudText>@product.Name</MudText>
-                                                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                                                    SKU: @product.SKU | Stock: @product.QuantityOnHand
-                                                                                </MudText>
-                                                                            </MudStack>
-                                                                            <MudText Typo="Typo.body2">@product.UnitPrice.ToString("C")</MudText>
-                                                                        </MudStack>
-                                                                    </MudSelectItem>
-                                                                }
-                                                            </MudSelect>
-                                                        </MudItem>
-                                                        <MudItem xs="6" md="2">
-                                                            <MudNumericField T="int"
-                                                                           Label="Quantity"
-                                                                           Required="true"
-                                                                           Min="1"
-                                                                           Variant="Variant.Outlined"
-                                                                           @bind-Value="line.Quantity"
-                                                                           Adornment="Adornment.Start"
-                                                                           AdornmentIcon="@Icons.Material.Filled.Numbers" />
-                                                        </MudItem>
-                                                        <MudItem xs="6" md="2">
-                                                            <MudNumericField T="decimal"
-                                                                           Label="Unit Price"
-                                                                           ReadOnly="true"
-                                                                           Variant="Variant.Outlined"
-                                                                           @bind-Value="line.UnitPrice"
-                                                                           Adornment="Adornment.Start"
-                                                                           AdornmentText="₱" />
-                                                        </MudItem>
-                                                        <MudItem xs="12" md="3">
-                                                            <MudStack AlignItems="@AlignItems.Center" Spacing="1">
-                                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Line Total</MudText>
-                                                                <MudText Typo="Typo.h6" Color="Color.Success">
-                                                                    ₱@line.LineTotal.ToString("#,##0.00")
-                                                                </MudText>
-                                                            </MudStack>
-                                                        </MudItem>
-                                                    </MudGrid>
-                                                </MudStack>
-                                            </MudCard>
-                                        }
-                                    </MudStack>
-                                }
-                                else
-                                {
-                                    <MudStack AlignItems="@AlignItems.Center" Class="pa-8">
-                                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCartCheckout" Size="Size.Large" Color="Color.Secondary" />
-                                        <MudText Typo="Typo.h6" Color="Color.Secondary">No items added</MudText>
-                                        <MudText Color="Color.Secondary">Add items to create the sales order</MudText>
-                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddLine" Class="mt-2">
-                                            Add First Item
-                                        </MudButton>
-                                    </MudStack>
-                                }
-                            </MudCardContent>
-                        </MudCard>
+            <!-- Order Lines -->
+            <RadzenCard Elevation="1" Class="pa-4">
+                <RadzenCardHeader>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenIcon Icon="shopping_cart" Style="color: var(--rz-primary-color);" />
+                            <RadzenText TextStyle="TextStyle.H6" Text="@($"Order Items ({_model.Lines.Count})")" />
+                        </RadzenStack>
+                        <RadzenButton Text="Add Item"
+                                    Icon="add"
+                                    ButtonStyle="ButtonStyle.Primary"
+                                    Size="ButtonSize.Small"
+                                    Click="AddLine" />
+                    </RadzenStack>
+                </RadzenCardHeader>
+                <RadzenCardContent>
+                    @if (_model.Lines.Any())
+                    {
+                        <RadzenStack Gap="1rem">
+                            @foreach (var (line, index) in _model.Lines.Select((line, i) => (line, i)))
+                            {
+                                <RadzenCard Elevation="0" Style="border: 1px solid var(--rz-base-300); border-radius: 8px;" Class="pa-3">
+                                    <RadzenStack Gap="1rem">
+                                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--rz-primary-color);">Item #@(index + 1)</RadzenText>
+                                            <RadzenButton Icon="delete"
+                                                        ButtonStyle="ButtonStyle.Danger"
+                                                        Size="ButtonSize.Small"
+                                                        Variant="Variant.Text"
+                                                        Click="@(() => RemoveLine(line))" />
+                                        </RadzenStack>
 
-                        <!-- Order Summary -->
-                        @if (_model.Lines.Any())
-                        {
-                            <MudCard Elevation="2" Class="pa-4" Style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-                                <MudCardHeader>
-                                    <CardHeaderContent>
-                                        <MudStack Row="true" AlignItems="@AlignItems.Center" Spacing="2">
-                                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Success" />
-                                            <MudText Typo="Typo.h6">Order Summary</MudText>
-                                        </MudStack>
-                                    </CardHeaderContent>
-                                </MudCardHeader>
-                                <MudCardContent>
-                                    <MudGrid>
-                                        <MudItem xs="12" md="8">
-                                            <MudStack Spacing="2">
-                                                <MudStack Row="true" Justify="@Justify.SpaceBetween">
-                                                    <MudText Typo="Typo.body1">Subtotal:</MudText>
-                                                    <MudText Typo="Typo.body1">₱@_model.SubTotal.ToString("#,##0.00")</MudText>
-                                                </MudStack>
-                                                <MudStack Row="true" Justify="@Justify.SpaceBetween">
-                                                    <MudText Typo="Typo.body1">Tax (12%):</MudText>
-                                                    <MudText Typo="Typo.body1">₱@_model.TaxAmount.ToString("#,##0.00")</MudText>
-                                                </MudStack>
-                                                <MudDivider />
-                                                <MudStack Row="true" Justify="@Justify.SpaceBetween">
-                                                    <MudText Typo="Typo.h6" Color="Color.Success">Grand Total:</MudText>
-                                                    <MudText Typo="Typo.h6" Color="Color.Success">₱@_model.GrandTotal.ToString("#,##0.00")</MudText>
-                                                </MudStack>
-                                            </MudStack>
-                                        </MudItem>
-                                        <MudItem xs="12" md="4">
-                                            <MudStack AlignItems="@AlignItems.Center" Spacing="1">
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Items</MudText>
-                                                <MudText Typo="Typo.h4" Color="Color.Primary">@_model.Lines.Sum(l => l.Quantity)</MudText>
-                                            </MudStack>
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudCardContent>
-                            </MudCard>
-                        }
-                    </MudStack>
-                </MudForm>
-            </MudStack>
-        </MudContainer>
-    </DialogContent>
-    <DialogActions>
-        <MudStack Row="true" Spacing="2" Class="pa-4">
-            <MudButton Variant="Variant.Text" 
-                      Color="Color.Secondary" 
-                      OnClick="Cancel"
-                      StartIcon="@Icons.Material.Filled.Cancel">
-                Cancel
-            </MudButton>
-            <MudButton Variant="Variant.Filled" 
-                      Color="Color.Primary" 
-                      OnClick="Save" 
-                      Disabled="@(!_model.Lines.Any() || _saving)"
-                      StartIcon="@(_saving ? null : Icons.Material.Filled.Save)"
-                      Loading="_saving">
-                @(_isEditMode ? "Update Order" : "Create Order")
-            </MudButton>
-        </MudStack>
-    </DialogActions>
-</MudDialog>
+                                        <RadzenRow Gap="1rem">
+                                            <RadzenColumn Size="12" SizeMD="5">
+                                                <RadzenLabel Text="Product" />
+                                                <RadzenDropDown @bind-Value="line.ProductId"
+                                                              Placeholder="Select a product..."
+                                                              Style="width: 100%;"
+                                                              Required="true"
+                                                              Data="@_products"
+                                                              TextProperty="Name"
+                                                              ValueProperty="ProductId"
+                                                              Change="@(args => OnProductChanged(line, Convert.ToInt32(args)))"
+                                                              AllowClear="false">
+                                                    <Template Context="product">
+                                                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                                            <RadzenStack Gap="0">
+                                                                <RadzenText Text="@product.Name" />
+                                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--rz-secondary-text-color);">
+                                                                    SKU: @product.SKU | Stock: @product.QuantityOnHand
+                                                                </RadzenText>
+                                                            </RadzenStack>
+                                                            <RadzenText TextStyle="TextStyle.Body2" Text="@product.UnitPrice.ToString("C")" />
+                                                        </RadzenStack>
+                                                    </Template>
+                                                </RadzenDropDown>
+                                            </RadzenColumn>
+                                            <RadzenColumn Size="6" SizeMD="2">
+                                                <RadzenLabel Text="Quantity" />
+                                                <RadzenNumeric @bind-Value="line.Quantity"
+                                                             Min="1"
+                                                             Style="width: 100%;"
+                                                             Required="true" />
+                                            </RadzenColumn>
+                                            <RadzenColumn Size="6" SizeMD="2">
+                                                <RadzenLabel Text="Unit Price" />
+                                                <RadzenNumeric @bind-Value="line.UnitPrice"
+                                                             ReadOnly="true"
+                                                             Style="width: 100%;"
+                                                             Format="C" />
+                                            </RadzenColumn>
+                                            <RadzenColumn Size="12" SizeMD="3">
+                                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--rz-secondary-text-color);">Line Total</RadzenText>
+                                                    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-success-color);">
+                                                        ₱@line.LineTotal.ToString("#,##0.00")
+                                                    </RadzenText>
+                                                </RadzenStack>
+                                            </RadzenColumn>
+                                        </RadzenRow>
+                                    </RadzenStack>
+                                </RadzenCard>
+                            }
+                        </RadzenStack>
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" Class="pa-8">
+                            <RadzenIcon Icon="shopping_cart_checkout" Size="IconSize.Large" Style="color: var(--rz-secondary-text-color);" />
+                            <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-secondary-text-color);">No items added</RadzenText>
+                            <RadzenText Style="color: var(--rz-secondary-text-color);">Add items to create the sales order</RadzenText>
+                            <RadzenButton Text="Add First Item"
+                                        Icon="add"
+                                        ButtonStyle="ButtonStyle.Primary"
+                                        Click="AddLine"
+                                        Class="mt-2" />
+                        </RadzenStack>
+                    }
+                </RadzenCardContent>
+            </RadzenCard>
+
+            <!-- Order Summary -->
+            @if (_model.Lines.Any())
+            {
+                <RadzenCard Elevation="2" Class="pa-4" Style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+                    <RadzenCardHeader>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenIcon Icon="receipt" Style="color: var(--rz-success-color);" />
+                            <RadzenText TextStyle="TextStyle.H6" Text="Order Summary" />
+                        </RadzenStack>
+                    </RadzenCardHeader>
+                    <RadzenCardContent>
+                        <RadzenRow Gap="1rem">
+                            <RadzenColumn Size="12" SizeMD="8">
+                                <RadzenStack Gap="1rem">
+                                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                        <RadzenText TextStyle="TextStyle.Body1" Text="Subtotal:" />
+                                        <RadzenText TextStyle="TextStyle.Body1" Text="@_model.SubTotal.ToString("₱#,##0.00")" />
+                                    </RadzenStack>
+                                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                        <RadzenText TextStyle="TextStyle.Body1" Text="Tax (12%):" />
+                                        <RadzenText TextStyle="TextStyle.Body1" Text="@_model.TaxAmount.ToString("₱#,##0.00")" />
+                                    </RadzenStack>
+                                    <RadzenDivider />
+                                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                                        <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-success-color);">Grand Total:</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.H6" Style="color: var(--rz-success-color);">@_model.GrandTotal.ToString("₱#,##0.00")</RadzenText>
+                                    </RadzenStack>
+                                </RadzenStack>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="4">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--rz-secondary-text-color);">Total Items</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H4" Style="color: var(--rz-primary-color);">@_model.Lines.Sum(l => l.Quantity)</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </RadzenCardContent>
+                </RadzenCard>
+            }
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End" Class="pt-4">
+            <RadzenButton Text="Cancel"
+                        ButtonStyle="ButtonStyle.Light"
+                        Click="@Cancel"
+                        Icon="cancel" />
+            <RadzenButton Text="@(_isEditMode ? "Update Order" : "Create Order")"
+                        ButtonType="ButtonType.Submit"
+                        ButtonStyle="ButtonStyle.Primary"
+                        Icon="@(_saving ? null : "save")"
+                        Disabled="@(!_model.Lines.Any() || _saving)"
+                        Loading="_saving" />
+        </RadzenStack>
+    </RadzenStack>
+</RadzenTemplateForm>
 
 @code {
     private SalesOrderMultiInputModel _model = new();
-    private MudForm _form;
     private List<Product> _products = new();
     private string _errorMessage;
     private bool _saving = false;
-    private bool _isEditMode = false;
+    private bool _isEditMode => Id.HasValue;
 
     [Parameter] public int? Id { get; set; }
     [Parameter] public bool ReadOnly { get; set; }
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _products = (await ProductService.GetAllAsync()).ToList();
-            
-            if (Id.HasValue)
+
+            if (_isEditMode)
             {
-                _isEditMode = true;
                 await LoadExistingOrder();
             }
             else
@@ -349,39 +316,27 @@
     {
         line.ProductId = productId;
         var selected = _products.FirstOrDefault(p => p.ProductId == productId);
-        if (selected is not null)
+        if (selected != null)
         {
             line.UnitPrice = selected.UnitPrice;
         }
     }
 
-    private async Task Save()
+    private async Task OnSubmit()
     {
         if (_saving) return;
-        
+
         _errorMessage = null;
         _saving = true;
 
         try
         {
-            await _form.Validate();
-            if (!_form.IsValid) return;
-
             // Validate that all lines have products selected
             if (_model.Lines.Any(l => l.ProductId == 0))
             {
                 _errorMessage = "Please select a product for all order lines.";
                 return;
             }
-
-            var actionText = _isEditMode ? "update" : "create";
-            bool? confirm = await Dialogs.ShowMessageBox(
-                $"{(_isEditMode ? "Update" : "Create")} Sales Order",
-                $"Are you sure you want to {actionText} this sales order for {_model.GrandTotal:C}?",
-                yesText: _isEditMode ? "Update" : "Create", 
-                cancelText: "Cancel");
-
-            if (confirm != true) return;
 
             if (_isEditMode)
             {
@@ -396,7 +351,7 @@
                     existingOrder.DiscountAmount = _model.DiscountAmount;
                     existingOrder.ShippingCost = _model.ShippingCost;
                     existingOrder.PaymentMethod = _model.PaymentMethod;
-                    
+
                     // Update lines
                     existingOrder.Lines.Clear();
                     foreach (var line in _model.Lines)
@@ -410,7 +365,7 @@
                     }
 
                     await SalesOrderService.UpdateAsync(existingOrder);
-                    Snack.Add("Sales order updated successfully.", Severity.Success);
+                    NotificationService.Notify(NotificationSeverity.Success, "Success", "Sales order updated successfully");
                 }
             }
             else
@@ -436,14 +391,10 @@
                 };
 
                 await SalesOrderService.CreateAsync(order);
-                Snack.Add("Sales order created successfully.", Severity.Success);
+                NotificationService.Notify(NotificationSeverity.Success, "Success", "Sales order created successfully");
             }
 
-            MudDialog.Close(DialogResult.Ok(true));
-        }
-        catch (ValidationException ex)
-        {
-            _errorMessage = ex.Message;
+            DialogService.Close(true);
         }
         catch (Exception ex)
         {
@@ -455,5 +406,8 @@
         }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        DialogService.Close(false);
+    }
 }

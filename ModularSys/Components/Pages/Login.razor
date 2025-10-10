@@ -1,404 +1,157 @@
 @page "/login"
 @using ModularSys.Core.Interfaces
+@using Radzen
+@using Radzen.Blazor
+
 @inject IAuthService AuthService
 @inject NavigationManager Nav
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
 
-<div class="login-container">
-    <div class="login-left">
-        <!-- Brand Section -->
-        <div class="brand-section">
-            <div class="brand-logo">
-                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Style="color: white;" />
-            </div>
-            <MudText Typo="Typo.h3" Class="brand-title">ModularSys</MudText>
-            <MudText Typo="Typo.body1" Class="brand-subtitle">
-                Desktop Modular Business Platform
-            </MudText>
-        </div>
-        
-        <!-- Features -->
-        <div class="features-section">
-            <div class="feature-item">
-                <MudIcon Icon="@Icons.Material.Filled.Extension" Class="feature-icon" />
-                <div>
-                    <MudText Typo="Typo.subtitle2" Class="feature-title">Modular Architecture</MudText>
-                    <MudText Typo="Typo.caption" Class="feature-desc">Plug-and-play system modules</MudText>
-                </div>
-            </div>
-            <div class="feature-item">
-                <MudIcon Icon="@Icons.Material.Filled.DesktopWindows" Class="feature-icon" />
-                <div>
-                    <MudText Typo="Typo.subtitle2" Class="feature-title">Desktop Native</MudText>
-                    <MudText Typo="Typo.caption" Class="feature-desc">Optimized for desktop workflows</MudText>
-                </div>
-            </div>
-            <div class="feature-item">
-                <MudIcon Icon="@Icons.Material.Filled.AccountTree" Class="feature-icon" />
-                <div>
-                    <MudText Typo="Typo.subtitle2" Class="feature-title">Scalable System</MudText>
-                    <MudText Typo="Typo.caption" Class="feature-desc">Add modules as you grow</MudText>
-                </div>
-            </div>
-        </div>
+<PageTitle>Login - ModularSys Enterprise</PageTitle>
+
+<div style="min-height: 100vh; display: flex; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <!-- Left Side - Branding -->
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; color: white;">
+        <RadzenStack AlignItems="AlignItems.Center" Gap="2rem" Style="max-width: 500px;">
+            <RadzenIcon Icon="business" Style="font-size: 5rem; color: white;" />
+            <RadzenText TextStyle="TextStyle.H2" Text="ModularSys Enterprise" Style="color: white; font-weight: 700; text-align: center;" />
+            <RadzenText TextStyle="TextStyle.H6" Text="Modular Business Management Platform" Style="color: rgba(255,255,255,0.9); text-align: center;" />
+            
+            <RadzenStack Gap="1rem" Style="margin-top: 2rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem;" />
+                    <RadzenText Text="Modular Architecture" Style="font-size: 1.125rem;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem;" />
+                    <RadzenText Text="Enterprise Security" Style="font-size: 1.125rem;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem;" />
+                    <RadzenText Text="Real-time Analytics" Style="font-size: 1.125rem;" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenStack>
     </div>
-    
-    <div class="login-right">
-        <div class="login-form-container">
-            <!-- Header -->
-            <div class="form-header">
-                <MudText Typo="Typo.h4" Class="form-title">Welcome back</MudText>
-                <MudText Typo="Typo.body2" Class="form-subtitle">
-                    Sign in to your account to continue
-                </MudText>
-            </div>
 
-            <!-- Login Form -->
-            <MudForm @ref="_form" Class="login-form">
-                <MudStack Spacing="3">
-                    <MudTextField @bind-Value="username"
-                                  Label="Username"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  FullWidth="true"
-                                  Class="modern-input"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Person" />
+    <!-- Right Side - Login Form -->
+    <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 3rem; background: white;">
+        <RadzenCard Style="width: 100%; max-width: 450px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <RadzenStack Gap="2rem" Style="padding: 1rem;">
+                <!-- Header -->
+                <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="lock" Style="font-size: 2.5rem; color: white;" />
+                    </div>
+                    <RadzenText TextStyle="TextStyle.H4" Text="Sign In" Style="font-weight: 700;" />
+                    <RadzenText Text="Enter your credentials to access your account" Style="color: var(--rz-text-secondary-color); text-align: center;" />
+                </RadzenStack>
+                
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Danger" Shade="Shade.Lighter" Variant="Variant.Flat" 
+                               Title="Login Failed" Style="border-left: 4px solid var(--rz-danger);">
+                        @error
+                    </RadzenAlert>
+                }
+                
+                <!-- Login Form -->
+                <RadzenTemplateForm TItem="LoginModel" Data="@_model" Submit="@HandleLogin">
+                    <RadzenStack Gap="1.5rem">
+                        <RadzenFormField Text="Username" Variant="Variant.Outlined">
+                            <ChildContent>
+                                <RadzenTextBox @bind-Value="_model.Username" Style="width: 100%;" Placeholder="Enter your username" />
+                            </ChildContent>
+                            <Helper>
+                                <RadzenText TextStyle="TextStyle.Caption" Text="Your unique username" />
+                            </Helper>
+                        </RadzenFormField>
+                        
+                        <RadzenFormField Text="Password" Variant="Variant.Outlined">
+                            <ChildContent>
+                                <RadzenPassword @bind-Value="_model.Password" Style="width: 100%;" Placeholder="Enter your password" />
+                            </ChildContent>
+                            <Helper>
+                                <RadzenText TextStyle="TextStyle.Caption" Text="Your secure password" />
+                            </Helper>
+                        </RadzenFormField>
+                        
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenCheckBox @bind-Value="_model.RememberMe" Name="remember" />
+                            <RadzenLabel Text="Remember me" Component="remember" Style="margin-left: 0.5rem; cursor: pointer;" />
+                        </RadzenStack>
+                        
+                        <RadzenButton Text="Sign In" 
+                                    ButtonType="ButtonType.Submit" 
+                                    ButtonStyle="ButtonStyle.Primary"
+                                    Style="width: 100%; height: 48px; font-size: 1.125rem; font-weight: 600;" 
+                                    IsBusy="@_isLoading"
+                                    Disabled="@_isLoading" />
+                    </RadzenStack>
+                </RadzenTemplateForm>
 
-                    <MudTextField @bind-Value="password"
-                                  Label="Password"
-                                  Variant="Variant.Outlined"
-                                  Required="true"
-                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
-                                  FullWidth="true"
-                                  Class="modern-input"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
-                                  OnAdornmentClick="@(() => _showPassword = !_showPassword)" />
-                    
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudCheckBox @bind-Value="_rememberMe" 
-                                     Label="Remember me" 
-                                     Color="Color.Primary" 
-                                     Size="Size.Small" />
-                        <MudLink Href="#" Class="forgot-link">Forgot password?</MudLink>
-                    </MudStack>
-
-                    <MudButton OnClick="LoginUser"
-                               Disabled="@_loading"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               FullWidth="true"
-                               Size="Size.Large"
-                               Class="login-button">
-                        @if (_loading)
-                        {
-                            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-2" />
-                            <span>Signing in...</span>
-                        }
-                        else
-                        {
-                            <span>Sign In</span>
-                        }
-                    </MudButton>
-                </MudStack>
-            </MudForm>
-
-            <!-- Error message -->
-            @if (!string.IsNullOrEmpty(error))
-            {
-                <MudAlert Severity="Severity.Error" Class="error-alert">
-                    @error
-                </MudAlert>
-            }
-            
-            <!-- Divider -->
-            <div class="divider-section">
-                <div class="divider-line"></div>
-                <MudText Typo="Typo.caption" Class="divider-text">or</MudText>
-                <div class="divider-line"></div>
-            </div>
-            
-            <!-- Register Link -->
-            <MudText Typo="Typo.body2" Align="Align.Center" Class="register-text">
-                Don't have an account?
-                <MudLink Href="/register" Class="register-link">
-                    Create one here
-                </MudLink>
-            </MudText>
-            
-            <!-- Footer -->
-            <div class="form-footer">
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
-                    © @DateTime.Now.Year ModularSys. All rights reserved.
-                </MudText>
-            </div>
-        </div>
+                <!-- Footer -->
+                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Text="ModularSys Enterprise v1.0.0" Style="color: var(--rz-text-secondary-color);" />
+                    <RadzenText TextStyle="TextStyle.Caption" Text="© 2025 All rights reserved" Style="color: var(--rz-text-secondary-color);" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
     </div>
 </div>
 
-<style>
-    .login-container {
-        display: flex;
-        min-height: 100vh;
-        background: #f8fafc;
-    }
-    
-    .login-left {
-        flex: 1;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 3rem;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .login-left::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
-        opacity: 0.3;
-    }
-    
-    .brand-section {
-        text-align: center;
-        z-index: 1;
-        margin-bottom: 3rem;
-    }
-    
-    .brand-logo {
-        width: 80px;
-        height: 80px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1.5rem;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .brand-title {
-        color: white;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .brand-subtitle {
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 400;
-    }
-    
-    .features-section {
-        z-index: 1;
-        max-width: 300px;
-    }
-    
-    .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .feature-icon {
-        color: white;
-        margin-right: 1rem;
-        font-size: 1.5rem;
-    }
-    
-    .feature-title {
-        color: white;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-    
-    .feature-desc {
-        color: rgba(255, 255, 255, 0.8);
-    }
-    
-    .login-right {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        background: white;
-    }
-    
-    .login-form-container {
-        width: 100%;
-        max-width: 400px;
-    }
-    
-    .form-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .form-title {
-        color: #1e293b;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-    
-    .form-subtitle {
-        color: #64748b;
-    }
-    
-    .login-form {
-        margin-bottom: 2rem;
-    }
-    
-    .modern-input {
-        border-radius: 8px;
-    }
-    
-    .forgot-link {
-        color: #667eea;
-        text-decoration: none;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-    
-    .forgot-link:hover {
-        text-decoration: underline;
-    }
-    
-    .login-button {
-        height: 48px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-transform: none;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    
-    .login-button:hover {
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
-    }
-    
-    .error-alert {
-        margin-bottom: 1rem;
-        border-radius: 8px;
-    }
-    
-    .divider-section {
-        display: flex;
-        align-items: center;
-        margin: 1.5rem 0;
-    }
-    
-    .divider-line {
-        flex: 1;
-        height: 1px;
-        background: #e2e8f0;
-    }
-    
-    .divider-text {
-        margin: 0 1rem;
-        color: #94a3b8;
-    }
-    
-    .register-text {
-        color: #64748b;
-        margin-bottom: 2rem;
-    }
-    
-    .register-link {
-        color: #667eea;
-        font-weight: 600;
-        text-decoration: none;
-    }
-    
-    .register-link:hover {
-        text-decoration: underline;
-    }
-    
-    .form-footer {
-        border-top: 1px solid #e2e8f0;
-        padding-top: 1.5rem;
-    }
-    
-    /* Mobile Responsive */
-    @@media (max-width: 768px) {
-        .login-container {
-            flex-direction: column;
-        }
-        
-        .login-left {
-            min-height: 40vh;
-            padding: 2rem 1rem;
-        }
-        
-        .features-section {
-            display: none;
-        }
-        
-        .brand-section {
-            margin-bottom: 0;
-        }
-        
-        .login-right {
-            padding: 1.5rem;
-        }
-        
-        .login-form-container {
-            max-width: none;
-        }
-    }
-</style>
-
 @code {
-    private string username = string.Empty;
-    private string password = string.Empty;
-    private string error = string.Empty;
-    private MudForm? _form;
-    private bool _loading = false;
-    private bool _rememberMe = false;
-    private bool _showPassword = false;
-
-    private async Task LoginUser()
+    private LoginModel _model = new();
+    private string error = "";
+    private bool _isLoading = false;
+    
+    public class LoginModel
     {
-        if (_form is null) return;
-
-        await _form.Validate();
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool RememberMe { get; set; } = false;
+    }
+    
+    protected override void OnInitialized()
+    {
+        if (AuthService.IsAuthenticated)
         {
-            error = "Please enter both username and password.";
-            return;
+            Nav.NavigateTo("/dashboard");
         }
-
-        _loading = true;
-        error = null;
-
-        var result = await AuthService.LoginAsync(username, password);
-        _loading = false;
-
-        if (!result)
+    }
+    
+    private async Task HandleLogin()
+    {
+        try
         {
-            error = "Invalid username or password.";
-            Snackbar.Add("Login failed. Please check your credentials.", Severity.Error);
-        }
-        else
-        {
-            Snackbar.Add("Welcome back!", Severity.Success);
-            if (_rememberMe)
+            _isLoading = true;
+            error = "";
+            
+            if (string.IsNullOrWhiteSpace(_model.Username) || string.IsNullOrWhiteSpace(_model.Password))
             {
-                // save credentials to local storage or secure store
+                error = "Please enter both username and password";
+                return;
             }
+            
+            var success = await AuthService.LoginAsync(_model.Username, _model.Password);
+            if (success)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Welcome!", $"Successfully logged in as {_model.Username}");
+                Nav.NavigateTo("/dashboard", forceLoad: true);
+            }
+            else
+            {
+                error = "Invalid username or password. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Login failed: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "An error occurred during login");
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 }

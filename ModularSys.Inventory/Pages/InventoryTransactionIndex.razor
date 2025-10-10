@@ -1,162 +1,156 @@
 @page "/inventory-transactions"
-@using MudBlazor
 @using ModularSys.Inventory.Interface
-@using ModularSys.Data.Common.Entities.Inventory
+@using Radzen.Blazor
+@using InventoryTransactionEntity = ModularSys.Data.Common.Entities.Inventory.InventoryTransaction
 @inject IInventoryService InventoryService
+@inject NotificationService NotificationService
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
     <!-- Header -->
-    <MudPaper Class="pa-4 mb-4" Elevation="0">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <MudText Typo="Typo.h5" Class="mb-1">Inventory Transactions</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">View all stock movements and transaction history</MudText>
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
+                    <RadzenIcon Icon="swap_horiz" Style="margin-right: 12px; color: #3b82f6;" />
+                    Inventory Transactions
+                </h1>
+                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">
+                    Track all inventory movements and stock changes
+                </p>
             </div>
-            <MudChip T="string" Icon="@Icons.Material.Filled.Receipt" Color="Color.Info">
-                @_filteredTransactions.Count Transactions
-            </MudChip>
-        </MudStack>
-    </MudPaper>
+            <div style="display: flex; gap: 12px;">
+                <RadzenButton Text="Refresh" 
+                            Icon="refresh" 
+                            ButtonStyle="ButtonStyle.Light"
+                            Style="border-radius: 8px;" />
+            </div>
+        </div>
+    </div>
 
-    <!-- Filters -->
-    <MudPaper Class="pa-4 mb-4" Elevation="1">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6" md="4">
-                <MudTextField @bind-Value="_searchString" 
-                             Placeholder="Search by product, reference, or notes..." 
-                             Adornment="Adornment.Start" 
-                             AdornmentIcon="@Icons.Material.Filled.Search"
-                             Immediate="true"
-                             OnDebounceIntervalElapsed="FilterTransactions"
-                             DebounceInterval="300"
-                             Variant="Variant.Outlined"
-                             Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect @bind-Value="_selectedType" 
-                          Label="Transaction Type" 
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          T="string"
-                          Clearable="true"
-                          OnClearButtonClick="@(() => { _selectedType = null; FilterTransactions(); })">
-                    <MudSelectItem T="string" Value="@("Sale")">Sale</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Purchase")">Purchase</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Adjustment")">Adjustment</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Return")">Return</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("Transfer")">Transfer</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudDatePicker @bind-Date="_startDate" 
-                              Label="From Date" 
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Clearable="true" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="2">
-                <MudButton OnClick="FilterTransactions" 
-                          Variant="Variant.Filled" 
-                          Color="Color.Primary"
-                          FullWidth="true"
-                          StartIcon="@Icons.Material.Filled.FilterList">
-                    Filter
-                </MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <!-- Quick Stats -->
+    <RadzenRow Gap="16px" Style="margin-bottom: 24px;">
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Total Transactions</RadzenText>
+                        <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@_totalTransactions</RadzenText>
+                        <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            This month
+                        </RadzenText>
+                    </div>
+                    <RadzenIcon Icon="receipt_long" Style="font-size: 3rem; color: #3b82f6;" />
+                </div>
+            </RadzenCard>
+        </RadzenColumn>
+        
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Stock In</RadzenText>
+                        <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@_stockInCount</RadzenText>
+                        <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            Incoming stock
+                        </RadzenText>
+                    </div>
+                    <RadzenIcon Icon="add_circle" Style="font-size: 3rem; color: #10b981;" />
+                </div>
+            </RadzenCard>
+        </RadzenColumn>
+        
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Stock Out</RadzenText>
+                        <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@_stockOutCount</RadzenText>
+                        <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            Outgoing stock
+                        </RadzenText>
+                    </div>
+                    <RadzenIcon Icon="remove_circle" Style="font-size: 3rem; color: #f59e0b;" />
+                </div>
+            </RadzenCard>
+        </RadzenColumn>
+        
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Net Movement</RadzenText>
+                        <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@(_stockInCount - _stockOutCount)</RadzenText>
+                        <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                            Net change
+                        </RadzenText>
+                    </div>
+                    <RadzenIcon Icon="trending_up" Style="font-size: 3rem; color: #8b5cf6;" />
+                </div>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
 
     <!-- Transactions Table -->
-    <MudTable Items="@_filteredTransactions"
-              Hover="true"
-              Breakpoint="Breakpoint.Sm"
-              Loading="@_loading"
-              LoadingProgressColor="Color.Info"
-              Elevation="2">
-        <HeaderContent>
-            <MudTh>Transaction #</MudTh>
-            <MudTh>Product</MudTh>
-            <MudTh>Type</MudTh>
-            <MudTh Style="text-align: center">Stock Change</MudTh>
-            <MudTh Style="text-align: right">Amount</MudTh>
-            <MudTh>Reference</MudTh>
-            <MudTh>Date & Time</MudTh>
-        </HeaderContent>
-
-        <RowTemplate>
-            <MudTd DataLabel="Transaction #">
-                <MudText Typo="Typo.body2" Class="fw-bold">@context.TransactionNumber</MudText>
-            </MudTd>
-            <MudTd DataLabel="Product">
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.body2" Class="fw-bold">@context.Product?.Name</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">SKU: @context.Product?.SKU</MudText>
-                </MudStack>
-            </MudTd>
-            <MudTd DataLabel="Type">
-                <MudChip T="string" Size="Size.Small" Color="@GetTransactionTypeColor(context.TransactionType)">
-                    @GetTransactionTypeIcon(context.TransactionType) @context.TransactionType
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Stock Change" Style="text-align: center">
-                <MudChip T="string" Size="Size.Small" Color="@(context.QuantityChange > 0 ? Color.Success : Color.Error)">
-                    @(context.QuantityChange > 0 ? "+" : "")@context.QuantityChange
-                </MudChip>
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                    @context.QuantityBefore → @context.QuantityAfter
-                </MudText>
-            </MudTd>
-            <MudTd DataLabel="Amount" Style="text-align: right">
-                <MudText Typo="Typo.body2" Class="fw-bold" Color="@(context.Amount >= 0 ? Color.Success : Color.Error)">
-                    @context.Amount.ToString("₱#,##0.00")
-                </MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @context.UnitCost.ToString("₱#,##0.00")/unit
-                </MudText>
-            </MudTd>
-            <MudTd DataLabel="Reference">
-                @if (!string.IsNullOrEmpty(context.Reference))
-                {
-                    <MudText Typo="Typo.body2">@context.Reference</MudText>
-                }
-                @if (!string.IsNullOrEmpty(context.Reason))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Reason</MudText>
-                }
-                @if (string.IsNullOrEmpty(context.Reference) && string.IsNullOrEmpty(context.Reason))
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">-</MudText>
-                }
-            </MudTd>
-            <MudTd DataLabel="Date">
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.body2">@context.TransactionDate.ToString("MMM dd, yyyy")</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.TransactionDate.ToString("hh:mm tt")</MudText>
-                </MudStack>
-            </MudTd>
-        </RowTemplate>
-
-        <NoRecordsContent>
-            <div class="pa-8 text-center">
-                <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
-                <MudText Typo="Typo.body1" Color="Color.Secondary">No transactions found</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Try adjusting your filters</MudText>
+    <RadzenCard Style="border-radius: 12px; padding: 0; overflow: hidden;">
+        <div style="padding: 20px; border-bottom: 1px solid #f0f0f0;">
+            <RadzenText Style="font-size: 1.125rem; font-weight: 600; color: #374151;">
+                <RadzenIcon Icon="list" Style="margin-right: 8px; color: #3b82f6;" />
+                Recent Transactions
+            </RadzenText>
+        </div>
+        
+        @if (_isLoading)
+        {
+            <div style="padding: 40px; text-align: center;">
+                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
+                <RadzenText Style="margin-top: 16px; color: #6b7280;">Loading transactions...</RadzenText>
             </div>
-        </NoRecordsContent>
-
-        <PagerContent>
-            <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
-        </PagerContent>
-    </MudTable>
-</MudContainer>
+        }
+        else if (!_transactions.Any())
+        {
+            <div style="padding: 40px; text-align: center;">
+                <RadzenIcon Icon="receipt_long" Style="font-size: 3rem; color: #6b7280; margin-bottom: 16px;" />
+                <h3 style="margin: 0 0 8px 0; color: #374151;">No Transactions Found</h3>
+                <p style="margin: 0; color: #6b7280;">Inventory transactions will appear here once you start managing stock.</p>
+            </div>
+        }
+        else
+        {
+            <RadzenDataGrid Data="@_transactions" TItem="InventoryTransactionEntity" 
+                          AllowPaging="true" PageSize="10" 
+                          AllowSorting="true" AllowFiltering="true"
+                          Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionNumber" Title="Transaction #" Width="150px" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionType" Title="Type" Width="120px">
+                        <Template Context="transaction">
+                            <RadzenBadge Text="@transaction.TransactionType" 
+                                       BadgeStyle="@(transaction.QuantityChange > 0 ? BadgeStyle.Success : BadgeStyle.Warning)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Product.Name" Title="Product" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="QuantityChange" Title="Quantity Change" Width="120px">
+                        <Template Context="transaction">
+                            <span style="color: @(transaction.QuantityChange > 0 ? "#10b981" : "#f59e0b");">
+                                @(transaction.QuantityChange > 0 ? "+" : "")@transaction.QuantityChange
+                            </span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="UnitCost" Title="Unit Cost" Width="120px" FormatString="{0:C}" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionDate" Title="Date" Width="150px" FormatString="{0:MMM dd, yyyy}" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Notes" Title="Notes" />
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </RadzenCard>
+</div>
 
 @code {
-    private List<InventoryTransaction> _transactions = new();
-    private List<InventoryTransaction> _filteredTransactions = new();
-    private bool _loading = true;
-    private string _searchString = "";
-    private string? _selectedType = null;
-    private DateTime? _startDate = null;
+    private List<InventoryTransactionEntity> _transactions = new();
+    private bool _isLoading = true;
+    private int _totalTransactions = 0;
+    private int _stockInCount = 0;
+    private int _stockOutCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -165,59 +159,28 @@
 
     private async Task LoadTransactions()
     {
-        _loading = true;
-        _transactions = (await InventoryService.GetAllAsync()).OrderByDescending(t => t.TransactionDate).ToList();
-        FilterTransactions();
-        _loading = false;
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            // Load transactions from service
+            var allTransactions = await InventoryService.GetAllAsync();
+            _transactions = allTransactions.OrderByDescending(t => t.TransactionDate).Take(100).ToList();
+            
+            // Calculate stats
+            _totalTransactions = _transactions.Count;
+            _stockInCount = _transactions.Count(t => t.QuantityChange > 0);
+            _stockOutCount = _transactions.Count(t => t.QuantityChange < 0);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load transactions: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
-
-    private void FilterTransactions()
-    {
-        _filteredTransactions = _transactions.ToList();
-
-        // Search filter
-        if (!string.IsNullOrWhiteSpace(_searchString))
-        {
-            _filteredTransactions = _filteredTransactions.Where(t =>
-                (t.Product?.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (t.Reference?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (t.Notes?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (t.TransactionNumber?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            ).ToList();
-        }
-
-        // Type filter
-        if (!string.IsNullOrEmpty(_selectedType))
-        {
-            _filteredTransactions = _filteredTransactions.Where(t => t.TransactionType == _selectedType).ToList();
-        }
-
-        // Date filter
-        if (_startDate.HasValue)
-        {
-            _filteredTransactions = _filteredTransactions.Where(t => t.TransactionDate >= _startDate.Value).ToList();
-        }
-
-        StateHasChanged();
-    }
-
-    private Color GetTransactionTypeColor(string type) => type switch
-    {
-        "Sale" => Color.Success,
-        "Purchase" => Color.Info,
-        "Adjustment" => Color.Warning,
-        "Return" => Color.Secondary,
-        "Transfer" => Color.Default,
-        _ => Color.Default
-    };
-
-    private string GetTransactionTypeIcon(string type) => type switch
-    {
-        "Sale" => "📤",
-        "Purchase" => "📥",
-        "Adjustment" => "⚖️",
-        "Return" => "↩️",
-        "Transfer" => "🔄",
-        _ => "📦"
-    };
 }

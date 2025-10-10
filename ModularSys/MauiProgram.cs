@@ -12,7 +12,7 @@ using ModularSys.Core.Security;
 using ModularSys.Core.Services;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Services.Sync;
-using MudBlazor.Services;
+using Radzen;
 
 namespace ModularSys
 {
@@ -30,12 +30,8 @@ namespace ModularSys
 
             builder.Services.AddMauiBlazorWebView();
 
-            //Mudblazor Services
-            builder.Services.AddMudServices();
-            builder.Services.AddMudBlazorDialog();
-            builder.Services.AddMudBlazorSnackbar();
-            builder.Services.AddMudBlazorResizeListener();
-            builder.Services.AddApexCharts();
+            // UI libraries
+            builder.Services.AddRadzenComponents();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

@@ -1,85 +1,309 @@
 @page "/inventory"
+@using ModularSys.Inventory.Pages
+@using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
-@using MudBlazor
 @using ModularSys.Data.Common.Entities
-@inject IDialogService DialogService
+@using Radzen.Blazor
+@inject DialogService DialogService
+@inject IInventoryDashboardService DashboardService
+@inject IProductService ProductService
+@inject ICategoryService CategoryService
+@inject ISalesOrderService SalesOrderService
+@inject IPurchaseOrderService PurchaseOrderService
+@inject NotificationService NotificationService
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-0 h-100">
-    <MudPaper Elevation="1" Class="pa-6 h-100 d-flex flex-column">
-        <MudStack Spacing="2" Class="h-100">
-            <MudText Typo="Typo.h4" GutterBottom="true">Inventory Management</MudText>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Enhanced Header with Quick Stats -->
+    <div style="margin-bottom: 32px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
+                    <RadzenIcon Icon="inventory" Style="margin-right: 12px; color: #3b82f6;" />
+                    Inventory Management
+                </h1>
+                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">
+                    Comprehensive inventory operations and business intelligence
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <RadzenButton Text="Quick Add Product" 
+                            Icon="add_box" 
+                            ButtonStyle="ButtonStyle.Primary"
+                            Click="@(async () => await OpenProductFormDialog())"
+                            Style="border-radius: 8px;" />
+                <RadzenButton Text="New Sales Order" 
+                            Icon="receipt_long" 
+                            ButtonStyle="ButtonStyle.Success"
+                            Click="@(async () => await OpenSalesOrderFormDialog())"
+                            Style="border-radius: 8px;" />
+                <RadzenButton Text="Refresh Data" 
+                            Icon="refresh" 
+                            ButtonStyle="ButtonStyle.Light"
+                            Click="@(async () => await RefreshDashboard())"
+                            Style="border-radius: 8px;" />
+            </div>
+        </div>
 
-            <MudTabs Class="h-100"
-                     Rounded="true"
-                     Elevation="0"
-                     Grow="true"
-                     Dense="true"
-                     ScrollButtons="ScrollButtons.Auto"
-                     KeepPanelsAlive="false">
+        <!-- Quick Overview Cards -->
+        @if (_isLoading)
+        {
+            <RadzenRow Gap="16px" Style="margin-bottom: 24px;">
+                @for (int i = 0; i < 4; i++)
+                {
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenCard Style="border-radius: 12px; padding: 20px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                            <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
+                        </RadzenCard>
+                    </RadzenColumn>
+                }
+            </RadzenRow>
+        }
+        else if (_dashboardData != null)
+        {
+            <RadzenRow Gap="16px" Style="margin-bottom: 24px;">
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Total Products</RadzenText>
+                                <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@_dashboardData.TotalProducts</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                                    @_dashboardData.TotalCategories categories
+                                </RadzenText>
+                            </div>
+                            <RadzenIcon Icon="inventory_2" Style="font-size: 3rem; color: #3b82f6;" />
+                        </div>
+                    </RadzenCard>
+                </RadzenColumn>
+                
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Inventory Value</RadzenText>
+                                <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">₱@_dashboardData.TotalInventoryValue.ToString("N0")</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                                    Current valuation
+                                </RadzenText>
+                            </div>
+                            <RadzenIcon Icon="account_balance_wallet" Style="font-size: 3rem; color: #10b981;" />
+                        </div>
+                    </RadzenCard>
+                </RadzenColumn>
+                
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Low Stock Alerts</RadzenText>
+                                <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@_dashboardData.LowStockCount</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                                    Need attention
+                                </RadzenText>
+                            </div>
+                            <RadzenIcon Icon="warning" Style="font-size: 3rem; color: #f59e0b;" />
+                        </div>
+                    </RadzenCard>
+                </RadzenColumn>
+                
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <RadzenText Style="font-size: 0.875rem; color: #6b7280; margin-bottom: 4px;">Pending Orders</RadzenText>
+                                <RadzenText Style="font-size: 2rem; font-weight: 700; margin: 0; color: #374151;">@(_dashboardData.PendingSalesOrders + _dashboardData.PendingPurchaseOrders)</RadzenText>
+                                <RadzenText Style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+                                    Sales + Purchase
+                                </RadzenText>
+                            </div>
+                            <RadzenIcon Icon="pending_actions" Style="font-size: 3rem; color: #8b5cf6;" />
+                        </div>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+        }
+        else
+        {
+            <!-- No Data State -->
+            <RadzenRow Gap="16px" Style="margin-bottom: 24px;">
+                <RadzenColumn Size="12">
+                    <RadzenCard Style="background: white; border-radius: 12px; padding: 40px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <RadzenIcon Icon="info" Style="font-size: 3rem; color: #6b7280; margin-bottom: 16px;" />
+                        <RadzenText Style="font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; color: #374151;">No Dashboard Data Available</RadzenText>
+                        <RadzenText Style="color: #6b7280; margin-bottom: 16px;">Dashboard data will appear here once you start adding products and creating orders.</RadzenText>
+                        <RadzenButton Text="Add Sample Data" 
+                                    Icon="add" 
+                                    ButtonStyle="ButtonStyle.Primary"
+                                    Click="@(async () => await RefreshDashboard())"
+                                    Style="border-radius: 8px;" />
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+        }
 
-                <!-- Dashboard Tab -->
-                <MudTabPanel Text="Dashboard" Icon="@Icons.Material.Filled.Dashboard">
-                    <MudDivider Class="mb-4" />
-                    <InventoryDashboard />
-                </MudTabPanel>
+    </div>
 
-                <!-- Products Tab -->
-                <MudTabPanel Text="Products" Icon="@Icons.Material.Filled.Inventory2">
-                    <MudDivider Class="mb-4" />
-                    <ProductIndex />
-                </MudTabPanel>
+    <!-- Main Inventory Navigation Tabs -->
+    <RadzenTabs @bind-SelectedIndex="_selectedTabIndex" 
+                Style="min-height: 700px; margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" 
+                TabPosition="TabPosition.Top"
+                TabStyle="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px 12px 0 0; border: 2px solid #e2e8f0; border-bottom: none;"
+                ContentStyle="background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 0; min-height: 650px;"
+                TabHeaderStyle="padding: 16px 24px; color: #64748b; border-bottom: 4px solid transparent; font-size: 15px; font-weight: 500; margin: 0 4px; border-radius: 8px 8px 0 0;"
+                ActiveTabHeaderStyle="color: #1e293b; border-bottom-color: #3b82f6; background: white; font-weight: 700; box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.15);"
+                TabContentStyle="padding: 24px; min-height: 600px; background: #fafbfc;"
+                >
 
-                <!-- Categories Tab -->
-                <MudTabPanel Text="Categories" Icon="@Icons.Material.Filled.Category">
-                    <MudDivider Class="mb-4" />
-                    <CategoryIndex />
-                </MudTabPanel>
+                <!-- Dashboard Overview Tab -->
+                <RadzenTab Text="📊 Dashboard" Icon="dashboard">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <InventoryDashboard />
+                    </div>
+                </RadzenTab>
+
+                <!-- Products Management Tab -->
+                <RadzenTab Text="📦 Products" Icon="inventory_2">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <ProductIndex />
+                    </div>
+                </RadzenTab>
+
+                <!-- Categories Management Tab -->
+                <RadzenTab Text="🏷️ Categories" Icon="category">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <CategoryIndex />
+                    </div>
+                </RadzenTab>
 
                 <!-- Sales Orders Tab -->
-                <MudTabPanel Text="Sales Orders" Icon="@Icons.Material.Filled.ReceiptLong">
-                    <MudDivider Class="mb-4" />
-                    <SalesOrderIndex />
-                </MudTabPanel>
+                <RadzenTab Text="🛒 Sales Orders" Icon="receipt_long">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <SalesOrderIndex />
+                    </div>
+                </RadzenTab>
 
                 <!-- Purchase Orders Tab -->
-                <MudTabPanel Text="Purchase Orders" Icon="@Icons.Material.Filled.ShoppingCart">
-                    <MudDivider Class="mb-4" />
-                    <PurchaseOrderIndex />
-                </MudTabPanel>
+                <RadzenTab Text="🛍️ Purchase Orders" Icon="shopping_cart">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <PurchaseOrderIndex />
+                    </div>
+                </RadzenTab>
 
                 <!-- Inventory Transactions Tab -->
-                <MudTabPanel Text="Inventory Transactions" Icon="@Icons.Material.Filled.SwapHoriz">
-                    <MudDivider Class="mb-4" />
-                    <InventoryTransactionIndex />
-                </MudTabPanel>
+                <RadzenTab Text="📋 Transactions" Icon="swap_horiz">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <InventoryTransactionIndex />
+                    </div>
+                </RadzenTab>
 
                 <!-- Stock Alerts Tab -->
-                <MudTabPanel Text="Stock Alerts" Icon="@Icons.Material.Filled.NotificationsActive">
-                    <MudDivider Class="mb-4" />
-                    <StockAlerts />
-                </MudTabPanel>
+                <RadzenTab Text="⚠️ Stock Alerts" Icon="notifications_active">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <StockAlerts />
+                    </div>
+                </RadzenTab>
 
-                <!-- Reports Tab -->
-                <MudTabPanel Text="Reports" Icon="@Icons.Material.Filled.Assessment">
-                    <MudDivider Class="mb-4" />
-                    <InventoryReports />
-                </MudTabPanel>
-
-                <!-- Settings Tab -->
-                <MudTabPanel Text="Settings" Icon="@Icons.Material.Filled.Settings">
-                    <MudText Typo="Typo.h6" GutterBottom="true">Settings</MudText>
-                    <MudDivider Class="mb-4" />
-                    <MudStack AlignItems="@AlignItems.Center" Justify="@Justify.Center" Class="mt-6">
-                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0">
-                            Inventory settings coming soon...
-                        </MudAlert>
-                    </MudStack>
-                </MudTabPanel>
-            </MudTabs>
-        </MudStack>
-    </MudPaper>
-</MudContainer>
+                <!-- Analytics & Reports Tab -->
+                <RadzenTab Text="📈 Reports" Icon="assessment">
+                    <div style="background: white; border-radius: 8px; padding: 0; min-height: 550px;">
+                        <InventoryReports />
+                    </div>
+                </RadzenTab>
+            </RadzenTabs>
+</div>
 
 @code {
-    // Ready for tab-specific services when needed
+    private InventoryDashboardData? _dashboardData;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            _isLoading = true;
+            _dashboardData = await DashboardService.GetDashboardDataAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load dashboard data: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshDashboard()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Refreshing", "Updating dashboard data...");
+        await LoadDashboardData();
+        NotificationService.Notify(NotificationSeverity.Success, "Success", "Dashboard data refreshed successfully");
+    }
+
+    private async Task OpenProductFormDialog()
+    {
+        var result = await DialogService.OpenAsync<ProductForm>("Add New Product", 
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                Width = "800px", 
+                Height = "600px",
+                Resizable = true,
+                Draggable = true
+            });
+
+        if (result != null)
+        {
+            await RefreshDashboard();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Product added successfully");
+        }
+    }
+
+    private async Task OpenSalesOrderFormDialog()
+    {
+        var result = await DialogService.OpenAsync<SalesOrderForm>("Create Sales Order", 
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                Width = "1000px", 
+                Height = "700px",
+                Resizable = true,
+                Draggable = true
+            });
+
+        if (result != null)
+        {
+            await RefreshDashboard();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Sales order created successfully");
+        }
+    }
+
+    private async Task OpenPurchaseOrderFormDialog()
+    {
+        var result = await DialogService.OpenAsync<PurchaseOrderForm>("Create Purchase Order", 
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                Width = "1000px", 
+                Height = "700px",
+                Resizable = true,
+                Draggable = true
+            });
+
+        if (result != null)
+        {
+            await RefreshDashboard();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Purchase order created successfully");
+        }
+    }
+
+    // Tab navigation is now handled directly by RadzenTabs component
+
+    private int _selectedTabIndex = 0;
 }

@@ -1,21 +1,21 @@
 @using ModularSys.Inventory.Models
-@using MudBlazor
 @using Microsoft.JSInterop
+
 
 <div class="modern-chart-wrapper" style="height: @ChartConfig.Height; width: 100%; position: relative;">
     @if (_isLoading)
     {
         <div class="chart-loading-overlay">
-            <MudProgressCircular Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
-            <MudText Typo="Typo.body2" Class="mt-2" Style="color: #1976D2;">Loading chart data...</MudText>
+            <RadzenProgressBarCircular ProgressBarStyle="ProgressBarStyle.Primary" Size="ProgressBarCircularSize.Medium" Mode="ProgressBarMode.Indeterminate" />
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: #1976D2; margin-top: 0.5rem;">Loading chart data...</RadzenText>
         </div>
     }
     else if (ChartConfig.Data == null || !ChartConfig.Data.Any())
     {
         <div class="chart-no-data-overlay">
-            <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Large" Style="color: #9E9E9E;" />
-            <MudText Typo="Typo.h6" Class="mt-2" Style="color: #9E9E9E;">No Data Available</MudText>
-            <MudText Typo="Typo.body2" Style="color: #BDBDBD;">Chart data is not available for the selected period</MudText>
+            <RadzenIcon Icon="bar_chart" Style="color: #9E9E9E; font-size: 2rem;" />
+            <RadzenText TextStyle="TextStyle.H6" Style="color: #9E9E9E; margin-top: 0.5rem;">No Data Available</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: #BDBDBD;">Chart data is not available for the selected period</RadzenText>
         </div>
     }
     else

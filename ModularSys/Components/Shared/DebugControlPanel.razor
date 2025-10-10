@@ -2,141 +2,120 @@
 @using ModularSys.Data.Common.Interfaces.Sync
 @using System.Security.Claims
 @using static ModularSys.Data.Common.Interfaces.Sync.IConnectionManager
-@using MudBlazor
+@using Radzen.Blazor
 @inject IConnectionManager ConnectionManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
+@inject NotificationService NotificationService
+<RadzenSidebar @bind-Expanded="_isOpen" Style="width: 400px; z-index: 1000;">
+    <RadzenStack Gap="1rem" Style="padding: 1rem;">
+        <!-- Header -->
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenText Text="🐛 Debug Panel" Style="font-size: 1.25rem; font-weight: 600;" />
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => _isOpen = false)" />
+        </RadzenStack>
+        
+        <RadzenSeparator />
 
-<MudDrawer @bind-Open="@_isOpen" Anchor="Anchor.Right" Elevation="2" Variant="@DrawerVariant.Temporary" Width="400px">
-    <MudDrawerHeader>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h6">🐛 Debug Panel</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _isOpen = false)" Size="Size.Small" />
-        </MudStack>
-    </MudDrawerHeader>
-    
-    <MudDivider />
-    
-    <div class="pa-4">
         <!-- Connection Status -->
-        <MudPaper Class="pa-3 mb-3" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🌐 Connection Status</b></MudText>
-            <MudStack Spacing="2">
-                <MudChip T="string"  Icon="@Icons.Material.Filled.Storage"
-                         Color="@(_connectionMode == "Local" ? Color.Success : Color.Default)" 
-                         Size="Size.Small">
-                    Local: @(_isLocalOnline ? "✓ Online" : "✗ Offline")
-                </MudChip>
-                <MudChip T="string" Icon="@Icons.Material.Filled.Cloud" 
-                         Color="@(_isCloudOnline ? Color.Success : Color.Warning)" 
-                         Size="Size.Small">
-                    Cloud: @(_isCloudOnline ? "✓ Online" : "✗ Offline")
-                </MudChip>
-                <MudChip T="string" Icon="@Icons.Material.Filled.Sync" 
-                         Color="Color.Info" 
-                         Size="Size.Small">
-                    Mode: @_connectionMode
-                </MudChip>
-            </MudStack>
-        </MudPaper>
+        <RadzenCard>
+            <RadzenText Text="🌐 Connection Status" Style="font-weight: 600; margin-bottom: 0.5rem;" />
+            <RadzenStack Gap="0.5rem">
+                <RadzenBadge Text="@($"Local: {(_isLocalOnline ? "✓ Online" : "✗ Offline")}")" 
+                           BadgeStyle="@(_connectionMode == "Local" ? BadgeStyle.Success : BadgeStyle.Secondary)" 
+                           Icon="storage" />
+                <RadzenBadge Text="@($"Cloud: {(_isCloudOnline ? "✓ Online" : "✗ Offline")}")" 
+                           BadgeStyle="@(_isCloudOnline ? BadgeStyle.Success : BadgeStyle.Warning)" 
+                           Icon="cloud" />
+                <RadzenBadge Text="@($"Mode: {_connectionMode}")" 
+                           BadgeStyle="BadgeStyle.Info" 
+                           Icon="sync" />
+            </RadzenStack>
+        </RadzenCard>
 
         <!-- User Info -->
-        <MudPaper Class="pa-3 mb-3" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>👤 Current User</b></MudText>
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.body2"><b>Username:</b> @_username</MudText>
-                <MudText Typo="Typo.body2"><b>Role:</b> @_role</MudText>
-                <MudText Typo="Typo.body2"><b>Authenticated:</b> @(_isAuthenticated ? "✓ Yes" : "✗ No")</MudText>
-            </MudStack>
-        </MudPaper>
+        <RadzenCard>
+            <RadzenText Text="👤 Current User" Style="font-weight: 600; margin-bottom: 0.5rem;" />
+            <RadzenStack Gap="0.25rem">
+                <RadzenText Text="@($"Username: {_username}")" />
+                <RadzenText Text="@($"Role: {_role}")" />
+                <RadzenText Text="@($"Authenticated: {(_isAuthenticated ? "✓ Yes" : "✗ No")}")" />
+            </RadzenStack>
+        </RadzenCard>
 
         <!-- Permissions Check -->
-        <MudPaper Class="pa-3 mb-3" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🔐 Permission Checker</b></MudText>
-            <MudTextField @bind-Value="_permissionToCheck" 
-                         Label="Permission Name" 
-                         Variant="Variant.Outlined" 
-                         Margin="Margin.Dense"
-                         Placeholder="e.g., Users.View"
-                         Class="mb-2" />
-            <MudButton OnClick="CheckPermission" 
-                      Variant="Variant.Filled" 
-                      Color="Color.Primary" 
-                      Size="Size.Small"
-                      FullWidth="true"
-                      StartIcon="@Icons.Material.Filled.Security">
-                Check Permission
-            </MudButton>
-            @if (!string.IsNullOrEmpty(_permissionResult))
-            {
-                <MudAlert Severity="@(_hasPermission ? Severity.Success : Severity.Error)" 
-                         Dense="true" 
-                         Class="mt-2">
-                    @_permissionResult
-                </MudAlert>
-            }
-        </MudPaper>
+        <RadzenCard>
+            <RadzenText Text="🔐 Permission Checker" Style="font-weight: 600; margin-bottom: 0.5rem;" />
+            <RadzenStack Gap="0.5rem">
+                <RadzenTextBox @bind-Value="_permissionToCheck" 
+                             Placeholder="e.g., Users.View" 
+                             Style="margin-bottom: 0.5rem;" />
+                <RadzenButton Text="Check Permission" 
+                            ButtonStyle="ButtonStyle.Primary" 
+                            Size="ButtonSize.Small"
+                            Icon="security"
+                            Click="CheckPermission" />
+                @if (!string.IsNullOrEmpty(_permissionResult))
+                {
+                    <RadzenAlert AlertStyle="@(_hasPermission ? AlertStyle.Success : AlertStyle.Danger)" 
+                               Title="@_permissionResult" />
+                }
+            </RadzenStack>
+        </RadzenCard>
 
         <!-- All Permissions -->
-        <MudPaper Class="pa-3 mb-3" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>📋 My Permissions (@_permissions.Count)</b></MudText>
+        <RadzenCard>
+            <RadzenText Text="@($"📋 My Permissions ({_permissions.Count})")" Style="font-weight: 600; margin-bottom: 0.5rem;" />
             <div style="max-height: 200px; overflow-y: auto;">
                 @if (_permissions.Any())
                 {
-                    <MudStack Spacing="1">
+                    <RadzenStack Gap="0.25rem">
                         @foreach (var perm in _permissions.OrderBy(p => p))
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@perm</MudChip>
+                            <RadzenBadge Text="@perm" BadgeStyle="BadgeStyle.Secondary" />
                         }
-                    </MudStack>
+                    </RadzenStack>
                 }
                 else
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">No permissions</MudText>
+                    <RadzenText Text="No permissions" Style="color: var(--rz-text-secondary);" />
                 }
             </div>
-        </MudPaper>
+        </RadzenCard>
 
         <!-- Quick Actions -->
-        <MudPaper Class="pa-3" Elevation="1">
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>⚡ Quick Actions</b></MudText>
-            <MudStack Spacing="2">
-                <MudButton OnClick="RefreshStatus" 
-                          Variant="Variant.Outlined" 
-                          Size="Size.Small"
-                          FullWidth="true"
-                          StartIcon="@Icons.Material.Filled.Refresh">
-                    Refresh Status
-                </MudButton>
-                <MudButton OnClick="TestCloudConnection" 
-                          Variant="Variant.Outlined" 
-                          Size="Size.Small"
-                          FullWidth="true"
-                          StartIcon="@Icons.Material.Filled.CloudSync">
-                    Test Cloud Connection
-                </MudButton>
-                <MudButton OnClick="CopyDebugInfo" 
-                          Variant="Variant.Outlined" 
-                          Size="Size.Small"
-                          FullWidth="true"
-                          StartIcon="@Icons.Material.Filled.ContentCopy">
-                    Copy Debug Info
-                </MudButton>
-            </MudStack>
-        </MudPaper>
-    </div>
-</MudDrawer>
+        <RadzenCard>
+            <RadzenText Text="⚡ Quick Actions" Style="font-weight: 600; margin-bottom: 0.5rem;" />
+            <RadzenStack Gap="0.5rem">
+                <RadzenButton Text="Refresh Status" 
+                            ButtonStyle="ButtonStyle.Light" 
+                            Size="ButtonSize.Small"
+                            Icon="refresh"
+                            Click="RefreshStatus" />
+                <RadzenButton Text="Test Cloud Connection" 
+                            ButtonStyle="ButtonStyle.Light" 
+                            Size="ButtonSize.Small"
+                            Icon="cloud_sync"
+                            Click="TestCloudConnection" />
+                <RadzenButton Text="Copy Debug Info" 
+                            ButtonStyle="ButtonStyle.Light" 
+                            Size="ButtonSize.Small"
+                            Icon="content_copy"
+                            Click="CopyDebugInfo" />
+            </RadzenStack>
+        </RadzenCard>
+    </RadzenStack>
+</RadzenSidebar>
 
 <!-- Floating Debug Button -->
 @if (!_isOpen)
 {
-    <MudFab Color="Color.Secondary" 
-           StartIcon="@Icons.Material.Filled.BugReport" 
-           Style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
-           OnClick="@(() => _isOpen = true)"
-           Size="Size.Small"
-           Title="Debug Panel" />
+    <RadzenButton Icon="bug_report" 
+                  ButtonStyle="ButtonStyle.Secondary" 
+                  Size="ButtonSize.Small"
+                  Style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;"
+                  Click="@(() => _isOpen = true)"
+                  Title="Debug Panel" />
 }
 
 @code {

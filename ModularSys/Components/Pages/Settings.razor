@@ -1,111 +1,189 @@
 @page "/settings"
 @using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities
+@using Radzen
+@using Radzen.Blazor
+
 @inject IAuthService AuthService
 @inject IUserService UserService
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject DialogService DialogService
+@inject NotificationService NotificationService
 
-<PageTitle>Settings</PageTitle>
+<PageTitle>Settings - ModularSys</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Settings</MudText>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Page Header -->
+    <div style="margin-bottom: 24px;">
+        <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Settings</h1>
+        <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Manage your account and system preferences</p>
+    </div>
 
-    <MudGrid Spacing="3">
+    <RadzenRow Gap="1rem">
         <!-- Account Settings -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Account Settings</MudText>
-                
-                <MudStack Spacing="3">
-                    <MudTextField Label="Username" Value="@AuthService.CurrentUser" ReadOnly="true" Variant="Variant.Outlined" />
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenStack Gap="1.5rem">
+                    <RadzenText Text="Account Settings" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
                     
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Person" Href="/profile">
-                        Edit Profile
-                    </MudButton>
-                    
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Lock" Href="/change-password">
-                        Change Password
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
+                    @if (_currentUser != null)
+                    {
+                        <RadzenStack Gap="1rem">
+                            <RadzenFormField Text="Username" Variant="Variant.Outlined">
+                                <RadzenTextBox Value="@_currentUser.Username" ReadOnly="true" Style="width: 100%;" />
+                            </RadzenFormField>
+                            
+                            <RadzenFormField Text="Email" Variant="Variant.Outlined">
+                                <RadzenTextBox Value="@_currentUser.Email" ReadOnly="true" Style="width: 100%;" />
+                            </RadzenFormField>
+                            
+                            <RadzenFormField Text="Role" Variant="Variant.Outlined">
+                                <RadzenTextBox Value="@_currentUser.Role?.RoleName" ReadOnly="true" Style="width: 100%;" />
+                            </RadzenFormField>
+                            
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                                <RadzenButton Text="Edit Profile" Icon="edit" ButtonStyle="ButtonStyle.Primary" Click="@EditProfile" />
+                                <RadzenButton Text="Change Password" Icon="lock" ButtonStyle="ButtonStyle.Light" Click="@ChangePassword" />
+                            </RadzenStack>
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+        
         <!-- System Information -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">System Information</MudText>
-                
-                <MudStack Spacing="2">
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Version</MudText>
-                        <MudText Typo="Typo.body2">ModularSys v1.0.0</MudText>
-                    </div>
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenStack Gap="1.5rem">
+                    <RadzenText Text="System Information" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
                     
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Environment</MudText>
-                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Production</MudChip>
-                    </div>
+                    <RadzenStack Gap="1rem">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Version" Style="font-weight: 500;" />
+                            <RadzenBadge Text="v1.0.0" BadgeStyle="BadgeStyle.Info" />
+                        </RadzenStack>
+                        
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Environment" Style="font-weight: 500;" />
+                            <RadzenBadge Text="Production" BadgeStyle="BadgeStyle.Success" />
+                        </RadzenStack>
+                        
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Last Login" Style="font-weight: 500;" />
+                            <RadzenText Text="@DateTime.Now.ToString("MMM dd, yyyy HH:mm")" />
+                        </RadzenStack>
+                        
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Member Since" Style="font-weight: 500;" />
+                            <RadzenText Text="@(_currentUser?.CreatedAt.ToString("MMM dd, yyyy") ?? "N/A")" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <!-- Preferences -->
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenStack Gap="1.5rem">
+                    <RadzenText Text="Appearance" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
                     
-                    <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Last Login</MudText>
-                        <MudText Typo="Typo.body2">@DateTime.Now.ToString("MMM dd, yyyy HH:mm")</MudText>
-                    </div>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <!-- Appearance -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Appearance</MudText>
-                
-                <MudStack Spacing="2">
-                    <MudSwitch T="bool" Label="Dark Mode" Color="Color.Primary" Disabled="true" />
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Theme customization coming soon</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <!-- Notifications -->
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-3">Notifications</MudText>
-                
-                <MudStack Spacing="2">
-                    <MudSwitch T="bool" @bind-Value="_emailNotifications" Label="Email Notifications" Color="Color.Primary" />
-                    <MudSwitch T="bool" @bind-Value="_systemAlerts" Label="System Alerts" Color="Color.Primary" />
-                    <MudSwitch T="bool" @bind-Value="_activityUpdates" Label="Activity Updates" Color="Color.Primary" />
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-
-        <!-- Danger Zone -->
-        <MudItem xs="12">
-            <MudPaper Class="pa-4" Style="border-left: 4px solid #ef4444;">
-                <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Error">Danger Zone</MudText>
-                
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <div>
-                        <MudText Typo="Typo.body2"><b>Logout from all devices</b></MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">This will end all active sessions</MudText>
-                    </div>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="LogoutAllDevices">
-                        Logout All
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-</MudContainer>
+                    <RadzenStack Gap="1rem">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Dark Mode" />
+                            <RadzenSwitch @bind-Value="_darkMode" Disabled="true" />
+                        </RadzenStack>
+                        <RadzenText TextStyle="TextStyle.Caption" Text="Theme customization coming soon" Style="color: var(--rz-text-secondary-color);" />
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+        
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenStack Gap="1.5rem">
+                    <RadzenText Text="Notifications" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
+                    
+                    <RadzenStack Gap="1rem">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Email Notifications" />
+                            <RadzenSwitch @bind-Value="_emailNotifications" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="System Alerts" />
+                            <RadzenSwitch @bind-Value="_systemAlerts" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenText Text="Activity Updates" />
+                            <RadzenSwitch @bind-Value="_activityUpdates" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <!-- Danger Zone -->
+    <RadzenCard Style="border: 1px solid #ffcdd2; border-radius: 12px; padding: 20px; background: #ffebee;">
+        <RadzenStack Gap="1.5rem">
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #d32f2f;">Danger Zone</h3>
+            
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText Text="Logout from all devices" Style="font-weight: 600;" />
+                    <RadzenText TextStyle="TextStyle.Caption" Text="This will end all active sessions" Style="color: #757575;" />
+                </RadzenStack>
+                <RadzenButton Text="Logout All" Icon="logout" ButtonStyle="ButtonStyle.Danger" Click="@LogoutAllDevices" Style="border-radius: 6px;" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenCard>
+</div>
 
 @code {
+    private User? _currentUser;
+    private bool _darkMode = false;
     private bool _emailNotifications = true;
     private bool _systemAlerts = true;
     private bool _activityUpdates = false;
 
-    private void LogoutAllDevices()
+    protected override async Task OnInitializedAsync()
     {
-        Snackbar.Add("Logged out from all devices", Severity.Info);
-        AuthService.Logout();
+        await LoadUserData();
+    }
+
+    private async Task LoadUserData()
+    {
+        try
+        {
+            var users = await UserService.GetAllAsync();
+            _currentUser = users.FirstOrDefault(u => u.Username == AuthService.CurrentUser);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load user data: {ex.Message}");
+        }
+    }
+    
+    private void EditProfile()
+    {
+        Nav.NavigateTo("/profile");
+    }
+    
+    private void ChangePassword()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Coming Soon", "Password change functionality will be implemented");
+    }
+    
+    private async Task LogoutAllDevices()
+    {
+        var confirmed = await DialogService.Confirm("Are you sure you want to logout from all devices?", "Confirm Logout");
+        if (confirmed == true)
+        {
+            AuthService.Logout();
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Logged out from all devices");
+            Nav.NavigateTo("/login");
+        }
     }
 }
