@@ -1,6 +1,6 @@
-@page "/purchases"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
+@using Radzen
 @using Radzen.Blazor
 @inject IPurchaseOrderService PurchaseOrderService
 @inject DialogService DialogService
@@ -82,20 +82,23 @@
     <!-- Filters -->
     <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-            <RadzenTextBox Value="_searchText" 
+            <RadzenTextBox Value="@_searchText" 
                           ValueChanged="@((string value) => { _searchText = value; OnSearchChanged(); })" 
                           Placeholder="Search orders, suppliers..." 
                           Icon="search" 
                           Style="flex: 1; min-width: 250px; border-radius: 6px;" />
-            <RadzenDropDown Value="_statusFilter" 
+            <RadzenDropDown Value="@_statusFilter" 
                            ValueChanged="@((string value) => { _statusFilter = value; FilterOrders(); })" 
                            Data="@(new[] { "All", "Pending", "Received", "Cancelled" })" 
                            Style="min-width: 150px; border-radius: 6px;" />
-            <RadzenDatePicker Value="_dateFilter" 
-                             ValueChanged="@((DateTime? value) => { _dateFilter = value; FilterOrders(); })" 
+            <RadzenDatePicker TValue="DateTime?" 
+                             @bind-Value="_dateFilter"
+                             Change="@(() => FilterOrders())"
                              DateFormat="MMM dd, yyyy" 
+                             ShowTime="false"
                              Placeholder="Filter by date"
-                             Style="min-width: 150px; border-radius: 6px;" />
+                             AllowClear="true"
+                             Style="min-width: 200px; border-radius: 6px; height: 40px;" />
         </div>
     </RadzenCard>
 
@@ -340,26 +343,54 @@
 
     private async Task Create()
     {
-        var result = await DialogService.OpenAsync<PurchaseOrderForm>("New Purchase Order");
+        var result = await DialogService.OpenAsync<PurchaseOrderForm>("",
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
         if (result == true)
         {
             await LoadData();
-            NotificationService.Notify(NotificationSeverity.Success, "Success", "Purchase order created successfully");
         }
     }
 
     private async Task ViewOrder(int id)
     {
-        await DialogService.OpenAsync<PurchaseOrderForm>("Purchase Order Details", new Dictionary<string, object> { { "Id", id }, { "ReadOnly", true } });
+        await DialogService.OpenAsync<PurchaseOrderForm>("", 
+            new Dictionary<string, object> { { "Id", id }, { "ReadOnly", true } },
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
     }
 
     private async Task Edit(PurchaseOrder order)
     {
-        var result = await DialogService.OpenAsync<PurchaseOrderForm>("Edit Purchase Order", new Dictionary<string, object> { { "Id", order.PurchaseOrderId } });
+        var result = await DialogService.OpenAsync<PurchaseOrderForm>("", 
+            new Dictionary<string, object> { { "Id", order.PurchaseOrderId } },
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
         if (result == true)
         {
             await LoadData();
-            NotificationService.Notify(NotificationSeverity.Success, "Success", "Purchase order updated successfully");
         }
     }
 
@@ -406,10 +437,10 @@
     {
         return status switch
         {
-            "Pending" => "background: #fef3c7; color: #92400e;",
-            "Received" => "background: #dcfce7; color: #166534;",
-            "Cancelled" => "background: #fecaca; color: #991b1b;",
-            _ => "background: #f1f5f9; color: #6b7280;"
+            "Pending" => "color: #f59e0b;",
+            "Received" => "color: #10b981;",
+            "Cancelled" => "color: #ef4444;",
+            _ => "color: #6b7280;"
         };
     }
 }

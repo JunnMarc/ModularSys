@@ -2,6 +2,7 @@
 @using ModularSys.Inventory.Interface
 @using ModularSys.Inventory.Models
 @using ModularSys.Inventory.Components
+@using ModularSys.Inventory.Pages
 @using Microsoft.JSInterop
 @using System.IO
 @using Radzen.Blazor
@@ -12,33 +13,36 @@
 @inject NotificationService NotificationService
 @inject IJSRuntime JSRuntime
 
-<RadzenStack Style="padding: 16px;">
-    <RadzenStack Spacing="4">
-        <!-- Enhanced ERP-Style Header -->
-        <RadzenCard Elevation="3">
-            <RadzenCardContent Style="padding: 24px;">
-                <RadzenStack Row="true" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-                    <RadzenStack Spacing="2">
-                        <RadzenText Style="font-weight: 400; font-size: 2rem; color: #1976D2;">
-                            <RadzenIcon Icon="analytics" Style="margin-right: 12px; font-size: 2rem;" />
-                            Analytical Accounting Reports
-                        </RadzenText>
-                        <RadzenText Style="font-size: 1.125rem; color: #1976D2; font-weight: 400;">
-                            Comprehensive financial analysis with GAAP-compliant inventory accounting reports
-                        </RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Spacing="2" AlignItems="AlignItems.End">
-                        <RadzenButton Variant="Variant.Outlined" 
-                                      Icon="refresh"
-                                      Click="RefreshReports"
-                                      Loading="_loading"
-                                      Style="action-button">
-                            Refresh Data
-                        </RadzenButton>
-                    </RadzenStack>
-                </RadzenStack>
-            </RadzenCardContent>
-        </RadzenCard>
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
+                <RadzenIcon Icon="analytics" Style="margin-right: 8px;" />
+                Inventory Reports
+            </h1>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">
+                Comprehensive inventory analytics and transaction management
+            </p>
+        </div>
+        <RadzenButton Text="Refresh" 
+                     Icon="refresh"
+                     Click="RefreshReports"
+                     Disabled="_loading"
+                     Variant="Variant.Outlined"
+                     Style="border-radius: 6px;" />
+    </div>
+
+    <!-- Tabbed Navigation -->
+    <RadzenCard Style="background: white; border-radius: 8px; border: 1px solid #f0f0f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <RadzenTabs @bind-SelectedIndex="_selectedTabIndex" 
+                    RenderMode="TabRenderMode.Client"
+                    TabPosition="TabPosition.Top">
+            <Tabs>
+                <!-- Analytical Reports Tab -->
+                <RadzenTabsItem Text="Analytical Reports">
+                    <ChildContent>
+                        <div style="padding: 24px; min-height: 550px;">
 
         @if (_loading)
         {
@@ -55,62 +59,89 @@
         }
         else
         {
-            <!-- Report Type Selection Section -->
-            <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                <RadzenCardContent Style="padding: 16px;">
-                    <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                        <RadzenStack Spacing="2">
-                        </RadzenStack>
-                        <RadzenStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                            <RadzenDatePicker @bind-Value="_startDate"
-                                              Placeholder="Start Date"
-                                              Style="min-width: 140px;" />
-                            <RadzenDatePicker @bind-Value="_endDate"
-                                              Placeholder="End Date"
-                                              Style="min-width: 140px;" />
-                            <RadzenDropDown T="AnalyticalReportType" @bind-Value="_selectedReportType"
-                                            Placeholder="Report Type"
-                                            Style="min-width: 250px;">
-                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.InventoryValuation">Inventory Valuation Report</RadzenDropDownItem>
-                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.CostOfGoodsSold">Cost of Goods Sold (COGS)</RadzenDropDownItem>
-                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.InventoryTurnover">Inventory Turnover Analysis</RadzenDropDownItem>
-                                <RadzenDropDownItem TValue="AnalyticalReportType" Value="AnalyticalReportType.ProfitAndLossStatement">Profit & Loss Statement</RadzenDropDownItem>
-                            </RadzenDropDown>
-                            <RadzenButton Variant="Variant.Filled" 
-                                          Style="background-color: #1976D2; color: white;"
-                                          Icon="analytics"
-                                          Click="GenerateAnalyticalReport"
-                                          Disabled="_loading || _generatingReport">
-                                Generate Report
-                            </RadzenButton>
-                            <RadzenButton Variant="Variant.Outlined" 
-                                          Style="border-color: #2196F3; color: #2196F3;"
-                                          Icon="preview"
-                                          Click="PreviewReport"
-                                          Disabled="_loading || _generatingReport || _currentReportData == null">
-                                Preview Report
-                            </RadzenButton>
-                            <RadzenButton Variant="Variant.Filled" 
-                                          Style="background-color: #9C27B0; color: white;"
-                                          Icon="picture_as_pdf"
-                                          Click="ExportToCrystalReports"
-                                          Disabled="_loading || _generatingReport || _currentReportData == null">
-                                Export PDF
-                            </RadzenButton>
-                        </RadzenStack>
-                    </RadzenStack>
-                </RadzenCardContent>
+            <!-- Report Generation Controls -->
+            <RadzenCard Style="padding: 24px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 4px 0; font-size: 1.125rem; font-weight: 600; color: #374151;">
+                        <RadzenIcon Icon="settings" Style="margin-right: 8px; color: #6b7280;" />
+                        Report Configuration
+                    </h3>
+                    <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Select date range and report type to generate analytics</p>
+                </div>
+
+                <!-- Date Range Selection -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 14px; font-weight: 500; color: #374151;">Start Date</label>
+                        <RadzenDatePicker @bind-Value="_startDate"
+                                          DateFormat="MM/dd/yyyy"
+                                          ShowTime="false"
+                                          Style="width: 100%;" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 14px; font-weight: 500; color: #374151;">End Date</label>
+                        <RadzenDatePicker @bind-Value="_endDate"
+                                          DateFormat="MM/dd/yyyy"
+                                          ShowTime="false"
+                                          Style="width: 100%;" />
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 14px; font-weight: 500; color: #374151;">Report Type</label>
+                        <RadzenDropDown TValue="AnalyticalReportType" 
+                                        Value="@_selectedReportType"
+                                        ValueChanged="@((AnalyticalReportType value) => _selectedReportType = value)"
+                                        Data="@(Enum.GetValues<AnalyticalReportType>())"
+                                        Placeholder="Select report type..."
+                                        Style="width: 100%;">
+                            <Template Context="reportType">
+                                @(reportType switch
+                                {
+                                    AnalyticalReportType.InventoryValuation => "Inventory Valuation",
+                                    AnalyticalReportType.CostOfGoodsSold => "Cost of Goods Sold",
+                                    AnalyticalReportType.InventoryTurnover => "Inventory Turnover",
+                                    AnalyticalReportType.ProfitAndLossStatement => "Profit & Loss",
+                                    _ => reportType.ToString()
+                                })
+                            </Template>
+                        </RadzenDropDown>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <RadzenButton Text="Generate Report"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Icon="analytics"
+                                  Click="GenerateAnalyticalReport"
+                                  Disabled="_loading || _generatingReport"
+                                  Style="border-radius: 6px; min-width: 140px;" />
+                    <RadzenButton Text="Preview"
+                                  Variant="Variant.Outlined"
+                                  Icon="preview"
+                                  Click="PreviewReport"
+                                  Disabled="_loading || _generatingReport || _currentReportData == null"
+                                  Style="border-radius: 6px; min-width: 120px;" />
+                    <RadzenButton Text="Export PDF"
+                                  ButtonStyle="ButtonStyle.Secondary"
+                                  Icon="picture_as_pdf"
+                                  Click="ExportToCrystalReports"
+                                  Disabled="_loading || _generatingReport || _currentReportData == null"
+                                  Style="border-radius: 6px; min-width: 120px;" />
+                </div>
             </RadzenCard>
 
             <!-- Report Display Section -->
             @if (_generatingReport)
             {
-                <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                    <RadzenCardContent Style="padding: 24px;">
-                        <RadzenStack AlignItems="AlignItems.Center" Spacing="3">
-                            <RadzenProgressBarCircular Indeterminate="true" Size="ProgressBarCircularSize.Large" Style="color: #1976D2;" />
-                            <RadzenText Style="font-size: 1.25rem;">Generating @_selectedReportType Report...</RadzenText>
-                            <RadzenText Style="color: #666; font-size: 0.875rem;">
+                <RadzenCard Elevation="3" Style="margin-bottom: 16px; background: white; position: relative; z-index: 10;">
+                    <RadzenCardContent Style="padding: 48px 24px; text-align: center;">
+                        <RadzenStack AlignItems="AlignItems.Center" Spacing="4" Gap="1rem">
+                            <RadzenProgressBarCircular Indeterminate="true" Size="ProgressBarCircularSize.Large" 
+                                                      Style="color: #1976D2; width: 80px; height: 80px;" />
+                            <RadzenText Style="font-size: 1.5rem; font-weight: 600; color: #1976D2; margin-top: 16px;">
+                                Generating @_selectedReportType Report...
+                            </RadzenText>
+                            <RadzenText Style="color: #666; font-size: 1rem;">
                                 Processing data with GAAP-compliant calculations
                             </RadzenText>
                         </RadzenStack>
@@ -122,51 +153,63 @@
                 <!-- Dynamic Report Display -->
                 @if (_selectedReportType == AnalyticalReportType.InventoryValuation && _inventoryValuationReport != null)
                 {
-                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                        <RadzenCardHeader>
-                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
-                                <RadzenIcon Icon="inventory" Style="margin-right: 8px;" />
-                                Inventory Valuation Report
-                            </RadzenText>
-                            <RadzenText Style="color: #666; font-size: 0.875rem;">
-                                As of @_inventoryValuationReport.ReportDate.ToString("MMMM dd, yyyy") • Method: @_inventoryValuationReport.ValuationMethod
-                            </RadzenText>
-                        </RadzenCardHeader>
+                    <RadzenCard Style="background: white; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; position: relative; z-index: 10;">
+                        <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <RadzenIcon Icon="inventory" Style="font-size: 24px;" />
+                                </div>
+                                <div>
+                                    <RadzenText Style="font-weight: 600; font-size: 1.5rem; color: #1f2937; margin: 0;">
+                                        Inventory Valuation Report
+                                    </RadzenText>
+                                    <RadzenText Style="color: #6b7280; font-size: 0.875rem; margin: 0;">
+                                        As of @_inventoryValuationReport.ReportDate.ToString("MMMM dd, yyyy") • Method: @_inventoryValuationReport.ValuationMethod
+                                    </RadzenText>
+                                </div>
+                            </div>
+                        </div>
                         <RadzenCardContent>
                             <!-- Summary Cards -->
-                            <RadzenRow Style="margin-bottom: 16px;">
+                            <RadzenRow Style="margin-bottom: 24px; margin-top: 16px; gap: 16px;">
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.TotalInventoryValue.ToString("C0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Total Inventory Value</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="account_balance" Style="font-size: 28px; color: #10b981;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Total Inventory Value</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_inventoryValuationReport.TotalInventoryValue.ToString("C0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="category" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.CategoryBreakdown.Count</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Categories</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="category" Style="font-size: 28px; color: #3b82f6;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Categories</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_inventoryValuationReport.CategoryBreakdown.Count</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="inventory_2" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_inventoryValuationReport.Items.Count</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">SKUs</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff7ed; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="inventory_2" Style="font-size: 28px; color: #f97316;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">SKUs</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_inventoryValuationReport.Items.Count</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                             </RadzenRow>
 
@@ -188,62 +231,76 @@
 
                 @if (_selectedReportType == AnalyticalReportType.CostOfGoodsSold && _cogsReport != null)
                 {
-                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                        <RadzenCardHeader>
-                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
-                                <RadzenIcon Icon="trending_down" Style="margin-right: 8px;" />
-                                Cost of Goods Sold (COGS) Report
-                            </RadzenText>
-                            <RadzenText Style="color: #666; font-size: 0.875rem;">
-                                Period: @_cogsReport.StartDate.ToString("MMM dd, yyyy") - @_cogsReport.EndDate.ToString("MMM dd, yyyy")
-                            </RadzenText>
-                        </RadzenCardHeader>
+                    <RadzenCard Style="background: white; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; position: relative; z-index: 10;">
+                        <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <RadzenIcon Icon="trending_down" Style="font-size: 24px;" />
+                                </div>
+                                <div>
+                                    <RadzenText Style="font-weight: 600; font-size: 1.5rem; color: #1f2937; margin: 0;">
+                                        Cost of Goods Sold (COGS) Report
+                                    </RadzenText>
+                                    <RadzenText Style="color: #6b7280; font-size: 0.875rem; margin: 0;">
+                                        Period: @_cogsReport.StartDate.ToString("MMM dd, yyyy") - @_cogsReport.EndDate.ToString("MMM dd, yyyy")
+                                    </RadzenText>
+                                </div>
+                            </div>
+                        </div>
                         <RadzenCardContent>
                             <!-- COGS Summary -->
-                            <RadzenRow Style="margin-bottom: 16px;">
+                            <RadzenRow Style="margin-bottom: 24px; margin-top: 16px; gap: 16px;">
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="attach_money" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.NetSales.ToString("C0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Net Sales</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="attach_money" Style="font-size: 28px; color: #10b981;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Net Sales</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_cogsReport.NetSales.ToString("C0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="trending_down" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.CostOfGoodsSold.ToString("C0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">COGS</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #fef2f2; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="trending_down" Style="font-size: 28px; color: #ef4444;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">COGS</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_cogsReport.CostOfGoodsSold.ToString("C0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.GrossProfit.ToString("C0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Gross Profit</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="trending_up" Style="font-size: 28px; color: #3b82f6;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Gross Profit</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_cogsReport.GrossProfit.ToString("C0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="percent" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">@_cogsReport.GrossProfitMargin.ToString("F1")%</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Profit Margin</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #faf5ff; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="percent" Style="font-size: 28px; color: #a855f7;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Profit Margin</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_cogsReport.GrossProfitMargin.ToString("F1")%</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                             </RadzenRow>
 
@@ -270,51 +327,63 @@
 
                 @if (_selectedReportType == AnalyticalReportType.InventoryTurnover && _turnoverReport != null)
                 {
-                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                        <RadzenCardHeader>
-                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
-                                <RadzenIcon Icon="autorenew" Style="margin-right: 8px;" />
-                                Inventory Turnover Analysis
-                            </RadzenText>
-                            <RadzenText Style="color: #666; font-size: 0.875rem;">
-                                As of @_turnoverReport.ReportDate.ToString("MMMM dd, yyyy")
-                            </RadzenText>
-                        </RadzenCardHeader>
+                    <RadzenCard Style="background: white; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; position: relative; z-index: 10;">
+                        <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <RadzenIcon Icon="autorenew" Style="font-size: 24px;" />
+                                </div>
+                                <div>
+                                    <RadzenText Style="font-weight: 600; font-size: 1.5rem; color: #1f2937; margin: 0;">
+                                        Inventory Turnover Analysis
+                                    </RadzenText>
+                                    <RadzenText Style="color: #6b7280; font-size: 0.875rem; margin: 0;">
+                                        As of @_turnoverReport.ReportDate.ToString("MMMM dd, yyyy")
+                                    </RadzenText>
+                                </div>
+                            </div>
+                        </div>
                         <RadzenCardContent>
                             <!-- Turnover Summary -->
-                            <RadzenRow Style="margin-bottom: 16px;">
+                            <RadzenRow Style="margin-bottom: 24px; margin-top: 16px; gap: 16px;">
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="autorenew" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.OverallTurnoverRatio.ToString("F1")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Overall Turnover Ratio</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="autorenew" Style="font-size: 28px; color: #10b981;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Overall Turnover Ratio</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_turnoverReport.OverallTurnoverRatio.ToString("F1")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="schedule" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.DaysSalesInInventory.ToString("F0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Days Sales in Inventory</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="schedule" Style="font-size: 28px; color: #3b82f6;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Days Sales in Inventory</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_turnoverReport.DaysSalesInInventory.ToString("F0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="4">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 2rem;">@_turnoverReport.AverageInventoryValue.ToString("C0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Avg Inventory Value</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff7ed; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="account_balance" Style="font-size: 28px; color: #f97316;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Avg Inventory Value</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">@_turnoverReport.AverageInventoryValue.ToString("C0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                             </RadzenRow>
 
@@ -341,16 +410,22 @@
 
                 @if (_selectedReportType == AnalyticalReportType.ProfitAndLossStatement && _profitAndLossReport != null)
                 {
-                    <RadzenCard Elevation="2" Style="margin-bottom: 16px;">
-                        <RadzenCardHeader>
-                            <RadzenText Style="font-weight: 600; font-size: 1.25rem; color: #1976D2;">
-                                <RadzenIcon Icon="assessment" Style="margin-right: 8px;" />
-                                Profit & Loss Statement
-                            </RadzenText>
-                            <RadzenText Style="color: #666; font-size: 0.875rem;">
-                                Period: @_profitAndLossReport.PeriodStart.ToString("MMM dd") - @_profitAndLossReport.PeriodEnd.ToString("MMM dd, yyyy") • Status: @_profitAndLossReport.ProfitabilityStatus
-                            </RadzenText>
-                        </RadzenCardHeader>
+                    <RadzenCard Style="background: white; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; position: relative; z-index: 10;">
+                        <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); display: flex; align-items: center; justify-content: center; color: white;">
+                                    <RadzenIcon Icon="assessment" Style="font-size: 24px;" />
+                                </div>
+                                <div>
+                                    <RadzenText Style="font-weight: 600; font-size: 1.5rem; color: #1f2937; margin: 0;">
+                                        Profit & Loss Statement
+                                    </RadzenText>
+                                    <RadzenText Style="color: #6b7280; font-size: 0.875rem; margin: 0;">
+                                        Period: @_profitAndLossReport.PeriodStart.ToString("MMM dd") - @_profitAndLossReport.PeriodEnd.ToString("MMM dd, yyyy") • Status: @_profitAndLossReport.ProfitabilityStatus
+                                    </RadzenText>
+                                </div>
+                            </div>
+                        </div>
                         <RadzenCardContent>
                             <!-- Profitability Status Alert -->
                             <RadzenAlert AlertStyle="@(_profitAndLossReport.NetIncome >= 0 ? AlertStyle.Success : AlertStyle.Danger)" 
@@ -362,50 +437,58 @@
                             </RadzenAlert>
                             
                             <!-- Summary Cards -->
-                            <RadzenRow Style="margin-bottom: 16px;">
+                            <RadzenRow Style="margin-bottom: 24px; margin-top: 16px; gap: 16px;">
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.Revenue.NetRevenue.ToString("N0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Net Revenue</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="trending_up" Style="font-size: 28px; color: #10b981;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Net Revenue</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">₱@_profitAndLossReport.Revenue.NetRevenue.ToString("N0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="trending_down" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.CostOfGoodsSold.TotalCOGS.ToString("N0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Total COGS</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #fef2f2; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="trending_down" Style="font-size: 28px; color: #ef4444;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Total COGS</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">₱@_profitAndLossReport.CostOfGoodsSold.TotalCOGS.ToString("N0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white;">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.GrossProfit.ToString("N0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Gross Profit</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 56px; height: 56px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                                                <RadzenIcon Icon="account_balance" Style="font-size: 28px; color: #3b82f6;" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Gross Profit</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">₱@_profitAndLossReport.GrossProfit.ToString("N0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                                 <RadzenColumn Size="12" SizeMD="3">
-                                    <RadzenCard Style="@($"background: linear-gradient(135deg, {(_profitAndLossReport.NetIncome >= 0 ? "#4CAF50 0%, #45a049 100%" : "#F44336 0%, #D32F2F 100%")}); color: white;")">
-                                        <RadzenCardContent>
-                                            <RadzenStack AlignItems="AlignItems.Center" Spacing="2">
-                                                <RadzenIcon Icon="@(_profitAndLossReport.NetIncome >= 0 ? "attach_money" : "money_off")" Size="ButtonSize.Large" />
-                                                <RadzenText Style="font-size: 1.25rem;">₱@_profitAndLossReport.NetIncome.ToString("N0")</RadzenText>
-                                                <RadzenText Style="font-size: 0.875rem;">Net Income</RadzenText>
-                                            </RadzenStack>
-                                        </RadzenCardContent>
-                                    </RadzenCard>
+                                    <div style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="@($"width: 56px; height: 56px; border-radius: 12px; background: {(_profitAndLossReport.NetIncome >= 0 ? "#ecfdf5" : "#fef2f2")}; display: flex; align-items: center; justify-content: center;")">
+                                                <RadzenIcon Icon="@(_profitAndLossReport.NetIncome >= 0 ? "attach_money" : "money_off")" Style="@($"font-size: 28px; color: {(_profitAndLossReport.NetIncome >= 0 ? "#10b981" : "#ef4444")};")" />
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="color: #6b7280; font-size: 0.875rem; margin-bottom: 4px;">Net Income</div>
+                                                <div style="color: #1f2937; font-size: 1.5rem; font-weight: 700;">₱@_profitAndLossReport.NetIncome.ToString("N0")</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RadzenColumn>
                             </RadzenRow>
 
@@ -469,89 +552,90 @@
             }
 
             <!-- Executive Dashboard Section -->
-            <RadzenText Style="font-weight: 600; font-size: 1.5rem; margin-bottom: 12px;">
-                <RadzenIcon Icon="trending_up" Style="margin-right: 8px;" />
-                Executive Dashboard
-            </RadzenText>
+            <div style="margin-bottom: 16px;">
+                <h3 style="margin: 0 0 4px 0; font-size: 1.25rem; font-weight: 600; color: #374151;">
+                    <RadzenIcon Icon="dashboard" Style="margin-right: 8px;" />
+                    Executive Dashboard
+                </h3>
+                <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">Key performance indicators and business metrics</p>
+            </div>
 
             <!-- KPI Cards -->
-            <RadzenRow>
-                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
-                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; min-height: 120px;">
-                        <RadzenCardContent Style="padding: 0;">
-                            <RadzenStack Spacing="2">
-                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                                    <RadzenIcon Icon="trending_up" Size="ButtonSize.Large" Style="opacity: 0.8;" />
-                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
-                                        ₱@(_analyticsData?.TotalRevenue.ToString("N0") ?? "0")
-                                    </RadzenText>
-                                </RadzenStack>
-                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Total Revenue</RadzenText>
-                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
-                                    @(_analyticsData?.TotalOrders ?? 0) transactions
-                                </RadzenText>
-                            </RadzenStack>
-                        </RadzenCardContent>
-                    </RadzenCard>
-                </RadzenColumn>
+            <style>
+                .kpi-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+                @@media (max-width: 1200px) {
+                    .kpi-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                }
+                @@media (max-width: 768px) {
+                    .kpi-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            </style>
+            <div class="kpi-grid">
+                <!-- Total Revenue Card -->
+                <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="width: 48px; height: 48px; border-radius: 8px; background: #ecfdf5; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="trending_up" Style="font-size: 1.5rem; color: #10b981;" />
+                        </div>
+                        <RadzenBadge Text="@($"{_analyticsData?.TotalOrders ?? 0} orders")" BadgeStyle="BadgeStyle.Success" Style="font-size: 0.75rem;" />
+                    </div>
+                    <div>
+                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Total Revenue</p>
+                        <h2 style="margin: 0; font-size: 1.875rem; font-weight: 700; color: #374151;">₱@(_analyticsData?.TotalRevenue.ToString("N0") ?? "0")</h2>
+                    </div>
+                </RadzenCard>
 
-                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
-                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; min-height: 120px;">
-                        <RadzenCardContent Style="padding: 0;">
-                            <RadzenStack Spacing="2">
-                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                                    <RadzenIcon Icon="account_balance" Size="ButtonSize.Large" Style="opacity: 0.8;" />
-                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
-                                        ₱@(_analyticsData?.GrossProfit.ToString("N0") ?? "0")
-                                    </RadzenText>
-                                </RadzenStack>
-                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Gross Profit</RadzenText>
-                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
-                                    @(_analyticsData?.ProfitMargin.ToString("F1") ?? "0")% margin
-                                </RadzenText>
-                            </RadzenStack>
-                        </RadzenCardContent>
-                    </RadzenCard>
-                </RadzenColumn>
+                <!-- Gross Profit Card -->
+                <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="width: 48px; height: 48px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="account_balance" Style="font-size: 1.5rem; color: #3b82f6;" />
+                        </div>
+                        <RadzenBadge Text="@($"{_analyticsData?.ProfitMargin.ToString("F1") ?? "0"}% margin")" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.75rem;" />
+                    </div>
+                    <div>
+                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Gross Profit</p>
+                        <h2 style="margin: 0; font-size: 1.875rem; font-weight: 700; color: #374151;">₱@(_analyticsData?.GrossProfit.ToString("N0") ?? "0")</h2>
+                    </div>
+                </RadzenCard>
 
-                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
-                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; min-height: 120px;">
-                        <RadzenCardContent Style="padding: 0;">
-                            <RadzenStack Spacing="2">
-                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                                    <RadzenIcon Icon="inventory" Size="ButtonSize.Large" Style="opacity: 0.8;" />
-                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
-                                        @(_dashboardData?.TotalProducts.ToString("N0") ?? "0")
-                                    </RadzenText>
-                                </RadzenStack>
-                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Active Products</RadzenText>
-                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
-                                    @(_dashboardData?.LowStockCount ?? 0) alerts
-                                </RadzenText>
-                            </RadzenStack>
-                        </RadzenCardContent>
-                    </RadzenCard>
-                </RadzenColumn>
+                <!-- Active Products Card -->
+                <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="width: 48px; height: 48px; border-radius: 8px; background: #fef3c7; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="inventory" Style="font-size: 1.5rem; color: #f59e0b;" />
+                        </div>
+                        <RadzenBadge Text="@($"{_dashboardData?.LowStockCount ?? 0} alerts")" BadgeStyle="BadgeStyle.Warning" Style="font-size: 0.75rem;" />
+                    </div>
+                    <div>
+                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Active Products</p>
+                        <h2 style="margin: 0; font-size: 1.875rem; font-weight: 700; color: #374151;">@(_dashboardData?.TotalProducts.ToString("N0") ?? "0")</h2>
+                    </div>
+                </RadzenCard>
 
-                <RadzenColumn Size="12" SizeSM="6" SizeMD="3">
-                    <RadzenCard Style="padding: 16px; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; min-height: 120px;">
-                        <RadzenCardContent Style="padding: 0;">
-                            <RadzenStack Spacing="2">
-                                <RadzenStack Row="true" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                                    <RadzenIcon Icon="cancel" Size="ButtonSize.Large" Style="opacity: 0.8;" />
-                                    <RadzenText Style="font-size: 2rem; font-weight: 700;">
-                                        @(_analyticsData?.CancellationRate.ToString("F1") ?? "0")%
-                                    </RadzenText>
-                                </RadzenStack>
-                                <RadzenText Style="font-size: 0.875rem; font-weight: 500;">Cancellation Rate</RadzenText>
-                                <RadzenText Style="font-size: 0.75rem; opacity: 0.9;">
-                                    @(_analyticsData?.CancelledOrders ?? 0) cancelled
-                                </RadzenText>
-                            </RadzenStack>
-                        </RadzenCardContent>
-                    </RadzenCard>
-                </RadzenColumn>
-            </RadzenRow>
+                <!-- Cancellation Rate Card -->
+                <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="width: 48px; height: 48px; border-radius: 8px; background: #fef2f2; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="cancel" Style="font-size: 1.5rem; color: #ef4444;" />
+                        </div>
+                        <RadzenBadge Text="@($"{_analyticsData?.CancelledOrders ?? 0} cancelled")" BadgeStyle="BadgeStyle.Danger" Style="font-size: 0.75rem;" />
+                    </div>
+                    <div>
+                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 0.875rem; font-weight: 500;">Cancellation Rate</p>
+                        <h2 style="margin: 0; font-size: 1.875rem; font-weight: 700; color: #374151;">@(_analyticsData?.CancellationRate.ToString("F1") ?? "0")%</h2>
+                    </div>
+                </RadzenCard>
+            </div>
 
             <!-- AI Business Summary Section -->
             @if (_analyticsData != null)
@@ -584,8 +668,41 @@
                 </RadzenCard>
             }
         }
-    </RadzenStack>
-</RadzenStack>
+                        </div>
+                    </ChildContent>
+                </RadzenTabsItem>
+
+                <!-- Purchase Orders Tab -->
+                <RadzenTabsItem Text="Purchase Orders">
+                    <ChildContent>
+                        <div style="padding: 24px;">
+                            <PurchaseOrderIndex />
+                        </div>
+                    </ChildContent>
+                </RadzenTabsItem>
+
+                <!-- Sales Orders Tab -->
+                <RadzenTabsItem Text="Sales Orders">
+                    <ChildContent>
+                        <div style="padding: 24px;">
+                            <SalesOrderIndex />
+                        </div>
+                    </ChildContent>
+                </RadzenTabsItem>
+
+                <!-- Inventory Transactions Tab -->
+                <RadzenTabsItem Text="Inventory Transactions">
+                    <ChildContent>
+                        <div style="padding: 24px;">
+                            <InventoryTransactionIndex />
+                        </div>
+                    </ChildContent>
+                </RadzenTabsItem>
+
+            </Tabs>
+        </RadzenTabs>
+    </RadzenCard>
+</div>
 
 @code {
     private bool _loading = true;
@@ -601,6 +718,7 @@
     private AnalyticalReportType _selectedReportType = AnalyticalReportType.ProfitAndLossStatement;
     private DateTime _startDate = DateTime.Now.AddMonths(-1);
     private DateTime _endDate = DateTime.Now;
+    private int _selectedTabIndex = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -646,6 +764,15 @@
     {
         await LoadReportsData();
         NotificationService.Notify(NotificationSeverity.Success, "Success", "Reports refreshed successfully");
+    }
+
+    private void TestNotification()
+    {
+        // Simple Radzen notifications
+        NotificationService.Notify(NotificationSeverity.Success, "Success", "This is a success notification!");
+        NotificationService.Notify(NotificationSeverity.Info, "Info", "This is an info notification!");
+        NotificationService.Notify(NotificationSeverity.Warning, "Warning", "This is a warning notification!");
+        NotificationService.Notify(NotificationSeverity.Error, "Error", "This is an error notification!");
     }
 
     private async Task OnDateRangeChanged()

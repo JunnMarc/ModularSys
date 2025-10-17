@@ -1,13 +1,33 @@
-@page "/products"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
 @using Radzen.Blazor
+@using Radzen
 
 @inject IProductService ProductService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
 <div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header with Action Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #374151;">Product Management</h2>
+            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Manage and track all products in your inventory</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <RadzenButton Text="Add Product" 
+                        Icon="add" 
+                        ButtonStyle="ButtonStyle.Primary"
+                        Click="@AddProduct"
+                        Style="border-radius: 6px;" />
+            <RadzenButton Text="Refresh" 
+                        Icon="refresh" 
+                        ButtonStyle="ButtonStyle.Light"
+                        Click="@LoadData"
+                        Style="border-radius: 6px;" />
+        </div>
+    </div>
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
         <RadzenCard Style="padding: 20px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -108,7 +128,7 @@
                         <Template Context="product">
                             @if (product.Category != null)
                             {
-                                <div style="display: inline-block; padding: 4px 8px; background: #f1f5f9; color: #374151; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                                <div style="display: inline-block; padding: 4px 8px; color: #6b7280; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
                                     @product.Category.CategoryName
                                 </div>
                             }
@@ -175,7 +195,17 @@
     
     private async Task AddProduct()
     {
-        var result = await DialogService.OpenAsync<ProductForm>("Add Product");
+        var result = await DialogService.OpenAsync<ProductForm>("", 
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "700px"
+            });
         if (result == true)
         {
             await LoadData();
@@ -184,12 +214,32 @@
     
     private async Task ViewProduct(int id)
     {
-        await DialogService.OpenAsync<ProductForm>("View Product", new Dictionary<string, object> { { "Id", id }, { "ReadOnly", true } });
+        await DialogService.OpenAsync<ProductForm>("", 
+            new Dictionary<string, object> { { "Id", id }, { "ReadOnly", true } },
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "700px"
+            });
     }
 
     private async Task EditProduct(int id)
     {
-        var result = await DialogService.OpenAsync<ProductForm>("Edit Product", new Dictionary<string, object> { { "Id", id } });
+        var result = await DialogService.OpenAsync<ProductForm>("", 
+            new Dictionary<string, object> { { "Id", id } },
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "700px"
+            });
         if (result == true)
         {
             await LoadData();
@@ -198,15 +248,22 @@
 
     private async Task DeleteProduct(int id)
     {
-        var confirm = await DialogService.Confirm("Are you sure you want to delete this product?", "Delete Product", 
-            new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" });
+        var confirm = await DialogService.Confirm(
+            "This action cannot be undone. The product will be permanently removed from your inventory.", 
+            "Delete Product?", 
+            new ConfirmOptions() 
+            { 
+                OkButtonText = "Delete", 
+                CancelButtonText = "Cancel",
+                AutoFocusFirstElement = false
+            });
         
         if (confirm == true)
         {
             try
             {
                 await ProductService.DeleteAsync(id, "System");
-                NotificationService.Notify(NotificationSeverity.Success, "Success", "Product deleted successfully");
+                NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Product has been removed from inventory");
                 await LoadData();
             }
             catch (Exception ex)

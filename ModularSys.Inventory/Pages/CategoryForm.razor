@@ -1,67 +1,124 @@
 @using ModularSys.Data.Common.Entities.Inventory
 @using ModularSys.Inventory.Interface
+@using Radzen
+@using Radzen.Blazor
 
 @inject ICategoryService CategoryService
+@inject Radzen.DialogService DialogService
+@inject NotificationService NotificationService
 
-<RadzenCard>
-    <RadzenStack Gap="1rem" Style="padding: 1rem;">
-        <RadzenStack Gap="0.75rem">
-            <RadzenTextBox Value="_model.CategoryName" ValueChanged="@((string value) => _model.CategoryName = value)"
-                          Placeholder="Category Name"
-                          Style="width: 100%;" />
+<div style="width: 100%; max-height: 90vh; display: flex; flex-direction: column; background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12); overflow: hidden;">
+    <!-- Header -->
+    <div style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: white;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                <RadzenIcon Icon="category" Style="color: white; font-size: 1.5rem;" />
+            </div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #1f2937;">
+                    @(Id.HasValue ? "Edit Category" : "New Category")
+                </h2>
+                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">
+                    @(Id.HasValue ? "Update category information and settings" : "Create a new product category")
+                </p>
+            </div>
+        </div>
+    </div>
 
-            <RadzenTextArea Value="_model.Description" ValueChanged="@((string value) => _model.Description = value)"
-                          Placeholder="Detailed category description"
-                          Rows="3"
-                          Style="width: 100%;" />
+    <!-- Form Content -->
+    <div style="padding: 24px; flex: 1; background: white; overflow-y: auto;">
+        <RadzenStack Gap="1.5rem">
+            <!-- Basic Information Section -->
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <RadzenIcon Icon="info" Style="color: #10b981;" />
+                    <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #374151;">Basic Information</h3>
+                </div>
+                
+                <RadzenStack Gap="1rem">
+                    <RadzenFormField Text="Category Name" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="_model.CategoryName" 
+                                      Placeholder="Enter category name"
+                                      Style="width: 100%;" />
+                    </RadzenFormField>
 
-            <RadzenRow Gap="1rem">
-                <RadzenColumn Size="6">
-                    <RadzenTextBox Value="_model.Icon" ValueChanged="@((string value) => _model.Icon = value)"
-                                  Placeholder="Material Design icon name (e.g., Category, ShoppingCart)"
-                                  Style="width: 100%;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenTextBox Value="_model.Color" ValueChanged="@((string value) => _model.Color = value)"
-                                  Placeholder="#1976d2"
-                                  Style="width: 100%;" />
-                </RadzenColumn>
-            </RadzenRow>
+                    <RadzenFormField Text="Description" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenTextArea @bind-Value="_model.Description" 
+                                       Placeholder="Detailed category description"
+                                       Rows="3"
+                                       Style="width: 100%;" />
+                    </RadzenFormField>
 
-            <RadzenRow Gap="1rem">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="Revenue Critical Category" Component="revenueCritical" />
-                    <RadzenText Text="low stock in this category impacts revenue and triggers urgent restocking" 
-                              Style="color: var(--rz-text-secondary); font-size: 0.875rem;" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenNumeric TValue="int" Value="_model.DefaultMinThreshold" ValueChanged="@((int value) => _model.DefaultMinThreshold = value)"
-                                 Placeholder="Default reorder threshold for products in this category"
-                                 Style="width: 100%;" />
-                </RadzenColumn>
-            </RadzenRow>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="6">
+                            <RadzenFormField Text="Icon" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenTextBox @bind-Value="_model.Icon" 
+                                              Placeholder="category"
+                                              Style="width: 100%;" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenFormField Text="Color" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenTextBox @bind-Value="_model.Color" 
+                                              Placeholder="#1976d2"
+                                              Style="width: 100%;" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            </div>
 
-            <RadzenDropDown Data="_parentCategories" Value="_model.ParentCategoryId" ValueChanged="@((int? value) => _model.ParentCategoryId = value)" 
-                          Placeholder="No Parent (Top Level)"
-                          AllowClear="true"
-                          Style="width: 100%;" />
+            <!-- Settings Section -->
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <RadzenIcon Icon="settings" Style="color: #f59e0b;" />
+                    <h3 style="margin: 0; font-size: 1rem; font-weight: 600; color: #374151;">Settings</h3>
+                </div>
+                
+                <RadzenStack Gap="1rem">
+                    <RadzenFormField Text="Default Min Threshold" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenNumeric TValue="int" 
+                                     @bind-Value="_model.DefaultMinThreshold"
+                                     ShowUpDown="false"
+                                     Style="width: 100%;" />
+                    </RadzenFormField>
 
-            <RadzenCheckBox Value="_model.IsActive" ValueChanged="@((bool value) => _model.IsActive = value)" Name="active" />
-            <RadzenLabel Text="Active Category" Component="active" />
+                    <RadzenFormField Text="Parent Category" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown Data="_parentCategories" 
+                                       @bind-Value="_model.ParentCategoryId"
+                                       TextProperty="CategoryName"
+                                       ValueProperty="CategoryId"
+                                       Placeholder="No Parent (Top Level)"
+                                       AllowClear="true"
+                                       Style="width: 100%;" />
+                    </RadzenFormField>
+
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <RadzenCheckBox @bind-Value="_model.IsActive" Name="active" />
+                        <RadzenLabel Text="Active Category" Component="active" Style="cursor: pointer;" />
+                    </div>
+                </RadzenStack>
+            </div>
         </RadzenStack>
-    </RadzenStack>
-</RadzenCard>
+    </div>
 
-<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="padding: 1rem;">
-    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="Cancel" />
-    <RadzenButton Text="@(Id.HasValue ? "Update Category" : "Add Category")" 
-                  ButtonStyle="ButtonStyle.Primary" 
-                  Click="Save" />
-</RadzenStack>
+    <!-- Footer Actions -->
+    <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; background: white; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0;">
+        <RadzenButton Text="Cancel" 
+                     Icon="close"
+                     ButtonStyle="ButtonStyle.Light" 
+                     Click="Cancel"
+                     Style="min-width: 100px;" />
+        <RadzenButton Text="@(Id.HasValue ? "Update" : "Add Category")" 
+                     Icon="@(Id.HasValue ? "save" : "add")"
+                     ButtonStyle="ButtonStyle.Primary" 
+                     Click="Save"
+                     Style="min-width: 120px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;" />
+    </div>
+</div>
 
 @code {
     [Parameter] public int? Id { get; set; }
-    [Parameter] public EventCallback<bool> OnResult { get; set; }
 
     private Category _model = new();
     private List<Category> _parentCategories = new();
@@ -108,14 +165,19 @@
 
     private async Task Save()
     {
-
         if (_model.CategoryId == 0)
+        {
             await CategoryService.CreateAsync(_model);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category created successfully.");
+        }
         else
+        {
             await CategoryService.UpdateAsync(_model);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category updated successfully.");
+        }
 
-        await OnResult.InvokeAsync(true);
+        DialogService.Close(true);
     }
 
-    private async Task Cancel() => await OnResult.InvokeAsync(false);
+    private void Cancel() => DialogService.Close(false);
 }

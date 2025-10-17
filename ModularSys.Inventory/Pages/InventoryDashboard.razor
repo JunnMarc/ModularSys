@@ -1,26 +1,78 @@
-@page "/inventory/dashboard"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
 @using Radzen.Blazor
 @inject IInventoryDashboardService DashboardService
+@inject IInventoryService InventoryService
 @inject NotificationService NotificationService
 
 <div style="padding: 24px; background: #fafafa; min-height: 100vh;">
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <div>
-            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
-                <RadzenIcon Icon="dashboard" Style="margin-right: 8px;" />
-                Inventory Dashboard
-            </h1>
-            <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Real-time inventory analytics and insights</p>
+    <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #374151;">
+                    <RadzenIcon Icon="dashboard" Style="margin-right: 8px;" />
+                    Inventory Dashboard
+                </h1>
+                <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 0.875rem;">Real-time inventory analytics and insights</p>
+            </div>
+            <RadzenButton Text="Refresh" 
+                         Icon="refresh" 
+                         Click="RefreshData"
+                         Disabled="_loading"
+                         Variant="Variant.Outlined"
+                         Style="border-radius: 6px; border-color: #d1d5db; color: #6b7280;" />
         </div>
-        <RadzenButton Text="Refresh" 
-                     Icon="refresh" 
-                     Click="RefreshData"
-                     Disabled="_loading"
-                     Variant="Variant.Outlined"
-                     Style="border-radius: 6px; border-color: #d1d5db; color: #6b7280;" />
+        
+        <!-- Date Range Filter -->
+        <RadzenCard Style="padding: 16px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenIcon Icon="date_range" Style="color: #8b5cf6;" />
+                    <RadzenText Text="Date Range:" Style="font-weight: 600; color: #374151;" />
+                </RadzenStack>
+                
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenLabel Text="From:" Style="color: #6b7280; font-size: 0.875rem;" />
+                    <RadzenDatePicker @bind-Value="_startDate" 
+                                     DateFormat="MM/dd/yyyy" 
+                                     Change="@OnDateRangeChanged"
+                                     Style="width: 150px;" />
+                </RadzenStack>
+                
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenLabel Text="To:" Style="color: #6b7280; font-size: 0.875rem;" />
+                    <RadzenDatePicker @bind-Value="_endDate" 
+                                     DateFormat="MM/dd/yyyy" 
+                                     Change="@OnDateRangeChanged"
+                                     Min="@_startDate"
+                                     Style="width: 150px;" />
+                </RadzenStack>
+                
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                    <RadzenButton Text="Last 7 Days" 
+                                 Click="@(() => SetDateRange(7))"
+                                 Size="ButtonSize.Small"
+                                 Variant="Variant.Text"
+                                 Style="color: #8b5cf6;" />
+                    <RadzenButton Text="Last 30 Days" 
+                                 Click="@(() => SetDateRange(30))"
+                                 Size="ButtonSize.Small"
+                                 Variant="Variant.Text"
+                                 Style="color: #8b5cf6;" />
+                    <RadzenButton Text="This Month" 
+                                 Click="@SetCurrentMonth"
+                                 Size="ButtonSize.Small"
+                                 Variant="Variant.Text"
+                                 Style="color: #8b5cf6;" />
+                    <RadzenButton Text="All Time" 
+                                 Click="@SetAllTime"
+                                 Size="ButtonSize.Small"
+                                 Variant="Variant.Text"
+                                 Style="color: #8b5cf6;" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
     </div>
 
     @if (_loading)
@@ -81,6 +133,38 @@
                 </div>
             </RadzenCard>
         </div>
+
+        <!-- Inventory Activity Chart -->
+        <RadzenCard Style="padding: 0; border-radius: 8px; border: 1px solid #f0f0f0; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+            <div style="padding: 20px; border-bottom: 1px solid #f0f0f0; background: #f8fafc;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #374151;">
+                        <RadzenIcon Icon="show_chart" Style="margin-right: 8px;" />
+                        Inventory Activity
+                    </h3>
+                    <span style="color: #6b7280; font-size: 0.875rem;">
+                        @(_startDate?.ToString("MMM dd, yyyy")) - @(_endDate?.ToString("MMM dd, yyyy"))
+                    </span>
+                </div>
+            </div>
+            <div style="padding: 20px;">
+                <RadzenChart>
+                    <RadzenLineSeries Smooth="true" Data="@_chartData" CategoryProperty="Date" Title="Stock In" ValueProperty="StockIn" Stroke="#10b981" StrokeWidth="3">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" Fill="#10b981" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@_chartData" CategoryProperty="Date" Title="Stock Out" ValueProperty="StockOut" Stroke="#f59e0b" StrokeWidth="3">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" Fill="#f59e0b" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Padding="20" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Quantity" />
+                    </RadzenValueAxis>
+                    <RadzenLegend Position="LegendPosition.Bottom" />
+                </RadzenChart>
+            </div>
+        </RadzenCard>
+
         @if (_stockAlerts?.Any() == true)
         {
             <RadzenCard Style="padding: 0; border-radius: 8px; border: 1px solid #f0f0f0; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
@@ -96,9 +180,9 @@
                         <RadzenCard Style="@GetAlertCardStyle(alert)">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="color: #374151;">@alert.ProductName - @alert.Message</div>
-                                <div style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @GetAlertTypeStyle(alert.AlertType)">
+                                <span style="font-size: 0.75rem; font-weight: 500; @GetAlertTypeStyle(alert.AlertType)">
                                     @alert.AlertType
-                                </div>
+                                </span>
                             </div>
                         </RadzenCard>
                     }
@@ -166,7 +250,10 @@
 @code {
     private InventoryDashboardData? _dashboardData;
     private List<StockAlert> _stockAlerts = new();
+    private List<InventoryActivityData> _chartData = new();
     private bool _loading = true;
+    private DateTime? _startDate = DateTime.Today.AddDays(-6);
+    private DateTime? _endDate = DateTime.Today;
 
     protected override async Task OnInitializedAsync()
     {
@@ -183,6 +270,34 @@
             // SIMPLIFIED: Load only essential dashboard data and stock alerts
             _dashboardData = await DashboardService.GetDashboardDataAsync();
             _stockAlerts = (await DashboardService.GetStockAlertsAsync()).ToList();
+            
+            // Load real transaction data based on date range
+            var allTransactions = await InventoryService.GetAllAsync();
+            var startDate = _startDate ?? DateTime.Today.AddDays(-6);
+            var endDate = _endDate ?? DateTime.Today;
+            
+            var recentTransactions = allTransactions
+                .Where(t => t.TransactionDate.Date >= startDate.Date && 
+                           t.TransactionDate.Date <= endDate.Date && 
+                           !t.IsDeleted)
+                .ToList();
+            
+            // Calculate number of days in range
+            var dayCount = (endDate.Date - startDate.Date).Days + 1;
+            
+            // Group by date and calculate stock in/out
+            _chartData = Enumerable.Range(0, dayCount).Select(i =>
+            {
+                var date = startDate.AddDays(i);
+                var dayTransactions = recentTransactions.Where(t => t.TransactionDate.Date == date.Date);
+                
+                return new InventoryActivityData
+                {
+                    Date = date.ToString("MMM dd"),
+                    StockIn = dayTransactions.Where(t => t.QuantityChange > 0).Sum(t => t.QuantityChange),
+                    StockOut = Math.Abs(dayTransactions.Where(t => t.QuantityChange < 0).Sum(t => t.QuantityChange))
+                };
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -224,10 +339,10 @@
 
     private string GetAlertTypeStyle(string alertType) => alertType switch
     {
-        "OutOfStock" => "background: #fecaca; color: #991b1b;",
-        "LowStock" => "background: #fef3c7; color: #92400e;",
-        "Expiring" => "background: #dbeafe; color: #1e40af;",
-        _ => "background: #f1f5f9; color: #6b7280;"
+        "OutOfStock" => "color: #ef4444;",
+        "LowStock" => "color: #f59e0b;",
+        "Expiring" => "color: #3b82f6;",
+        _ => "color: #6b7280;"
     };
 
     private string GetProfitMarginIconStyle()
@@ -249,5 +364,38 @@
     private string GetAlertCardStyle(StockAlert alert)
     {
         return $"padding: 12px; margin-bottom: 8px; border-left: 4px solid {GetAlertBorderColor(alert.Severity)}; background: {GetAlertBackgroundColor(alert.Severity)};";
+    }
+
+    private async Task OnDateRangeChanged()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task SetDateRange(int days)
+    {
+        _endDate = DateTime.Today;
+        _startDate = DateTime.Today.AddDays(-days + 1);
+        await LoadDashboardData();
+    }
+
+    private async Task SetCurrentMonth()
+    {
+        _startDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _endDate = DateTime.Today;
+        await LoadDashboardData();
+    }
+
+    private async Task SetAllTime()
+    {
+        _startDate = DateTime.Today.AddYears(-1); // Last year
+        _endDate = DateTime.Today;
+        await LoadDashboardData();
+    }
+
+    public class InventoryActivityData
+    {
+        public string Date { get; set; } = string.Empty;
+        public int StockIn { get; set; }
+        public int StockOut { get; set; }
     }
 }

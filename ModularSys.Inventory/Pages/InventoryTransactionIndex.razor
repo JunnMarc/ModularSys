@@ -1,4 +1,3 @@
-@page "/inventory-transactions"
 @using ModularSys.Inventory.Interface
 @using Radzen.Blazor
 @using InventoryTransactionEntity = ModularSys.Data.Common.Entities.Inventory.InventoryTransaction
@@ -124,21 +123,56 @@
                     <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionNumber" Title="Transaction #" Width="150px" />
                     <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionType" Title="Type" Width="120px">
                         <Template Context="transaction">
-                            <RadzenBadge Text="@transaction.TransactionType" 
-                                       BadgeStyle="@(transaction.QuantityChange > 0 ? BadgeStyle.Success : BadgeStyle.Warning)" />
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Product.Name" Title="Product" />
-                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="QuantityChange" Title="Quantity Change" Width="120px">
-                        <Template Context="transaction">
-                            <span style="color: @(transaction.QuantityChange > 0 ? "#10b981" : "#f59e0b");">
-                                @(transaction.QuantityChange > 0 ? "+" : "")@transaction.QuantityChange
+                            <span style="font-weight: 500; color: @(transaction.QuantityChange > 0 ? "#10b981" : "#f59e0b");">
+                                @transaction.TransactionType
                             </span>
                         </Template>
                     </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Product.Name" Title="Product" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="QuantityBefore" Title="Before" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="transaction">
+                            <span style="color: #6b7280; font-weight: 500;">@transaction.QuantityBefore</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="QuantityChange" Title="Change" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="transaction">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <RadzenIcon Icon="@(transaction.QuantityChange > 0 ? "arrow_upward" : "arrow_downward")" 
+                                           Style="@($"font-size: 16px; color: {(transaction.QuantityChange > 0 ? "#10b981" : "#f59e0b")};")"/>
+                                <span style="font-weight: 600; color: @(transaction.QuantityChange > 0 ? "#10b981" : "#f59e0b");">
+                                    @(transaction.QuantityChange > 0 ? "+" : "")@transaction.QuantityChange
+                                </span>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="QuantityAfter" Title="After" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="transaction">
+                            <span style="color: #374151; font-weight: 600;">@transaction.QuantityAfter</span>
+                        </Template>
+                    </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="UnitCost" Title="Unit Cost" Width="120px" FormatString="{0:C}" />
-                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionDate" Title="Date" Width="150px" FormatString="{0:MMM dd, yyyy}" />
-                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Notes" Title="Notes" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Amount" Title="Total Amount" Width="130px">
+                        <Template Context="transaction">
+                            <span style="font-weight: 600; color: #374151;">@transaction.Amount.ToString("C")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="TransactionDate" Title="Date" Width="150px" FormatString="{0:MMM dd, yyyy HH:mm}" />
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Reference" Title="Reference" Width="150px">
+                        <Template Context="transaction">
+                            @if (!string.IsNullOrEmpty(transaction.Reference))
+                            {
+                                <span style="font-family: monospace; font-size: 0.875rem; color: #6b7280;">@transaction.Reference</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="InventoryTransactionEntity" Property="Notes" Title="Notes" Width="200px">
+                        <Template Context="transaction">
+                            @if (!string.IsNullOrEmpty(transaction.Notes))
+                            {
+                                <span style="color: #6b7280; font-size: 0.875rem;">@transaction.Notes</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
                 </Columns>
             </RadzenDataGrid>
         }

@@ -8,6 +8,13 @@
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
 @inject DialogService DialogService
+@inject ModularSys.Inventory.Services.InventoryNavigationService InventoryNavService
+
+<RadzenComponents />
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
 
 <style>
     /* Material 3 Sidebar - White & Blue Theme */
@@ -259,19 +266,75 @@
             </div>
 
             <!-- Modules Section -->
-            @if (ModuleLoader.Subsystems.Any())
-            {
-                <div class="nav-section">
-                    <div class="nav-section-title">Modules</div>
-                    @foreach (var subsystem in ModuleLoader.Subsystems.OrderBy(s => s.Order))
+            <div class="nav-section">
+                <div class="nav-section-title">Modules</div>
+                
+                <!-- Inventory Module with Collapsible Submodules -->
+                <div>
+                    <a class="nav-item @(IsInventoryActive() ? "active" : "")" @onclick="ToggleInventorySection" style="justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="nav-item-icon material-icons">inventory</span>
+                            <span>Inventory</span>
+                        </div>
+                        <span class="material-icons" style="font-size: 1.125rem;">@(_inventoryExpanded ? "expand_less" : "expand_more")</span>
+                    </a>
+                    
+                    @if (_inventoryExpanded)
                     {
-                        <a class="nav-item @(IsActive(subsystem.Route) ? "active" : "")" @onclick='@(() => Nav.NavigateTo(subsystem.Route))'>
-                            <span class="nav-item-icon material-icons">@subsystem.Icon</span>
-                            <span>@subsystem.Name</span>
-                        </a>
+                        <div style="margin-left: 36px; margin-top: 4px;">
+                            <a class="nav-item @(_selectedInventoryModule == "dashboard" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("dashboard"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Dashboard</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "products" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("products"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Products</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "categories" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("categories"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Categories</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "sales-orders" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("sales-orders"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Sales Orders</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "purchase-orders" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("purchase-orders"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Purchase Orders</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "transactions" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("transactions"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Transactions</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "stock-alerts" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("stock-alerts"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Stock Alerts</span>
+                            </a>
+                            <a class="nav-item @(_selectedInventoryModule == "reports" ? "active" : "")" 
+                               @onclick='@(() => SelectInventoryModule("reports"))'
+                               style="font-size: 0.8125rem; padding: 8px 12px;">
+                                <span>Reports</span>
+                            </a>
+                        </div>
                     }
                 </div>
-            }
+                
+                <!-- Other Modules -->
+                @foreach (var subsystem in ModuleLoader.Subsystems.Where(s => s.Name != "Inventory").OrderBy(s => s.Order))
+                {
+                    <a class="nav-item @(IsActive(subsystem.Route) ? "active" : "")" @onclick='@(() => Nav.NavigateTo(subsystem.Route))'>
+                        <span class="nav-item-icon material-icons">@subsystem.Icon</span>
+                        <span>@subsystem.Name</span>
+                    </a>
+                }
+            </div>
 
             <!-- System Section -->
             <div class="nav-section">
@@ -357,6 +420,8 @@ else
 @code {
     private bool sidebarExpanded = true;
     private bool showUserMenu = false;
+    private bool _inventoryExpanded = true;
+    private string _selectedInventoryModule = "dashboard";
     
     private string GetUserInitials()
     {
@@ -373,6 +438,25 @@ else
     private bool IsActive(string path)
     {
         return Nav.Uri.Contains(path, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsInventoryActive()
+    {
+        return Nav.Uri.Contains("/inventory", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ToggleInventorySection()
+    {
+        _inventoryExpanded = !_inventoryExpanded;
+        StateHasChanged();
+    }
+
+    private void SelectInventoryModule(string module)
+    {
+        _selectedInventoryModule = module;
+        InventoryNavService.SelectModule(module);
+        Nav.NavigateTo("/inventory");
+        StateHasChanged();
     }
 
     private string GetPageTitle()

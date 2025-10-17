@@ -1,4 +1,3 @@
-@page "/categories"
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
 @using Radzen.Blazor
@@ -149,7 +148,7 @@
                     
                     <RadzenDataGridColumn TItem="Category" Property="IsActive" Title="Status" Width="120px">
                         <Template Context="category">
-                            <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @(category.IsActive ? "background: #dcfce7; color: #166534;" : "background: #f1f5f9; color: #6b7280;")">
+                            <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @(category.IsActive ? "color: #10b981;" : "color: #6b7280;")">
                                 @(category.IsActive ? "Active" : "Inactive")
                             </div>
                         </Template>
@@ -283,23 +282,41 @@
 
     private async Task Create()
     {
-        var result = await DialogService.OpenAsync<CategoryForm>("Add Category", new Dictionary<string, object>(), new DialogOptions() { Width = "600px", Height = "700px" });
+        var result = await DialogService.OpenAsync<CategoryForm>("", 
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "700px"
+            });
         
         if (result == true)
         {
             await LoadData();
-            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category created successfully");
         }
     }
 
     private async Task Edit(int categoryId)
     {
-        var result = await DialogService.OpenAsync<CategoryForm>("Edit Category", new Dictionary<string, object>() { { "Id", categoryId } }, new DialogOptions() { Width = "600px", Height = "700px" });
+        var result = await DialogService.OpenAsync<CategoryForm>("", 
+            new Dictionary<string, object>() { { "Id", categoryId } },
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; max-width: none; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "700px"
+            });
         
         if (result == true)
         {
             await LoadData();
-            NotificationService.Notify(NotificationSeverity.Success, "Success", "Category updated successfully");
         }
     }
 

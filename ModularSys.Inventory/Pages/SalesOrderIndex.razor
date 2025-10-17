@@ -1,7 +1,7 @@
-@page "/sales"
 @using ModularSys.Inventory.Components
 @using ModularSys.Inventory.Interface
 @using ModularSys.Data.Common.Entities.Inventory
+@using Radzen
 @using Radzen.Blazor
 @inject ISalesOrderService SalesOrderService
 @inject DialogService DialogService
@@ -83,20 +83,23 @@
     <!-- Filters -->
     <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 8px; border: 1px solid #f0f0f0; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-            <RadzenTextBox Value="_searchText" 
+            <RadzenTextBox Value="@_searchText" 
                           ValueChanged="@((string value) => { _searchText = value; OnSearchChanged(); })" 
                           Placeholder="Search orders, customers..." 
                           Icon="search" 
                           Style="flex: 1; min-width: 250px; border-radius: 6px;" />
-            <RadzenDropDown Value="_statusFilter" 
+            <RadzenDropDown Value="@_statusFilter" 
                            ValueChanged="@((string value) => { _statusFilter = value; FilterOrders(); })" 
                            Data="@(new[] { "All", "Pending", "Completed", "Cancelled" })" 
                            Style="min-width: 150px; border-radius: 6px;" />
-            <RadzenDatePicker Value="_dateFilter" 
-                             ValueChanged="@((DateTime? value) => { _dateFilter = value; FilterOrders(); })" 
+            <RadzenDatePicker TValue="DateTime?" 
+                             @bind-Value="_dateFilter"
+                             Change="@(() => FilterOrders())"
                              DateFormat="MMM dd, yyyy" 
+                             ShowTime="false"
                              Placeholder="Filter by date"
-                             Style="min-width: 150px; border-radius: 6px;" />
+                             AllowClear="true"
+                             Style="min-width: 200px; border-radius: 6px; height: 40px;" />
         </div>
     </RadzenCard>
 
@@ -123,7 +126,6 @@
                             <th style="padding: 16px; text-align: left; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151;">Customer</th>
                             <th style="padding: 16px; text-align: right; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151;">Amount</th>
                             <th style="padding: 16px; text-align: center; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151;">Status</th>
-                            <th style="padding: 16px; text-align: center; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151;">Payment</th>
                             <th style="padding: 16px; text-align: center; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151;">Actions</th>
                         </tr>
                     </thead>
@@ -174,11 +176,6 @@
                                     </div>
                                 </td>
                                 <td style="padding: 16px; text-align: center;">
-                                    <div style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; @GetPaymentChipStyle(order.PaymentStatus)">
-                                        @(order.PaymentStatus ?? "Pending")
-                                    </div>
-                                </td>
-                                <td style="padding: 16px; text-align: center;">
                                     <div style="display: flex; gap: 8px; justify-content: center;">
                                         <RadzenButton Icon="visibility" 
                                                      Size="ButtonSize.Small" 
@@ -205,17 +202,15 @@
                                                          Variant="Variant.Outlined"
                                                          Style="border-radius: 4px;" />
                                         }
-                                        @if (order.Status == "Cancelled" && !string.IsNullOrEmpty(order.CancellationReason))
-                                        {
-                                            <RadzenTooltip Text="@($"Cancelled: {order.CancellationReason}")">
-                                                <RadzenIcon Icon="info" Style="color: #f59e0b;" />
-                                            </RadzenTooltip>
-                                        }
                                         <RadzenButton Icon="print" 
                                                      Size="ButtonSize.Small" 
                                                      Click="@(() => PrintInvoice(order.SalesOrderId))"
                                                      Variant="Variant.Outlined"
                                                      Style="border-radius: 4px; border-color: #d1d5db; color: #6b7280;" />
+                                        @if (order.Status == "Cancelled" && !string.IsNullOrEmpty(order.CancellationReason))
+                                        {
+                                            <RadzenIcon Icon="info" Style="color: #f59e0b; font-size: 20px; cursor: pointer;" title="@($"Cancelled: {order.CancellationReason}")" />
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -359,9 +354,19 @@
 
     private async Task CreateOrder()
     {
-        var dialog = await DialogService.OpenAsync<SalesOrderForm>("New Sales Order");
+        var dialog = await DialogService.OpenAsync<SalesOrderForm>("",
+            new Dictionary<string, object>(),
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
 
-        if (dialog != null)
+        if (dialog == true)
         {
             await LoadData();
             NotificationService.Notify(NotificationSeverity.Success, "Success", "Sales order created successfully");
@@ -372,16 +377,36 @@
     {
         var parameters = new Dictionary<string, object> { ["Id"] = id, ["ReadOnly"] = true };
 
-        await DialogService.OpenAsync<SalesOrderForm>("Sales Order Details", parameters);
+        await DialogService.OpenAsync<SalesOrderForm>("", 
+            parameters,
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
     }
 
     private async Task EditOrder(int id)
     {
         var parameters = new Dictionary<string, object> { ["Id"] = id };
 
-        var dialog = await DialogService.OpenAsync<SalesOrderForm>("Edit Sales Order", parameters);
+        var dialog = await DialogService.OpenAsync<SalesOrderForm>("", 
+            parameters,
+            new DialogOptions() 
+            { 
+                ShowTitle = false,
+                Style = "border-radius: 12px; padding: 0; background: transparent;",
+                CloseDialogOnEsc = true,
+                Resizable = false,
+                Draggable = true,
+                Width = "800px"
+            });
 
-        if (dialog != null)
+        if (dialog == true)
         {
             await LoadData();
             NotificationService.Notify(NotificationSeverity.Success, "Success", "Sales order updated successfully");
@@ -434,8 +459,10 @@
 
         var parameters = new Dictionary<string, object>
         {
-            { "OrderId", id },
-            { "OrderNumber", order.OrderNumber }
+            { "Title", $"Cancel Order #{order.OrderNumber}" },
+            { "Message", "Please select a reason for cancellation:" },
+            { "Options", cancellationReasons },
+            { "AllowCustomReason", true }
         };
 
         var dialog = await DialogService.OpenAsync<CancellationReasonDialog>("Cancel Order", parameters);
@@ -477,10 +504,10 @@
     {
         return status switch
         {
-            "Pending" => "background: #fef3c7; color: #92400e;",
-            "Completed" => "background: #dcfce7; color: #166534;",
-            "Cancelled" => "background: #fecaca; color: #991b1b;",
-            _ => "background: #f1f5f9; color: #6b7280;"
+            "Pending" => "color: #f59e0b;",
+            "Completed" => "color: #10b981;",
+            "Cancelled" => "color: #ef4444;",
+            _ => "color: #6b7280;"
         };
     }
 

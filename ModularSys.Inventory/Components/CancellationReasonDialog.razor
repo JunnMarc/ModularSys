@@ -1,43 +1,62 @@
-@using ModularSys.Inventory.Models
+@using Radzen
+@inject DialogService DialogService
 
-<RadzenCard>
-    <RadzenStack Gap="1rem" Style="padding: 1rem;">
-        <RadzenText Text="@Title" Style="font-size: 1.25rem; font-weight: 600;" />
-        <RadzenText Text="@Message" />
-        
-        <RadzenRadioButtonList Data="@Options" @bind-Value="_selectedReason" Name="reason" />
+<div style="padding: 24px;">
+    <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.5rem; font-weight: 600; color: #1f2937; margin: 0 0 8px 0;">@Title</h3>
+        <p style="color: #6b7280; font-size: 0.95rem; margin: 0;">@Message</p>
+    </div>
 
-        @if (!string.IsNullOrEmpty(_selectedReason))
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+        @foreach (var option in Options)
         {
-            <RadzenText Text="@($"Selected: {_selectedReason}")" Style="color: var(--rz-success);" />
+            var isSelected = _selectedReason == option;
+            var cardStyle = isSelected 
+                ? "background: #eff6ff; border: 2px solid #3b82f6; cursor: pointer; border-radius: 8px; padding: 16px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);"
+                : "background: white; border: 2px solid #e5e7eb; cursor: pointer; border-radius: 8px; padding: 16px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);";
+            
+            <div style="@cardStyle" @onclick="() => SelectReason(option)" @onmouseover="@((e) => HoverCard(e, true))" @onmouseout="@((e) => HoverCard(e, false))">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="@(isSelected ? "width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" : "width: 20px; height: 20px; border-radius: 50%; border: 2px solid #d1d5db; flex-shrink: 0;")">
+                        @if (isSelected)
+                        {
+                            <span style="color: white; font-size: 12px;">✓</span>
+                        }
+                    </div>
+                    <span style="@(isSelected ? "color: #1f2937; font-weight: 500; font-size: 0.95rem;" : "color: #4b5563; font-size: 0.95rem;")">@option</span>
+                </div>
+            </div>
         }
+    </div>
 
-        @if (AllowCustomReason && _selectedReason == "Other")
-        {
+    @if (AllowCustomReason && _selectedReason == "Other")
+    {
+        <div style="margin-bottom: 20px;">
             <RadzenTextArea @bind-Value="_customReason"
-                          Placeholder="Please specify the reason"
+                          Placeholder="Please specify the reason..."
                           Rows="3"
-                          Style="width: 100%;" />
-        }
+                          Style="width: 100%; border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; font-size: 0.95rem;" />
+        </div>
+    }
 
-        @if (!string.IsNullOrEmpty(_errorMessage))
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Danger" Title="@_errorMessage" />
-        }
-    </RadzenStack>
-</RadzenCard>
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+            <p style="color: #dc2626; font-size: 0.875rem; margin: 0;">@_errorMessage</p>
+        </div>
+    }
 
-<RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="padding: 1rem;">
-    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="Cancel" />
-    <RadzenButton Text="Cancel Order" ButtonStyle="ButtonStyle.Danger" Icon="cancel" Click="Submit" />
-</RadzenStack>
+    <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" Click="Cancel" Style="min-width: 100px;" />
+        <RadzenButton Text="Cancel Order" ButtonStyle="ButtonStyle.Danger" Icon="cancel" Click="Submit" Style="min-width: 140px;" />
+    </div>
+</div>
 
 @code {
     [Parameter] public string Title { get; set; } = "Cancel Order";
     [Parameter] public string Message { get; set; } = "Please select a reason:";
     [Parameter] public string[] Options { get; set; } = Array.Empty<string>();
     [Parameter] public bool AllowCustomReason { get; set; } = true;
-    [Parameter] public EventCallback<string> OnResult { get; set; }
 
     private string? _selectedReason;
     private string _customReason = string.Empty;
@@ -56,7 +75,19 @@
         }
     }
 
-    private async Task Submit()
+    private void SelectReason(string reason)
+    {
+        _selectedReason = reason;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+    }
+
+    private void HoverCard(MouseEventArgs e, bool isHovering)
+    {
+        // Optional: Add hover effects if needed
+    }
+
+    private void Submit()
     {
         _errorMessage = string.Empty;
         Console.WriteLine($"Submit called. Selected reason: '{_selectedReason}'");
@@ -77,24 +108,16 @@
                 StateHasChanged();
                 return;
             }
-            await OnResult.InvokeAsync(_customReason.Trim());
+            DialogService.Close(_customReason.Trim());
         }
         else
         {
-            await OnResult.InvokeAsync(_selectedReason);
+            DialogService.Close(_selectedReason);
         }
     }
 
-    private async Task Cancel()
+    private void Cancel()
     {
-        try
-        {
-            await OnResult.InvokeAsync(string.Empty);
-        }
-        catch (Exception ex)
-        {
-            // Handle any potential errors gracefully
-            Console.WriteLine($"Error closing dialog: {ex.Message}");
-        }
+        DialogService.Close(null);
     }
 }

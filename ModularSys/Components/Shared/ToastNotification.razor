@@ -1,0 +1,142 @@
+@using Microsoft.AspNetCore.Components
+
+<div class="toast-container">
+    @foreach (var toast in _toasts)
+    {
+        <div class="toast toast-@toast.Type.ToString().ToLower() @(toast.IsVisible ? "show" : "")" 
+             @onmouseenter="() => PauseToast(toast)"
+             @onmouseleave="() => ResumeToast(toast)">
+            <div class="toast-icon">
+                @switch (toast.Type)
+                {
+                    case ToastType.Success:
+                        <span class="material-icons">check_circle</span>
+                        break;
+                    case ToastType.Error:
+                        <span class="material-icons">error</span>
+                        break;
+                    case ToastType.Warning:
+                        <span class="material-icons">warning</span>
+                        break;
+                    case ToastType.Info:
+                        <span class="material-icons">info</span>
+                        break;
+                }
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">@toast.Title</div>
+                <div class="toast-message">@toast.Message</div>
+            </div>
+            <button class="toast-close" @onclick="() => RemoveToast(toast)">
+                <span class="material-icons">close</span>
+            </button>
+            <div class="toast-progress" style="animation-duration: @(toast.Duration)ms; animation-play-state: @(toast.IsPaused ? "paused" : "running");"></div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ToastItem> _toasts = new();
+    private static ToastNotification? _instance;
+
+    protected override void OnInitialized()
+    {
+        _instance = this;
+    }
+
+    public static void Show(ToastType type, string title, string message, int duration = 10000)
+    {
+        _instance?.ShowToast(type, title, message, duration);
+    }
+
+    private void ShowToast(ToastType type, string title, string message, int duration)
+    {
+        var toast = new ToastItem
+        {
+            Id = Guid.NewGuid(),
+            Type = type,
+            Title = title,
+            Message = message,
+            Duration = duration,
+            IsVisible = false
+        };
+
+        _toasts.Add(toast);
+        StateHasChanged();
+
+        // Trigger animation
+        Task.Run(async () =>
+        {
+            await Task.Delay(10);
+            await InvokeAsync(() =>
+            {
+                toast.IsVisible = true;
+                StateHasChanged();
+            });
+
+            // Auto remove after duration
+            await Task.Delay(duration);
+            if (!toast.IsPaused)
+            {
+                await InvokeAsync(() => RemoveToast(toast));
+            }
+        });
+    }
+
+    private void PauseToast(ToastItem toast)
+    {
+        toast.IsPaused = true;
+        StateHasChanged();
+    }
+
+    private void ResumeToast(ToastItem toast)
+    {
+        toast.IsPaused = false;
+        StateHasChanged();
+        
+        // Resume countdown
+        Task.Run(async () =>
+        {
+            await Task.Delay(toast.Duration);
+            if (!toast.IsPaused)
+            {
+                await InvokeAsync(() => RemoveToast(toast));
+            }
+        });
+    }
+
+    private void RemoveToast(ToastItem toast)
+    {
+        toast.IsVisible = false;
+        StateHasChanged();
+        
+        Task.Run(async () =>
+        {
+            await Task.Delay(500); // Wait for animation
+            await InvokeAsync(() =>
+            {
+                _toasts.Remove(toast);
+                StateHasChanged();
+            });
+        });
+    }
+
+    public enum ToastType
+    {
+        Success,
+        Error,
+        Warning,
+        Info
+    }
+
+    private class ToastItem
+    {
+        public Guid Id { get; set; }
+        public ToastType Type { get; set; }
+        public string Title { get; set; } = "";
+        public string Message { get; set; } = "";
+        public int Duration { get; set; }
+        public bool IsVisible { get; set; }
+        public bool IsPaused { get; set; }
+    }
+}

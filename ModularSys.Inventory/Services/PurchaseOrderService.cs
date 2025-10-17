@@ -86,6 +86,9 @@ namespace ModularSys.Inventory.Services
             if (existing == null)
                 throw new KeyNotFoundException("Purchase order not found.");
 
+            // Recalculate SubTotal from lines
+            order.SubTotal = order.Lines.Sum(l => l.LineTotal);
+            
             db.Entry(existing).CurrentValues.SetValues(order);
             existing.Lines = order.Lines;
             await db.SaveChangesAsync();
@@ -135,10 +138,14 @@ namespace ModularSys.Inventory.Services
 
                 var order = await db.PurchaseOrders
                     .Include(p => p.Lines)
+                    .ThenInclude(l => l.Product)
                     .FirstOrDefaultAsync(p => p.PurchaseOrderId == purchaseOrderId);
 
                 if (order == null)
                     throw new KeyNotFoundException("Purchase order not found.");
+
+                // Recalculate SubTotal from lines
+                order.SubTotal = order.Lines.Sum(l => l.LineTotal);
 
                 if (order.SubTotal <= 0)
                     throw new InvalidOperationException("Purchase order has no value.");
