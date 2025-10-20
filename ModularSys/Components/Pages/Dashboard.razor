@@ -112,14 +112,17 @@ else
                                     </RadzenDataGridColumn>
                                     <RadzenDataGridColumn TItem="User" Property="Role.RoleName" Title="Role" Width="120px">
                                         <Template Context="user">
-                                            <RadzenBadge Text="@user.Role?.RoleName" BadgeStyle="BadgeStyle.Info" />
+                                            <span style="font-size: 0.75rem; font-weight: 500; color: #3b82f6; background: #eff6ff; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                                                @user.Role?.RoleName
+                                            </span>
                                         </Template>
                                     </RadzenDataGridColumn>
                                     <RadzenDataGridColumn TItem="User" Property="CreatedAt" Title="Joined" FormatString="{0:MMM dd, yyyy}" Width="120px" />
                                     <RadzenDataGridColumn TItem="User" Title="Status" Width="100px">
                                         <Template Context="user">
-                                            <RadzenBadge Text="@(user.IsDeleted ? "Inactive" : "Active")" 
-                                                       BadgeStyle="@(user.IsDeleted ? BadgeStyle.Danger : BadgeStyle.Success)" />
+                                            <span style="font-size: 0.75rem; font-weight: 500; color: @(user.IsDeleted ? "#ef4444" : "#10b981"); background: @(user.IsDeleted ? "#fef2f2" : "#ecfdf5"); padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                                                @(user.IsDeleted ? "Inactive" : "Active")
+                                            </span>
                                         </Template>
                                     </RadzenDataGridColumn>
                                 </Columns>
@@ -157,15 +160,21 @@ else
                         <RadzenStack Gap="0.75rem">
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                                 <RadzenText Text="Database" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <RadzenBadge Text="Connected" BadgeStyle="BadgeStyle.Success" Style="border-radius: 4px;" />
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #10b981; background: #ecfdf5; padding: 4px 8px; border-radius: 4px;">
+                                    Connected
+                                </span>
                             </RadzenStack>
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                                 <RadzenText Text="Modules" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <RadzenBadge Text="@($"{ModuleLoader.Subsystems.Count} Active")" BadgeStyle="BadgeStyle.Info" Style="border-radius: 4px;" />
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #3b82f6; background: #eff6ff; padding: 4px 8px; border-radius: 4px;">
+                                    @($"{ModuleLoader.Subsystems.Count} Active")
+                                </span>
                             </RadzenStack>
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                                 <RadzenText Text="Version" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <RadzenBadge Text="v1.0.0" BadgeStyle="BadgeStyle.Secondary" Style="border-radius: 4px;" />
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #6b7280; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">
+                                    v1.0.0
+                                </span>
                             </RadzenStack>
                         </RadzenStack>
                     </RadzenStack>
