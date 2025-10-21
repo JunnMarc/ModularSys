@@ -80,7 +80,7 @@ namespace ModularSys.Data.Common.Db
                     Username = "admin",
                     FirstName = "System",
                     LastName = "Administrator",
-                    PasswordHash = "JAvlGPq9JyTdtvBO6x2llnRI1+gxwIyPqCKAn3THIKk=", //admin123
+                    PasswordHash = "idH7w5EDU8HJlFmLjHS9xEhJ5wYCdEcEuhpQoCi1C3s=", //administrator12
                     Email = "admin@techvault.com",
                     ContactNumber = "+1-555-0100",
                     RoleId = 1,
