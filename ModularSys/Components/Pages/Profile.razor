@@ -1,13 +1,16 @@
 @page "/profile"
 @using ModularSys.Core.Interfaces
 @using ModularSys.Data.Common.Entities
+@using ModularSys.Components.Dialogs
 @using Radzen
 @using Radzen.Blazor
+@using System.ComponentModel.DataAnnotations
 
 @inject IAuthService AuthService
 @inject IUserService UserService
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
+@inject DialogService DialogService
 
 <PageTitle>Profile - ModularSys</PageTitle>
 
@@ -193,8 +196,16 @@ else if (_user != null)
         await LoadProfile();
     }
 
-    private void ChangePassword()
+    private async Task ChangePassword()
     {
-        NotificationService.Notify(NotificationSeverity.Info, "Coming Soon", "Password change functionality will be implemented");
+        var result = await DialogService.OpenAsync<ChangePasswordDialog>("Change Password", 
+            new Dictionary<string, object> { { "UserId", _user?.Id ?? 0 } },
+            new DialogOptions() { Width = "500px", Height = "auto" });
+        
+        if (result != null && (bool)result)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Password changed successfully");
+            await LoadProfile();
+        }
     }
 }

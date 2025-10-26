@@ -33,15 +33,19 @@ public class UserInputModel
     public int DepartmentId { get; set; }
 
     // Password fields (only for create/password change)
-    [StringLength(100, MinimumLength = 12, ErrorMessage = "Password must be at least 12 characters")]
-    public string? Password { get; set; }
+    // For new users: can use temporary password (< 12 chars) or permanent password (>= 12 chars)
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "Password cannot be empty")]
+    public string Password { get; set; } = string.Empty;
 
     [Compare("Password", ErrorMessage = "Passwords do not match")]
-    public string? ConfirmPassword { get; set; }
+    public string ConfirmPassword { get; set; } = string.Empty;
 
     // For edit mode
     public bool IsEditMode => Id > 0;
     public bool RequirePassword => !IsEditMode;
+    
+    // Indicates if this is a temporary password (< 12 chars) that requires change on first login
+    public bool IsTemporaryPassword => !string.IsNullOrEmpty(Password) && Password.Length < 12;
 }
 
 public class UserSearchModel
