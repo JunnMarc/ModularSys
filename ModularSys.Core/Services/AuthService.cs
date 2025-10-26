@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Core.Interfaces;
 using ModularSys.Core.Security; // for SessionAuthStateProvider
 using ModularSys.Data.Common.Db;
@@ -16,17 +17,20 @@ namespace ModularSys.Core.Services
         private readonly ISessionStorage _storage;
         private readonly IRolePermissionService _rolePermissionService;
         private readonly SessionAuthStateProvider _authStateProvider;
+        private readonly Lazy<IAuditService> _auditService;
 
         public AuthService(
             IDbContextFactory<ModularSysDbContext> contextFactory,
             ISessionStorage storage,
             IRolePermissionService rolePermissionService,
-            SessionAuthStateProvider authStateProvider)
+            SessionAuthStateProvider authStateProvider,
+            IServiceProvider serviceProvider)
         {
             _contextFactory = contextFactory;
             _storage = storage;
             _rolePermissionService = rolePermissionService;
             _authStateProvider = authStateProvider;
+            _auditService = new Lazy<IAuditService>(() => serviceProvider.GetRequiredService<IAuditService>());
             
             // Initialize authentication state from session storage
             InitializeAuthState();
@@ -113,6 +117,14 @@ namespace ModularSys.Core.Services
 
                 _authStateProvider.NotifyUserLogout();
                 OnAuthStateChanged?.Invoke();
+                
+                // Log failed login attempt
+                try
+                {
+                    await _auditService.Value.LogFailedLoginAsync(username, "Invalid username or password");
+                }
+                catch { /* Ignore audit logging errors */ }
+                
                 return false;
             }
 
@@ -136,6 +148,14 @@ namespace ModularSys.Core.Services
 
             _authStateProvider.NotifyUserAuthentication(claims);
             OnAuthStateChanged?.Invoke();
+            
+            // Log successful login
+            try
+            {
+                await _auditService.Value.LogLoginAsync(username, true);
+            }
+            catch { /* Ignore audit logging errors */ }
+            
             return true;
         }
 
@@ -186,6 +206,8 @@ namespace ModularSys.Core.Services
 
         public async void Logout()
         {
+            var username = CurrentUser;
+            
             _storage.Remove("current_user");
             _storage.Remove("current_user_claims");
 
@@ -194,6 +216,16 @@ namespace ModularSys.Core.Services
 
             _authStateProvider.NotifyUserLogout();
             OnAuthStateChanged?.Invoke();
+            
+            // Log logout
+            if (!string.IsNullOrEmpty(username))
+            {
+                try
+                {
+                    await _auditService.Value.LogLogoutAsync(username);
+                }
+                catch { /* Ignore audit logging errors */ }
+            }
         }
 
         private string HashPassword(string password)

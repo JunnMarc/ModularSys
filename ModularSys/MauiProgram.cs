@@ -105,6 +105,7 @@ namespace ModularSys
             builder.Services.AddScoped<ISessionStorage, MauiSessionStorage>();
 
             // Domain services
+            builder.Services.AddScoped<IAuditService, AuditService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IRolePermissionService, RolePermissionService>();
             builder.Services.AddScoped<IPermissionService, PermissionService>();

@@ -1,0 +1,354 @@
+@page "/audit-logs"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities
+@using Radzen
+@using Radzen.Blazor
+@using System.Text.Json
+
+@inject IAuditService AuditService
+@inject NotificationService NotificationService
+
+<PageTitle>Audit Logs - ModularSys</PageTitle>
+
+<div style="padding: 24px; background: #fafafa; min-height: 100vh;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div>
+            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Audit Logs</h1>
+            <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Track all system activities and user actions</p>
+        </div>
+        <RadzenButton Icon="refresh" 
+                      Text="Refresh" 
+                      Click="@LoadLogs" 
+                      ButtonStyle="ButtonStyle.Light"
+                      Style="border-radius: 8px;" />
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Logs</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalCount</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="description" Style="font-size: 2rem; color: #2196f3;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Security Events</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_logs.Count(l => l.Category == "Security")</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff3e0; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="security" Style="font-size: 2rem; color: #ff9800;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Data Changes</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_logs.Count(l => l.Category == "Data")</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #e8f5e9; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="storage" Style="font-size: 2rem; color: #4caf50;" />
+                </div>
+            </div>
+        </RadzenCard>
+        
+        <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Failed Actions</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_logs.Count(l => !l.Success)</h2>
+                </div>
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: #ffebee; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="error" Style="font-size: 2rem; color: #f44336;" />
+                </div>
+            </div>
+        </RadzenCard>
+    </div>
+
+    <!-- Filters -->
+    <RadzenCard Style="padding: 20px; margin-bottom: 24px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <RadzenIcon Icon="filter_list" Style="margin-right: 8px; color: #212121;" />
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Filters</h3>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Search</label>
+                <RadzenTextBox @bind-Value="_searchTerm"
+                              Placeholder="Search logs..."
+                              Style="width: 100%; border-radius: 6px;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Action</label>
+                <RadzenDropDown @bind-Value="_filterAction"
+                                Data="@_actions"
+                                Placeholder="All Actions"
+                                AllowClear="true"
+                                Style="width: 100%; border-radius: 6px;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Entity</label>
+                <RadzenDropDown @bind-Value="_filterEntity"
+                                Data="@_entities"
+                                Placeholder="All Entities"
+                                AllowClear="true"
+                                Style="width: 100%; border-radius: 6px;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #757575; font-size: 0.875rem; font-weight: 500;">Category</label>
+                <RadzenDropDown @bind-Value="_filterCategory"
+                                Data="@_categories"
+                                Placeholder="All Categories"
+                                AllowClear="true"
+                                Style="width: 100%; border-radius: 6px;" />
+            </div>
+            <RadzenButton Text="Apply Filters" 
+                         Icon="search"
+                         Click="@ApplyFilters" 
+                         ButtonStyle="ButtonStyle.Primary"
+                         Style="background: #1976d2; border-radius: 6px; border: none;" />
+        </div>
+    </RadzenCard>
+
+    <!-- Logs Table -->
+    <RadzenCard Style="padding: 0; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; background: white;">
+        <div style="padding: 20px; border-bottom: 1px solid #e0e0e0; background: #fafafa; border-radius: 12px 12px 0 0;">
+            <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Activity Log</h3>
+        </div>
+        
+        @if (_loading)
+        {
+            <div style="display: flex; justify-content: center; padding: 40px;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            </div>
+        }
+        else
+        {
+            <RadzenDataGrid @ref="_grid"
+                            Data="@_logs" 
+                            TItem="AuditLog" 
+                            AllowPaging="true"
+                            PageSize="20"
+                            AllowSorting="true"
+                            GridLines="DataGridGridLines.None"
+                            Style="border: none; background: white;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Timestamp" Title="Timestamp" Width="180px" Sortable="true">
+                        <Template Context="log">
+                            <div style="font-size: 0.875rem;">
+                                <div style="font-weight: 500; color: #212121;">@log.Timestamp.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                                <div style="color: #757575;">@log.Timestamp.ToLocalTime().ToString("hh:mm:ss tt")</div>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Username" Title="User" Width="150px" Sortable="true">
+                        <Template Context="log">
+                            <div style="display: flex; align-items: center;">
+                                <RadzenIcon Icon="person" Style="margin-right: 8px; color: #1976d2; font-size: 1.2rem;" />
+                                <span style="font-weight: 500; color: #212121;">@(log.Username ?? "System")</span>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Action" Title="Action" Width="120px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenBadge Text="@log.Action" 
+                                        Style="@GetActionBadgeStyle(log.Action)" 
+                                        BadgeStyle="BadgeStyle.Light" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="EntityName" Title="Entity" Width="120px" Sortable="true">
+                        <Template Context="log">
+                            <span style="font-weight: 500; color: #212121;">@log.EntityName</span>
+                            @if (!string.IsNullOrEmpty(log.EntityId))
+                            {
+                                <span style="color: #757575; font-size: 0.875rem;"> #@log.EntityId</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Description" Title="Description" Sortable="false">
+                        <Template Context="log">
+                            <div style="max-width: 400px;">
+                                <p style="margin: 0; color: #212121; font-size: 0.875rem;">@log.Description</p>
+                                @if (!log.Success && !string.IsNullOrEmpty(log.ErrorMessage))
+                                {
+                                    <p style="margin: 4px 0 0 0; color: #f44336; font-size: 0.8rem;">Error: @log.ErrorMessage</p>
+                                }
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Category" Title="Category" Width="100px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenBadge Text="@log.Category" 
+                                        Style="@GetCategoryBadgeStyle(log.Category ?? "General")" 
+                                        BadgeStyle="BadgeStyle.Light" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Success" Title="Status" Width="80px" Sortable="true">
+                        <Template Context="log">
+                            @if (log.Success)
+                            {
+                                <RadzenIcon Icon="check_circle" Style="color: #4caf50; font-size: 1.5rem;" />
+                            }
+                            else
+                            {
+                                <RadzenIcon Icon="error" Style="color: #f44336; font-size: 1.5rem;" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Title="Actions" Width="100px" Sortable="false">
+                        <Template Context="log">
+                            <RadzenButton Text="Details" 
+                                         Variant="Variant.Text" 
+                                         Size="ButtonSize.Small" 
+                                         Click="@(() => ShowDetails(log))"
+                                         Style="color: #1976d2; padding: 6px 16px; border-radius: 6px;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </RadzenCard>
+</div>
+
+@code {
+    private RadzenDataGrid<AuditLog>? _grid;
+    private List<AuditLog> _logs = new();
+    private bool _loading = true;
+    private int _totalCount = 0;
+    
+    // Filters
+    private string? _searchTerm;
+    private string? _filterAction;
+    private string? _filterEntity;
+    private string? _filterCategory;
+    
+    // Filter options
+    private List<string> _actions = new();
+    private List<string> _entities = new();
+    private List<string> _categories = new() { "Security", "Data", "System", "General" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLogs();
+        await LoadFilterOptions();
+    }
+
+    private async Task LoadLogs()
+    {
+        _loading = true;
+        try
+        {
+            var result = await AuditService.GetPagedAsync(1, 100, _searchTerm, _filterEntity, _filterAction, null);
+            _logs = result.Logs;
+            _totalCount = result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load audit logs: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadFilterOptions()
+    {
+        try
+        {
+            var allLogs = await AuditService.GetAllAsync();
+            _actions = allLogs.Select(l => l.Action).Distinct().OrderBy(a => a).ToList();
+            _entities = allLogs.Select(l => l.EntityName).Distinct().OrderBy(e => e).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load filter options: {ex.Message}");
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadLogs();
+    }
+
+    private async Task ShowDetails(AuditLog log)
+    {
+        var message = $"<strong>Timestamp:</strong> {log.Timestamp.ToLocalTime()}<br/>" +
+                      $"<strong>User:</strong> {log.Username ?? "System"}<br/>" +
+                      $"<strong>Action:</strong> {log.Action}<br/>" +
+                      $"<strong>Entity:</strong> {log.EntityName} {(string.IsNullOrEmpty(log.EntityId) ? "" : $"#{log.EntityId}")}<br/>" +
+                      $"<strong>Category:</strong> {log.Category}<br/>" +
+                      $"<strong>Severity:</strong> {log.Severity}<br/>" +
+                      $"<strong>Success:</strong> {(log.Success ? "Yes" : "No")}<br/>" +
+                      (string.IsNullOrEmpty(log.ErrorMessage) ? "" : $"<strong>Error:</strong> {log.ErrorMessage}<br/>") +
+                      (string.IsNullOrEmpty(log.IpAddress) ? "" : $"<strong>IP Address:</strong> {log.IpAddress}<br/>") +
+                      "<br/>" +
+                      $"<strong>Description:</strong><br/>{log.Description}" +
+                      (string.IsNullOrEmpty(log.OldValues) ? "" : $"<br/><br/><strong>Old Values:</strong><br/><pre>{FormatJson(log.OldValues)}</pre>") +
+                      (string.IsNullOrEmpty(log.NewValues) ? "" : $"<br/><br/><strong>New Values:</strong><br/><pre>{FormatJson(log.NewValues)}</pre>");
+
+        NotificationService.Notify(new NotificationMessage
+        {
+            Severity = NotificationSeverity.Info,
+            Summary = "Audit Log Details",
+            Detail = message,
+            Duration = 10000
+        });
+    }
+
+    private string FormatJson(string json)
+    {
+        try
+        {
+            var jsonElement = JsonSerializer.Deserialize<JsonElement>(json);
+            return JsonSerializer.Serialize(jsonElement, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return json;
+        }
+    }
+
+    private string GetActionBadgeStyle(string action)
+    {
+        return action switch
+        {
+            "Create" => "background: #e8f5e9; color: #2e7d32; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "Update" => "background: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "Delete" => "background: #ffebee; color: #c62828; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "Login" => "background: #f3e5f5; color: #6a1b9a; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "Logout" => "background: #fff3e0; color: #e65100; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "LoginFailed" => "background: #ffebee; color: #b71c1c; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "PasswordChange" => "background: #fce4ec; color: #880e4f; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            _ => "background: #f5f5f5; color: #616161; padding: 6px 12px; border-radius: 6px; font-weight: 500;"
+        };
+    }
+
+    private string GetCategoryBadgeStyle(string category)
+    {
+        return category switch
+        {
+            "Security" => "background: #fff3e0; color: #e65100; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "Data" => "background: #e8f5e9; color: #2e7d32; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            "System" => "background: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 6px; font-weight: 500;",
+            _ => "background: #f5f5f5; color: #616161; padding: 6px 12px; border-radius: 6px; font-weight: 500;"
+        };
+    }
+}

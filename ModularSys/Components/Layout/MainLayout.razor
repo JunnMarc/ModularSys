@@ -339,6 +339,10 @@
             <!-- System Section -->
             <div class="nav-section">
                 <div class="nav-section-title">System</div>
+                <a class="nav-item @(IsActive("/audit-logs") ? "active" : "")" @onclick='@(() => Nav.NavigateTo("/audit-logs"))'>
+                    <span class="nav-item-icon material-icons">history</span>
+                    <span>Audit Logs</span>
+                </a>
                 <a class="nav-item @(IsActive("/settings") ? "active" : "")" @onclick='@(() => Nav.NavigateTo("/settings"))'>
                     <span class="nav-item-icon material-icons">settings</span>
                     <span>Settings</span>

@@ -40,6 +40,9 @@ namespace ModularSys.Data.Common.Db
         public DbSet<SyncMetadata> SyncMetadata => Set<SyncMetadata>();
         public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
         public DbSet<SyncConfiguration> SyncConfigurations => Set<SyncConfiguration>();
+        
+        // Audit Logging
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
         public ModularSysDbContext(DbContextOptions<ModularSysDbContext> options)
             : base(options) { }
@@ -108,6 +111,23 @@ namespace ModularSys.Data.Common.Db
             modelBuilder.Entity<Contact>().HasQueryFilter(c => !c.IsDeleted);
             modelBuilder.Entity<Lead>().HasQueryFilter(l => !l.IsDeleted);
             modelBuilder.Entity<Opportunity>().HasQueryFilter(o => !o.IsDeleted);
+            
+            // AuditLog indexes for performance
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Timestamp)
+                .HasDatabaseName("IX_AuditLog_Timestamp");
+            
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => new { a.EntityName, a.EntityId })
+                .HasDatabaseName("IX_AuditLog_Entity");
+            
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Username)
+                .HasDatabaseName("IX_AuditLog_Username");
+            
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Action)
+                .HasDatabaseName("IX_AuditLog_Action");
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

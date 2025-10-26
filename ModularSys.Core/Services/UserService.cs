@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities;
 using ModularSys.Core.Interfaces;
@@ -9,11 +10,13 @@ public class UserService : IUserService
 {
     private readonly IDbContextFactory<ModularSysDbContext> _contextFactory;
     private readonly IAuthService _authService;
+    private readonly Lazy<IAuditService> _auditService;
 
-    public UserService(IDbContextFactory<ModularSysDbContext> contextFactory, IAuthService authService)
+    public UserService(IDbContextFactory<ModularSysDbContext> contextFactory, IAuthService authService, IServiceProvider serviceProvider)
     {
         _contextFactory = contextFactory;
         _authService = authService;
+        _auditService = new Lazy<IAuditService>(() => serviceProvider.GetRequiredService<IAuditService>());
     }
 
     public async Task<List<User>> GetAllAsync()
@@ -156,17 +159,41 @@ public class UserService : IUserService
     {
         await using var db = _contextFactory.CreateDbContext();
         var user = await db.Users.FindAsync(userId);
-        if (user == null) return false;
+        if (user == null)
+        {
+            try
+            {
+                await _auditService.Value.LogPasswordChangeAsync(_authService.CurrentUser ?? "Unknown", false, "User not found");
+            }
+            catch { /* Ignore audit logging errors */ }
+            return false;
+        }
 
         // Verify current password
         if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+        {
+            try
+            {
+                await _auditService.Value.LogPasswordChangeAsync(user.Username, false, "Incorrect current password");
+            }
+            catch { /* Ignore audit logging errors */ }
             return false;
+        }
 
         // Update to new password
         user.PasswordHash = HashPassword(newPassword);
         user.UpdatedAt = DateTime.UtcNow;
         user.UpdatedBy = _authService.CurrentUser ?? "System";
 
-        return await db.SaveChangesAsync() > 0;
+        var success = await db.SaveChangesAsync() > 0;
+        
+        // Log password change
+        try
+        {
+            await _auditService.Value.LogPasswordChangeAsync(user.Username, success, success ? null : "Failed to save changes");
+        }
+        catch { /* Ignore audit logging errors */ }
+        
+        return success;
     }
 }
