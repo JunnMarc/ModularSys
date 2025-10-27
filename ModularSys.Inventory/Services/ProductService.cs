@@ -11,7 +11,13 @@ namespace ModularSys.Inventory.Services
     public class ProductService : IProductService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        public ProductService(IServiceScopeFactory scopeFactory) => _scopeFactory = scopeFactory;
+        private readonly InventoryAuditService? _auditService;
+
+        public ProductService(IServiceScopeFactory scopeFactory, InventoryAuditService? auditService = null)
+        {
+            _scopeFactory = scopeFactory;
+            _auditService = auditService; // Optional - works without it
+        }
 
         public async Task<IEnumerable<Product>> GetAllAsync(bool includeDeleted = false)
         {
@@ -65,6 +71,10 @@ namespace ModularSys.Inventory.Services
 
             db.Products.Add(entity);
             await db.SaveChangesAsync();
+            
+            // Audit log (plug-and-play)
+            if (_auditService != null)
+                await _auditService.LogProductCreatedAsync(entity);
         }
 
         public async Task UpdateAsync(ProductInputModel model)
@@ -78,6 +88,20 @@ namespace ModularSys.Inventory.Services
             if (existing == null)
                 throw new KeyNotFoundException("Product not found.");
 
+            // Capture old values for audit BEFORE modifying
+            var oldProduct = new Product
+            {
+                ProductId = existing.ProductId,
+                SKU = existing.SKU,
+                Name = existing.Name,
+                CategoryId = existing.CategoryId,
+                UnitPrice = existing.UnitPrice,
+                QuantityOnHand = existing.QuantityOnHand,
+                ReorderLevel = existing.ReorderLevel,
+                IsActive = existing.IsActive
+            };
+
+            // Now update the entity
             existing.SKU = model.SKU ?? existing.SKU;
             existing.Name = model.Name;
             existing.Description = model.Description;
@@ -94,6 +118,10 @@ namespace ModularSys.Inventory.Services
             existing.Supplier = model.Supplier;
 
             await db.SaveChangesAsync();
+            
+            // Audit log (plug-and-play)
+            if (_auditService != null)
+                await _auditService.LogProductUpdatedAsync(oldProduct, existing);
         }
 
         public async Task DeleteAsync(int id, string deletedBy)
@@ -108,6 +136,10 @@ namespace ModularSys.Inventory.Services
                 entity.DeletedAt = DateTime.UtcNow;
                 entity.DeletedBy = deletedBy;
                 await db.SaveChangesAsync();
+                
+                // Audit log (plug-and-play)
+                if (_auditService != null)
+                    await _auditService.LogProductDeletedAsync(entity);
             }
         }
 
@@ -124,6 +156,11 @@ namespace ModularSys.Inventory.Services
             entity.UpdatedAt = DateTime.UtcNow;
             entity.UpdatedBy = restoredBy;
             await db.SaveChangesAsync();
+            
+            // Audit log (plug-and-play)
+            if (_auditService != null)
+                await _auditService.LogProductRestoredAsync(entity);
+            
             return true;
         }
         public async Task<IEnumerable<Category>> GetCategoriesAsync()

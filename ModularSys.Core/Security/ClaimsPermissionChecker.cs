@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization;
 using ModularSys.Core.Interfaces;
 using System;
 using System.Collections.Generic;

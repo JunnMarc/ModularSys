@@ -12,6 +12,7 @@ public class InventoryModule : ISubsystem
 
     public void RegisterServices(IServiceCollection services)
     {
+        // Core Inventory Services
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IInventoryService, InventoryService>();
@@ -22,5 +23,8 @@ public class InventoryModule : ISubsystem
         services.AddScoped<IBusinessAnalyticsService, BusinessAnalyticsService>();
         services.AddScoped<IAnalyticalReportService, AnalyticalReportService>();
         services.AddSingleton<ModularSys.Inventory.Services.InventoryNavigationService>();
+        
+        // Modular Audit Logging (Plug-and-Play)
+        services.AddScoped<InventoryAuditService>();
     }
 }
