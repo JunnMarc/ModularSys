@@ -8,49 +8,66 @@
 @inject IAuthService AuthService
 @inject NavigationManager Nav
 @layout ModularSys.Helpdesk.Components.Layout.PortalLayout
+@inject AuthenticationStateProvider AuthStateProvider
 
-<RadzenStack>
-    <RadzenRow AlignItems="AlignItems.Center">
-        <RadzenColumn Size="12" SizeMD="8">
-            <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="rz-mb-0">My Tickets</RadzenText>
-            <RadzenText TextStyle="TextStyle.Body2" Class="rz-mb-0">View and manage your support requests.</RadzenText>
-        </RadzenColumn>
-        <RadzenColumn Size="12" SizeMD="4" Class="rz-text-align-md-right">
-            <RadzenButton Text="Create New Ticket" Icon="add" ButtonStyle="ButtonStyle.Primary" Click='@(() => Nav.NavigateTo("/portal/newticket"))' />
-        </RadzenColumn>
-    </RadzenRow>
+<RadzenStack Style="max-width: 1000px; margin: 0 auto; padding-bottom: 3rem;">
+    
+    <RadzenCard Style="background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%); color: white; border: none;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <div>
+                <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="color: white; font-weight: 700;">My Support Tickets</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body1" Style="color: rgba(255,255,255,0.8);">Track and manage your requests</RadzenText>
+            </div>
+            <RadzenButton Text="Create Ticket" Icon="add" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Click='@(() => Nav.NavigateTo("/portal/newticket"))' Style="color: #1565C0; font-weight: 600;" />
+        </RadzenStack>
+    </RadzenCard>
 
-    <RadzenCard>
+    <RadzenCard Class="rz-mt-4" Style="min-height: 400px;">
         @if (tickets == null)
         {
             <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
         }
         else if (!tickets.Any())
         {
-            <RadzenText TextStyle="TextStyle.Body1" TextAlign="TextAlign.Center" Style="padding: 2rem; color: #6b7280;">
-                You haven't submitted any tickets yet.
-            </RadzenText>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 300px;">
+                <RadzenIcon Icon="support_agent" Style="font-size: 4rem; color: #e9ecef;" />
+                <RadzenText TextStyle="TextStyle.H6" Class="rz-mt-3">No tickets found</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">You haven't submitted any support requests yet.</RadzenText>
+                <RadzenButton Text="Submit your first ticket" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Click='@(() => Nav.NavigateTo("/portal/newticket"))' />
+            </RadzenStack>
         }
         else
         {
-            <RadzenDataGrid Data="@tickets" TItem="Ticket" AllowFiltering="true" AllowSorting="true" AllowPaging="true" PageSize="10">
+            <RadzenDataGrid Data="@tickets" TItem="Ticket" AllowFiltering="true" AllowSorting="true" AllowPaging="true" PageSize="10" 
+                            RowRender="@RowRender" Class="rz-shadow-0">
                 <Columns>
-                    <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="Ref #" Width="80px" />
-                    <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject" />
-                    <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="120px">
+                    <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="#" Width="60px" TextAlign="TextAlign.Center">
                          <Template Context="t">
-                            <RadzenBadge BadgeStyle="@GetStatusBadge(t.Status)" Text="@t.Status" />
+                             <span class="rz-text-secondary">#@t.Id</span>
+                         </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject">
+                        <Template Context="t">
+                            <span style="font-weight: 600; color: #1E88E5; cursor: pointer;" onclick="@(() => OpenTicket(t.Id))">@t.Subject</span>
                         </Template>
                     </RadzenDataGridColumn>
-                     <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px">
-                        <Template Context="t">
-                            <RadzenBadge BadgeStyle="@GetPriorityBadge(t.Priority)" Text="@t.Priority" />
+
+                    <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="120px" TextAlign="TextAlign.Center">
+                         <Template Context="t">
+                            <RadzenBadge BadgeStyle="@GetStatusBadge(t.Status)" Text="@t.Status" Variant="Variant.Flat" />
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="Ticket" Property="CreatedAt" Title="Date Created" FormatString="{0:d}" Width="120px" />
-                    <RadzenDataGridColumn TItem="Ticket" Width="80px" Sortable="false" Filterable="false">
+                    
+                    <RadzenDataGridColumn TItem="Ticket" Property="LastUpdated" Title="Last Updated" Width="140px">
+                         <Template Context="t">
+                            <span class="rz-text-caption">@GetTimeAgo(t.UpdatedAt ?? t.CreatedAt)</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Ticket" Sortable="false" Filterable="false" Width="80px" TextAlign="TextAlign.End">
                         <Template Context="t">
-                            <RadzenButton Icon="visibility" Size="ButtonSize.Small" Variant="Variant.Flat" Click="@(() => Nav.NavigateTo($"/portal/ticket/{t.Id}"))" />
+                            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@(() => OpenTicket(t.Id))" />
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -58,8 +75,6 @@
         }
     </RadzenCard>
 </RadzenStack>
-
-@inject AuthenticationStateProvider AuthStateProvider
 
 @code {
     IEnumerable<Ticket>? tickets;
@@ -77,6 +92,25 @@
             tickets = new List<Ticket>();
         }
     }
+    
+    void OpenTicket(int id)
+    {
+        Nav.NavigateTo($"/portal/ticket/{id}");
+    }
+    
+    void RowRender(RowRenderEventArgs<Ticket> args)
+    {
+        // Optional clickable row styling
+    }
+
+    string GetTimeAgo(DateTime? date)
+    {
+        if (!date.HasValue) return "";
+        var span = DateTime.UtcNow - date.Value;
+        if (span.TotalHours < 1) return "Just now";
+        if (span.TotalHours < 24) return $"{Math.Round(span.TotalHours)}h ago";
+        return $"{Math.Round(span.TotalDays)}d ago";
+    }
 
     BadgeStyle GetStatusBadge(string status) => status switch
     {
@@ -84,15 +118,6 @@
         "InProgress" => BadgeStyle.Warning,
         "Resolved" => BadgeStyle.Success,
         "Closed" => BadgeStyle.Light,
-        _ => BadgeStyle.Light
-    };
-
-    BadgeStyle GetPriorityBadge(string priority) => priority switch
-    {
-        "Critical" => BadgeStyle.Danger,
-        "High" => BadgeStyle.Warning,
-        "Medium" => BadgeStyle.Info,
-        "Low" => BadgeStyle.Light,
         _ => BadgeStyle.Light
     };
 }

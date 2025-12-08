@@ -7,36 +7,36 @@
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
 
-<PageTitle>Login - ModularSys Enterprise</PageTitle>
+<PageTitle>Login - Helpdesk Hero</PageTitle>
 
-<div style="min-height: 100vh; display: flex; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+<div style="min-height: 100vh; display: flex; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
     <!-- Left Side - Branding -->
     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; color: white;">
         <RadzenStack AlignItems="AlignItems.Center" Gap="2rem" Style="max-width: 500px;">
             <div style="width: 100px; height: 100px; border-radius: 20px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
-                <RadzenIcon Icon="business" Style="font-size: 4rem; color: white;" />
+                <span style="font-size: 4rem; font-weight: 800; color: white;">H</span>
             </div>
-            <RadzenText TextStyle="TextStyle.H2" Text="ModularSys Enterprise" Style="color: white; font-weight: 700; text-align: center; font-size: 2.5rem;" />
-            <RadzenText TextStyle="TextStyle.H6" Text="Modular Business Management Platform" Style="color: rgba(255,255,255,0.95); text-align: center; font-size: 1.125rem; font-weight: 400;" />
+            <div>
+                 <RadzenText TextStyle="TextStyle.H2" Text="Helpdesk Hero" Style="color: white; font-weight: 700; text-align: center; font-size: 3rem; margin-bottom: 0.5rem;" />
+                 <RadzenText TextStyle="TextStyle.H6" Text="Your Customer Success Platform" Style="color: rgba(255,255,255,0.95); text-align: center; font-size: 1.25rem; font-weight: 400; letter-spacing: 1px;" />
+            </div>
+           
             
             <RadzenStack Gap="1.25rem" Style="margin-top: 2.5rem; width: 100%;">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 1rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="layers" Style="font-size: 1.25rem;" />
+                    <RadzenIcon Icon="support_agent" Style="font-size: 1.5rem;" />
+                    <div>
+                        <RadzenText Text="Ticket Management" Style="font-size: 1rem; font-weight: 600; color: white; margin: 0;" />
+                        <RadzenText Text="Streamline your support workflow" Style="font-size: 0.8rem; color: rgba(255,255,255,0.8); margin: 0;" />
                     </div>
-                    <RadzenText Text="Modular Architecture" Style="font-size: 1.125rem; font-weight: 500;" />
                 </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 1rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="security" Style="font-size: 1.25rem;" />
+                
+                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 1rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px;">
+                    <RadzenIcon Icon="analytics" Style="font-size: 1.5rem;" />
+                    <div>
+                         <RadzenText Text="Real-time Analytics" Style="font-size: 1rem; font-weight: 600; color: white; margin: 0;" />
+                         <RadzenText Text="Data-driven insights instantly" Style="font-size: 0.8rem; color: rgba(255,255,255,0.8); margin: 0;" />
                     </div>
-                    <RadzenText Text="Enterprise Security" Style="font-size: 1.125rem; font-weight: 500;" />
-                </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 1rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="analytics" Style="font-size: 1.25rem;" />
-                    </div>
-                    <RadzenText Text="Real-time Analytics" Style="font-size: 1.125rem; font-weight: 500;" />
                 </RadzenStack>
             </RadzenStack>
         </RadzenStack>
@@ -47,12 +47,9 @@
         <RadzenCard Style="width: 100%; max-width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border-radius: 16px; border: none;">
             <RadzenStack Gap="2rem" Style="padding: 1.5rem;">
                 <!-- Header -->
-                <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
-                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);">
-                        <RadzenIcon Icon="lock" Style="font-size: 2.5rem; color: white;" />
-                    </div>
-                    <RadzenText TextStyle="TextStyle.H4" Text="Sign In" Style="font-weight: 700; color: #1f2937;" />
-                    <RadzenText Text="Enter your credentials to access your account" Style="color: #6b7280; text-align: center; font-size: 0.9375rem;" />
+                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.H4" Text="Welcome Back" Style="font-weight: 800; color: #1f2937;" />
+                    <RadzenText Text="Sign in to continue to Helpdesk Hero" Style="color: #6b7280; text-align: center; font-size: 0.9375rem;" />
                 </RadzenStack>
                 
                 @if (!string.IsNullOrEmpty(error))
@@ -66,65 +63,53 @@
                 <!-- Login Form -->
                 <RadzenTemplateForm TItem="LoginModel" Data="@_model" Submit="@HandleLogin">
                     <RadzenStack Gap="1.5rem">
+                        
+                         <!-- SSO Placeholder -->
+                        <RadzenButton Text="Log in with SSO" 
+                                    Icon="verified_user"
+                                    ButtonStyle="ButtonStyle.Light"
+                                    Variant="Variant.Outlined"
+                                    Style="width: 100%; color: #374151; border-color: #d1d5db;"
+                                    Click="@(() => NotificationService.Notify(NotificationSeverity.Info, "SSO", "SSO integration coming soon!"))" />
+
+                        <div style="display: flex; align-items: center; gap: 1rem; color: #9ca3af;">
+                            <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                            <span style="font-size: 0.875rem;">OR</span>
+                            <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                        </div>
+
                         <RadzenFormField Text="Username" Variant="Variant.Outlined" Style="margin-bottom: 0;">
                             <ChildContent>
-                                <RadzenTextBox @bind-Value="_model.Username" 
-                                             Style="width: 100%; height: 48px; font-size: 1rem;" 
-                                             Placeholder="Enter your username">
-                                    <ChildContent>
-                                        <RadzenIcon Icon="person" Style="margin-right: 8px; color: #6b7280;" />
-                                    </ChildContent>
-                                </RadzenTextBox>
+                                <RadzenTextBox @bind-Value="_model.Username" Style="width: 100%; height: 48px;" />
                             </ChildContent>
-                            <Helper>
-                                <RadzenText TextStyle="TextStyle.Caption" Text="Your unique username" Style="color: #9ca3af; font-size: 0.8125rem;" />
-                            </Helper>
                         </RadzenFormField>
                         
                         <RadzenFormField Text="Password" Variant="Variant.Outlined" Style="margin-bottom: 0;">
                             <ChildContent>
-                                <RadzenPassword @bind-Value="_model.Password" 
-                                              Style="width: 100%; height: 48px; font-size: 1rem;" 
-                                              Placeholder="Enter your password">
-                                    <ChildContent>
-                                        <RadzenIcon Icon="lock" Style="margin-right: 8px; color: #6b7280;" />
-                                    </ChildContent>
-                                </RadzenPassword>
+                                <RadzenPassword @bind-Value="_model.Password" Style="width: 100%; height: 48px;" />
                             </ChildContent>
-                            <Helper>
-                                <RadzenText TextStyle="TextStyle.Caption" Text="Your secure password" Style="color: #9ca3af; font-size: 0.8125rem;" />
-                            </Helper>
                         </RadzenFormField>
                         
-                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="margin-top: 0.5rem;">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <RadzenCheckBox @bind-Value="_model.RememberMe" Name="remember" />
-                                <RadzenLabel Text="Remember me" Component="remember" Style="cursor: pointer; color: #374151; font-size: 0.9375rem;" />
-                            </RadzenStack>
-                        </RadzenStack>
-                        
                         <RadzenButton Text="SIGN IN" 
-                                    Icon="login"
                                     ButtonType="ButtonType.Submit" 
                                     ButtonStyle="ButtonStyle.Primary"
-                                    Style="width: 100%; height: 52px; font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: none; border-radius: 8px; margin-top: 0.5rem;" 
+                                    Style="width: 100%; height: 48px; font-weight: 700; background: #0284c7; border: none; border-radius: 8px;" 
                                     IsBusy="@_isLoading"
                                     Disabled="@_isLoading" />
                                     
-                        <RadzenButton Text="Create Account" 
-                                    Icon="person_add"
-                                    ButtonStyle="ButtonStyle.Base"
-                                    Variant="Variant.Text"
-                                    Style="width: 100%; margin-top: 0.5rem;"
-                                    Click="@(() => Nav.NavigateTo("/register"))" />
+                         <div style="text-align: center;">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #6b7280;">
+                                Don't have an account? 
+                                <a href="/register" style="color: #0284c7; font-weight: 600; text-decoration: none;">Create Account</a>
+                            </RadzenText>
+                        </div>
                     </RadzenStack>
                 </RadzenTemplateForm>
 
                 <!-- Footer -->
-                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
-                    <RadzenText TextStyle="TextStyle.Caption" Text="ModularSys Enterprise v1.0.0" Style="color: #9ca3af; font-size: 0.8125rem;" />
-                    <RadzenText TextStyle="TextStyle.Caption" Text="© 2025 All rights reserved" Style="color: #9ca3af; font-size: 0.8125rem;" />
-                </RadzenStack>
+                <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+                    <span style="color: #9ca3af; font-size: 0.75rem;">Powered by <b>ModularSys</b></span>
+                </div>
             </RadzenStack>
         </RadzenCard>
     </div>
@@ -152,9 +137,6 @@
 
     private void RedirectToHome()
     {
-        // Role-Based Redirection detection
-        System.Diagnostics.Debug.WriteLine($"[Login] Redirecting User Role: {AuthService.CurrentUserRole}");
-        
         if (string.Equals(AuthService.CurrentUserRole, "Customer", StringComparison.OrdinalIgnoreCase))
         {
             Nav.NavigateTo("portal/mytickets");
@@ -181,18 +163,17 @@
             var success = await AuthService.LoginAsync(_model.Username, _model.Password);
             if (success)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Welcome!", $"Successfully logged in as {_model.Username}");
+                NotificationService.Notify(NotificationSeverity.Success, "Welcome to Helpdesk Hero!", $"Successfully logged in as {_model.Username}");
                 RedirectToHome();
             }
             else
             {
-                error = "Invalid username or password. Please try again.";
+                error = "Invalid username or password.";
             }
         }
         catch (Exception ex)
         {
             error = $"Login failed: {ex.Message}";
-            NotificationService.Notify(NotificationSeverity.Error, "Error", "An error occurred during login");
         }
         finally
         {

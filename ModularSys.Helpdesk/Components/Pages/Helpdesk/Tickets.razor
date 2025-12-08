@@ -9,38 +9,124 @@
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IReportingService ReportingService
 
-<RadzenStack>
-    <RadzenRow AlignItems="AlignItems.Center">
+<RadzenComponents />
+
+<style>
+    .ticket-stat-card {
+        transition: transform 0.2s;
+    }
+    .ticket-stat-card:hover {
+        transform: translateY(-2px);
+    }
+    .rz-grid-table thead th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    .status-badge {
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+</style>
+
+<RadzenStack Gap="1.5rem">
+    
+    <!-- Header & Actions -->
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
         <RadzenColumn Size="12" SizeMD="8">
-            <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="rz-mb-0">Ticket Management</RadzenText>
-            <RadzenText TextStyle="TextStyle.Body2" Class="rz-mb-0">Manage customer support tickets efficiently.</RadzenText>
+            <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="font-weight: 700; letter-spacing: -0.5px;">Ticket Management</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Overview of all support requests</RadzenText>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="4" Class="rz-text-align-md-right">
-            <RadzenButton Text="New Ticket" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Click="@CreateTicket" />
+            <RadzenButton Text="Create Ticket" Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Click="@CreateTicket" Style="border-radius: 8px; padding-left: 20px; padding-right: 20px;" />
         </RadzenColumn>
     </RadzenRow>
 
-    <RadzenCard>
-        <RadzenDataGrid Data="@tickets" TItem="Ticket" AllowFiltering="true" AllowGenericSorting="true" AllowPaging="true" PageSize="10">
+    <!-- Stats Review -->
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Class="ticket-stat-card rz-p-3" Style="border-left: 4px solid var(--rz-info-base);">
+                <RadzenText TextStyle="TextStyle.Overline" Class="rz-mb-0 rz-text-secondary">Open Tickets</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="color: var(--rz-info-base);">@openCount</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Class="ticket-stat-card rz-p-3" Style="border-left: 4px solid var(--rz-danger-base);">
+                <RadzenText TextStyle="TextStyle.Overline" Class="rz-mb-0 rz-text-secondary">Critical Isues</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="color: var(--rz-danger-base);">@criticalCount</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+         <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Class="ticket-stat-card rz-p-3" Style="border-left: 4px solid var(--rz-warning-base);">
+                <RadzenText TextStyle="TextStyle.Overline" Class="rz-mb-0 rz-text-secondary">Unassigned</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="color: var(--rz-warning-base);">@unassignedCount</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard Class="ticket-stat-card rz-p-3" Style="border-left: 4px solid var(--rz-success-base);">
+                <RadzenText TextStyle="TextStyle.Overline" Class="rz-mb-0 rz-text-secondary">Resolved Today</RadzenText>
+                <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0" Style="color: var(--rz-success-base);">@resolvedTodayCount</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <!-- Main Grid -->
+    <RadzenCard Class="rz-p-0" Style="overflow: hidden; border: 1px solid #e9ecef; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <RadzenDataGrid @ref="grid" Data="@filteredTickets" TItem="Ticket" AllowFiltering="true" FilterMode="FilterMode.Simple" AllowSorting="true" AllowPaging="true" PageSize="10" 
+                        RowRender="@RowRender" CellRender="@CellRender" PagerHorizontalAlign="HorizontalAlign.Right" ShowPagingSummary="true">
             <Columns>
-                <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="ID" Width="80px" />
-                <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject" />
-                <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="120px">
+                <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="ID" Width="70px" TextAlign="TextAlign.Center" Frozen="true" />
+                
+                <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject" MinWidth="200px">
                     <Template Context="t">
-                        <RadzenBadge BadgeStyle="@GetStatusBadge(t.Status)" Text="@t.Status" />
+                         <RadzenText TextStyle="TextStyle.Subtitle2" Class="rz-mb-0" Style="font-weight: 600;">@t.Subject</RadzenText>
+                         @if (t.ResolutionBreached)
+                         {
+                             <RadzenBadge Text="SLA Breached" BadgeStyle="BadgeStyle.Danger" Variant="Variant.Outlined" Class="rz-mr-2" />
+                         }
+                         <span class="rz-text-caption">@GetTimeAgo(t.CreatedAt)</span>
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px">
+
+                <RadzenDataGridColumn TItem="Ticket" Property="Customer.CompanyName" Title="Customer" Width="180px" />
+
+                <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px" TextAlign="TextAlign.Center">
                     <Template Context="t">
-                        <RadzenBadge BadgeStyle="@GetPriorityBadge(t.Priority)" Text="@t.Priority" />
+                        <RadzenBadge BadgeStyle="@GetPriorityBadge(t.Priority)" Text="@t.Priority" Variant="Variant.Flat" Class="status-badge" />
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="Ticket" Property="Customer.CompanyName" Title="Customer" />
-                <RadzenDataGridColumn TItem="Ticket" Property="CreatedAt" Title="Created" FormatString="{0:d}" Width="120px" />
-                <RadzenDataGridColumn TItem="Ticket" Context="t" Sortable="false" Filterable="false" Width="80px">
+
+                <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="110px" TextAlign="TextAlign.Center">
+                    <Template Context="t">
+                        <RadzenBadge BadgeStyle="@GetStatusBadge(t.Status)" Text="@t.Status" Variant="Variant.Flat" Class="status-badge" />
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="Ticket" Title="Assignee" Sortable="false" Filterable="false" Width="120px">
+                    <Template Context="t">
+                        @if (t.AssignedToId.HasValue)
+                        {
+                            <RadzenAvatar Text="A" Size="BadgeSize.Medium" Style="background-color: #e9ecef; color: #495057; font-size: 0.75rem;" /> 
+                            <!-- Needs actual user name lookup, keeping simplified for now -->
+                        }
+                        else
+                        {
+                             <RadzenButton Text="Assign Me" Size="ButtonSize.ExtraSmall" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Secondary" Click="@(args => AssignToMe(t))" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="Ticket" Context="t" Sortable="false" Filterable="false" Width="60px" TextAlign="TextAlign.End">
                     <Template>
-                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Variant="Variant.Flat" Click="@(() => OpenTicket(t.Id))" />
+                        <RadzenButton Icon="chevron_right" Size="ButtonSize.Small" Variant="Variant.Text" ButtonStyle="ButtonStyle.Dark" Click="@(() => OpenTicket(t.Id))" />
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>
@@ -50,6 +136,14 @@
 
 @code {
     IEnumerable<Ticket> tickets = new List<Ticket>();
+    IEnumerable<Ticket> filteredTickets = new List<Ticket>();
+    RadzenDataGrid<Ticket> grid;
+    
+    // Stats
+    int openCount;
+    int criticalCount;
+    int unassignedCount;
+    int resolvedTodayCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,6 +154,17 @@
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         tickets = await TicketService.GetTicketsAsync(authState.User);
+        filteredTickets = tickets;
+        
+        CalculateStats();
+    }
+    
+    void CalculateStats()
+    {
+        openCount = tickets.Count(t => t.Status == "Open");
+        criticalCount = tickets.Count(t => t.Priority == "Critical" && t.Status != "Closed");
+        unassignedCount = tickets.Count(t => t.AssignedToId == null && t.Status != "Closed");
+        resolvedTodayCount = tickets.Count(t => t.Status == "Resolved" && t.ResolvedAt >= DateTime.Today);
     }
 
     void CreateTicket()
@@ -71,28 +176,58 @@
     {
         Nav.NavigateTo($"/helpdesk/tickets/{id}");
     }
-
-    BadgeStyle GetStatusBadge(string status)
+    
+    async Task AssignToMe(Ticket t)
     {
-        return status switch
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdStr = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        if (int.TryParse(userIdStr, out int userId))
         {
-            "Open" => BadgeStyle.Info,
-            "InProgress" => BadgeStyle.Warning,
-            "Resolved" => BadgeStyle.Success,
-            "Closed" => BadgeStyle.Light,
-            _ => BadgeStyle.Light
-        };
+             await TicketService.AssignTicketAsync(t.Id, userId);
+             NotificationService.Notify(NotificationSeverity.Success, "Assigned", $"Ticket #{t.Id} assigned to you.");
+             await LoadTickets();
+        }
     }
 
-    BadgeStyle GetPriorityBadge(string priority)
+    void RowRender(RowRenderEventArgs<Ticket> args)
     {
-        return priority switch
+        // Highlight critical rows slightly
+        if (args.Data.Priority == "Critical" && args.Data.Status != "Closed")
         {
-            "Critical" => BadgeStyle.Danger,
-            "High" => BadgeStyle.Warning,
-            "Medium" => BadgeStyle.Info,
-            "Low" => BadgeStyle.Light,
-            _ => BadgeStyle.Light
-        };
+            args.Attributes.Add("style", "background-color: rgba(229, 57, 53, 0.05);");
+        }
     }
+
+    void CellRender(DataGridCellRenderEventArgs<Ticket> args)
+    {
+        // Custom cell styling if needed
+    }
+
+    string GetTimeAgo(DateTime? date)
+    {
+        if (!date.HasValue) return "";
+        var span = DateTime.UtcNow - date.Value;
+        if (span.TotalHours < 1) return $"{span.Minutes}m ago";
+        if (span.TotalHours < 24) return $"{Math.Round(span.TotalHours)}h ago";
+        return $"{Math.Round(span.TotalDays)}d ago";
+    }
+
+    BadgeStyle GetStatusBadge(string status) => status switch
+    {
+        "Open" => BadgeStyle.Info,
+        "InProgress" => BadgeStyle.Warning,
+        "Resolved" => BadgeStyle.Success,
+        "Closed" => BadgeStyle.Base,
+        _ => BadgeStyle.Light
+    };
+
+    BadgeStyle GetPriorityBadge(string priority) => priority switch
+    {
+        "Critical" => BadgeStyle.Danger,
+        "High" => BadgeStyle.Warning,
+        "Medium" => BadgeStyle.Info,
+        "Low" => BadgeStyle.Success,
+        _ => BadgeStyle.Light
+    };
 }

@@ -4,33 +4,66 @@
 @using ModularSys.Core.Interfaces
 @using ModularSys.Core.Loader
 @using ModularSys.Data.Common.Entities
+@using ModularSys.Data.Common.Entities.Helpdesk
 
 @inject IAuthService AuthService
 @inject IUserService UserService
 @inject IRoleService RoleService
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
+@inject ITicketService TicketService
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Dashboard - ModularSys</PageTitle>
+<PageTitle>Dashboard - Helpdesk Hero</PageTitle>
 
 @if (_loading)
 {
     <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 400px;">
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
-        <RadzenText Text="Loading dashboard..." Style="margin-top: 1rem;" />
+        <RadzenText Text="Loading Helpdesk Hero..." Style="margin-top: 1rem;" />
     </RadzenStack>
 }
 else
 {
     <div style="padding: 24px; background: #fafafa; min-height: 100vh;">
         <!-- Page Header -->
-        <div style="margin-bottom: 24px;">
-            <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Dashboard</h1>
-            <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Welcome back, @AuthService.CurrentUser. Here's what's happening today.</p>
+        <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0; font-size: 2rem; font-weight: 600; color: #212121;">Dashboard</h1>
+                <p style="margin: 4px 0 0 0; color: #757575; font-size: 0.875rem;">Welcome back, @AuthService.CurrentUser. Overview of your Helpdesk Hero.</p>
+            </div>
+            <RadzenButton Text="Create Ticket" Icon="add" ButtonStyle="ButtonStyle.Primary" Click="@(() => Nav.NavigateTo("/helpdesk/tickets/new"))" />
         </div>
 
         <!-- KPI Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <!-- Ticket Stats -->
+            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white; border-left: 4px solid var(--rz-primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Open Tickets</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_openTickets</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #2196f3;">Action required</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="support_agent" Style="font-size: 2rem; color: #2196f3;" />
+                    </div>
+                </div>
+            </RadzenCard>
+
+             <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Critical Issues</p>
+                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_criticalTickets</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #ef4444;">High priority</p>
+                    </div>
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #fef2f2; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="report" Style="font-size: 2rem; color: #ef4444;" />
+                    </div>
+                </div>
+            </RadzenCard>
+
             <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -38,34 +71,8 @@ else
                         <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalUsers</h2>
                         <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #4caf50;">+@_newUsersThisMonth this month</p>
                     </div>
-                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #e3f2fd; display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="group" Style="font-size: 2rem; color: #2196f3;" />
-                    </div>
-                </div>
-            </RadzenCard>
-
-            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Active Users</p>
-                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_activeUsers</h2>
-                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #4caf50;">@($"{(_totalUsers > 0 ? (_activeUsers * 100.0 / _totalUsers):0):F1}% active rate")</p>
-                    </div>
                     <div style="width: 56px; height: 56px; border-radius: 12px; background: #e8f5e9; display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="check_circle" Style="font-size: 2rem; color: #4caf50;" />
-                    </div>
-                </div>
-            </RadzenCard>
-
-            <RadzenCard Style="padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0; background: white;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <p style="margin: 0; color: #757575; font-size: 0.875rem; font-weight: 500;">Total Roles</p>
-                        <h2 style="margin: 8px 0 0 0; font-size: 2rem; font-weight: 600; color: #212121;">@_totalRoles</h2>
-                        <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: #757575;">Role-based access control</p>
-                    </div>
-                    <div style="width: 56px; height: 56px; border-radius: 12px; background: #fff3e0; display: flex; align-items: center; justify-content: center;">
-                        <RadzenIcon Icon="admin_panel_settings" Style="font-size: 2rem; color: #ff9800;" />
+                        <RadzenIcon Icon="group" Style="font-size: 2rem; color: #4caf50;" />
                     </div>
                 </div>
             </RadzenCard>
@@ -86,43 +93,38 @@ else
 
         <!-- Recent Activity & Quick Actions -->
         <RadzenRow Gap="1rem">
+            <!-- Recent Tickets Column -->
             <RadzenColumn Size="12" SizeLG="8">
-                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                 <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; height: 100%;">
                     <RadzenStack Gap="1rem">
                         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-                            <RadzenText Text="Recent Users" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
+                            <RadzenText Text="Recent Tickets" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
                             <RadzenButton Text="View All" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" 
-                                        Style="border-radius: 6px;" Click="@(() => Nav.NavigateTo("/users"))" />
+                                        Style="border-radius: 6px;" Click="@(() => Nav.NavigateTo("/helpdesk/tickets"))" />
                         </RadzenStack>
-                        
-                        @if (_recentUsers.Any())
+
+                        @if (_recentTickets.Any())
                         {
-                            <RadzenDataGrid Data="@_recentUsers" TItem="User" AllowPaging="false" AllowSorting="true" Style="height: 300px;">
+                            <RadzenDataGrid Data="@_recentTickets" TItem="Ticket" AllowPaging="false" AllowSorting="false" Style="height: 300px;">
                                 <Columns>
-                                    <RadzenDataGridColumn TItem="User" Title="User" Width="200px">
-                                        <Template Context="user">
-                                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                                <RadzenGravatar Email="@user.Username" Style="width: 32px; height: 32px;" />
-                                                <RadzenStack Gap="0">
-                                                    <RadzenText Text="@user.Username" Style="font-weight: 600;" />
-                                                    <RadzenText Text="@user.Email" Style="font-size: 0.75rem; color: var(--rz-text-secondary-color);" />
-                                                </RadzenStack>
-                                            </RadzenStack>
+                                    <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject">
+                                        <Template Context="ticket">
+                                            <span style="font-weight: 600;">@ticket.Subject</span>
                                         </Template>
                                     </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="User" Property="Role.RoleName" Title="Role" Width="120px">
-                                        <Template Context="user">
-                                            <span style="font-size: 0.75rem; font-weight: 500; color: #3b82f6; background: #eff6ff; padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                                                @user.Role?.RoleName
-                                            </span>
+                                    <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px">
+                                        <Template Context="ticket">
+                                             <RadzenBadge Text="@ticket.Priority" BadgeStyle="@(ticket.Priority == "Critical" ? BadgeStyle.Danger : ticket.Priority == "High" ? BadgeStyle.Warning : BadgeStyle.Info)" />
                                         </Template>
                                     </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="User" Property="CreatedAt" Title="Joined" FormatString="{0:MMM dd, yyyy}" Width="120px" />
-                                    <RadzenDataGridColumn TItem="User" Title="Status" Width="100px">
-                                        <Template Context="user">
-                                            <span style="font-size: 0.75rem; font-weight: 500; color: @(user.IsDeleted ? "#ef4444" : "#10b981"); background: @(user.IsDeleted ? "#fef2f2" : "#ecfdf5"); padding: 4px 8px; border-radius: 4px; display: inline-block;">
-                                                @(user.IsDeleted ? "Inactive" : "Active")
-                                            </span>
+                                    <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="100px">
+                                          <Template Context="ticket">
+                                             <RadzenBadge Text="@ticket.Status" BadgeStyle="BadgeStyle.Light" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                     <RadzenDataGridColumn TItem="Ticket" Property="CreatedAt" Title="Created" Width="120px">
+                                          <Template Context="ticket">
+                                             <span style="font-size: 0.8rem;">@ticket.CreatedAt?.ToShortDateString()</span>
                                         </Template>
                                     </RadzenDataGridColumn>
                                 </Columns>
@@ -130,28 +132,27 @@ else
                         }
                         else
                         {
-                            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem;">
-                                <RadzenIcon Icon="people_outline" Style="font-size: 3rem; color: var(--rz-text-secondary-color);" />
-                                <RadzenText Text="No users found" Style="color: var(--rz-text-secondary-color);" />
+                             <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem;">
+                                <RadzenIcon Icon="assignment" Style="font-size: 3rem; color: var(--rz-text-secondary-color);" />
+                                <RadzenText Text="No recent tickets" Style="color: var(--rz-text-secondary-color);" />
                             </RadzenStack>
                         }
                     </RadzenStack>
                 </RadzenCard>
             </RadzenColumn>
-
+            
+            <!-- Quick Actions & Systems -->
             <RadzenColumn Size="12" SizeLG="4">
-                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <RadzenCard Style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; height: 100%;">
                     <RadzenStack Gap="1rem">
                         <RadzenText Text="Quick Actions" Style="font-size: 1.125rem; font-weight: 600; color: #111827;" />
                         
                         <RadzenStack Gap="0.75rem">
-                            <RadzenButton Text="Add New User" Icon="person_add" Click="@(() => Nav.NavigateTo("/users"))" 
+                            <RadzenButton Text="Create New Ticket" Icon="add_circle" Click="@(() => Nav.NavigateTo("/helpdesk/tickets/new"))" 
+                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Primary" />
+                            <RadzenButton Text="Manage Users" Icon="people" Click="@(() => Nav.NavigateTo("/users"))" 
                                         Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
-                            <RadzenButton Text="Manage Roles" Icon="admin_panel_settings" Click="@(() => Nav.NavigateTo("/roles"))" 
-                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
-                            <RadzenButton Text="View Permissions" Icon="security" Click="@(() => Nav.NavigateTo("/permissions"))" 
-                                        Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
-                            <RadzenButton Text="System Settings" Icon="settings" Click="@(() => Nav.NavigateTo("/settings"))" 
+                            <RadzenButton Text="Helpdesk Reports" Icon="analytics" Click="@(() => Nav.NavigateTo("/helpdesk/reports"))" 
                                         Style="width: 100%; justify-content: flex-start;" ButtonStyle="ButtonStyle.Light" />
                         </RadzenStack>
 
@@ -160,21 +161,11 @@ else
                         <RadzenStack Gap="0.75rem">
                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
                                 <RadzenText Text="Database" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <span style="font-size: 0.75rem; font-weight: 500; color: #10b981; background: #ecfdf5; padding: 4px 8px; border-radius: 4px;">
-                                    Connected
-                                </span>
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #10b981; background: #ecfdf5; padding: 4px 8px; border-radius: 4px;">Connected</span>
                             </RadzenStack>
-                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-                                <RadzenText Text="Modules" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <span style="font-size: 0.75rem; font-weight: 500; color: #3b82f6; background: #eff6ff; padding: 4px 8px; border-radius: 4px;">
-                                    @($"{ModuleLoader.Subsystems.Count} Active")
-                                </span>
-                            </RadzenStack>
-                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-                                <RadzenText Text="Version" Style="font-size: 0.875rem; color: #6b7280;" />
-                                <span style="font-size: 0.75rem; font-weight: 500; color: #6b7280; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">
-                                    v1.0.0
-                                </span>
+                             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                <RadzenText Text="Environment" Style="font-size: 0.875rem; color: #6b7280;" />
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #3b82f6; background: #eff6ff; padding: 4px 8px; border-radius: 4px;">Production</span>
                             </RadzenStack>
                         </RadzenStack>
                     </RadzenStack>
@@ -219,10 +210,10 @@ else
 @code {
     private bool _loading = true;
     private int _totalUsers = 0;
-    private int _activeUsers = 0;
+    private int _openTickets = 0;
+    private int _criticalTickets = 0;
     private int _newUsersThisMonth = 0;
-    private int _totalRoles = 0;
-    private List<User> _recentUsers = new();
+    private List<Ticket> _recentTickets = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -245,17 +236,18 @@ else
             // Load users
             var users = await UserService.GetAllAsync();
             _totalUsers = users.Count();
-            _activeUsers = users.Count(u => !u.IsDeleted);
-            
             var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
             _newUsersThisMonth = users.Count(u => u.CreatedAt >= firstDayOfMonth);
             
-            // Get recent users (last 5)
-            _recentUsers = users.OrderByDescending(u => u.CreatedAt).Take(5).ToList();
-
-            // Load roles
-            var roles = await RoleService.GetAllAsync();
-            _totalRoles = roles.Count();
+            // SECURITY: Get Current User Claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            // Load Helpdesk Metrics
+            var tickets = await TicketService.GetTicketsAsync(user); 
+            _openTickets = tickets.Count(t => t.Status != "Resolved" && t.Status != "Closed");
+            _criticalTickets = tickets.Count(t => t.Priority == "Critical" && t.Status != "Resolved" && t.Status != "Closed");
+            _recentTickets = tickets.OrderByDescending(t => t.CreatedAt).Take(5).ToList();
         }
         catch (Exception ex)
         {

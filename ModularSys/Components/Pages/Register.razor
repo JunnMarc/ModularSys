@@ -3,58 +3,111 @@
 @using ModularSys.Data.Common.Entities
 @using Radzen
 @using Radzen.Blazor
+
 @inject IAuthService AuthService
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
 
-<div style="min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #fefefe;">
-    <RadzenCard Style="width: 100%; max-width: 500px; padding: 2rem;">
-        <RadzenStack Gap="1.5rem">
-            <RadzenText TextStyle="TextStyle.H4" TextAlign="TextAlign.Center">Create Account</RadzenText>
+<PageTitle>Create Account - Helpdesk Hero</PageTitle>
+
+<div style="min-height: 100vh; display: flex; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+    <!-- Left Side - Branding (Hidden on mobile) -->
+    <div class="rz-display-none rz-display-md-flex" style="flex: 1; flex-direction: column; justify-content: center; align-items: center; padding: 3rem; color: white;">
+        <RadzenStack AlignItems="AlignItems.Center" Gap="2rem" Style="max-width: 500px;">
+            <div style="width: 100px; height: 100px; border-radius: 20px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.1);">
+                 <span style="font-size: 4rem; font-weight: 800; color: white;">H</span>
+            </div>
             
-            <RadzenTemplateForm TItem="RegisterModel" Data="@model" Submit="@HandleRegister">
-                <RadzenStack Gap="1rem">
-                    <RadzenFormField Text="Username" Variant="Variant.Outlined">
-                        <RadzenTextBox @bind-Value="model.Username" Name="Username" Style="width: 100%" />
-                         <RadzenRequiredValidator Component="Username" Text="Username is required" />
-                    </RadzenFormField>
-                    
-                    <RadzenFormField Text="First Name" Variant="Variant.Outlined">
-                        <RadzenTextBox @bind-Value="model.FirstName" Name="FirstName" Style="width: 100%" />
-                        <RadzenRequiredValidator Component="FirstName" Text="First Name is required" />
-                    </RadzenFormField>
+            <div>
+                 <RadzenText TextStyle="TextStyle.H2" Text="Helpdesk Hero" Style="color: white; font-weight: 700; text-align: center; font-size: 3rem; margin-bottom: 0.5rem;" />
+                 <RadzenText TextStyle="TextStyle.H6" Text="Join the revolution in customer support." Style="color: rgba(255,255,255,0.95); text-align: center; font-size: 1.25rem; font-weight: 400; letter-spacing: 1px;" />
+            </div>
 
-                    <RadzenFormField Text="Last Name" Variant="Variant.Outlined">
-                        <RadzenTextBox @bind-Value="model.LastName" Name="LastName" Style="width: 100%" />
-                         <RadzenRequiredValidator Component="LastName" Text="Last Name is required" />
-                    </RadzenFormField>
-
-                    <RadzenFormField Text="Email" Variant="Variant.Outlined">
-                        <RadzenTextBox @bind-Value="model.Email" Name="Email" Style="width: 100%" />
-                         <RadzenRequiredValidator Component="Email" Text="Email is required" />
-                         <RadzenEmailValidator Component="Email" Text="Invalid email format" />
-                    </RadzenFormField>
-
-                    <RadzenFormField Text="Password" Variant="Variant.Outlined">
-                        <RadzenPassword @bind-Value="model.Password" Name="Password" Style="width: 100%" />
-                         <RadzenRequiredValidator Component="Password" Text="Password is required" />
-                         <RadzenLengthValidator Component="Password" Min="6" Text="Password must be at least 6 characters" />
-                    </RadzenFormField>
-
-                    <RadzenButton ButtonType="ButtonType.Submit" Text="Register" ButtonStyle="ButtonStyle.Primary" IsBusy="@isSubmitting" Style="width: 100%; margin-top: 1rem;" />
-                    
-                    <div style="text-align: center; margin-top: 1rem;">
-                        <a href="login">Already have an account? Sign In</a>
-                    </div>
-                </RadzenStack>
-            </RadzenTemplateForm>
+            <RadzenText Text="Create your account to start managing tickets, organizing workflows, and delighting customers." Style="font-size: 1rem; color: rgba(255,255,255,0.8); text-align: center; max-width: 400px; line-height: 1.6;" />
         </RadzenStack>
-    </RadzenCard>
+    </div>
+
+    <!-- Right Side - Registration Form -->
+    <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 2rem; background: #fafafa; overflow-y: auto;">
+        <RadzenCard Style="width: 100%; max-width: 550px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border-radius: 16px; border: none; margin: 2rem 0;">
+             <RadzenStack Gap="1.5rem" Style="padding: 1.5rem;">
+                
+                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.H4" Text="Get Started" Style="font-weight: 800; color: #1f2937;" />
+                    <RadzenText Text="Create your Helpdesk Hero account" Style="color: #6b7280; text-align: center; font-size: 0.9375rem;" />
+                </RadzenStack>
+
+                <RadzenTemplateForm TItem="RegisterModel" Data="@model" Submit="@HandleRegister">
+                    <RadzenStack Gap="1rem">
+                        
+                        <RadzenRow>
+                            <RadzenColumn Size="6">
+                                <RadzenFormField Text="First Name" Variant="Variant.Outlined" Style="width: 100%;">
+                                    <RadzenTextBox @bind-Value="model.FirstName" Name="FirstName" Style="width: 100%" />
+                                </RadzenFormField>
+                                <RadzenRequiredValidator Component="FirstName" Text="Required" />
+                            </RadzenColumn>
+                             <RadzenColumn Size="6">
+                                <RadzenFormField Text="Last Name" Variant="Variant.Outlined" Style="width: 100%;">
+                                    <RadzenTextBox @bind-Value="model.LastName" Name="LastName" Style="width: 100%" />
+                                </RadzenFormField>
+                                <RadzenRequiredValidator Component="LastName" Text="Required" />
+                            </RadzenColumn>
+                        </RadzenRow>
+
+                        <RadzenFormField Text="Username" Variant="Variant.Outlined">
+                            <RadzenTextBox @bind-Value="model.Username" Name="Username" Style="width: 100%" />
+                             <RadzenRequiredValidator Component="Username" Text="Username is required" />
+                        </RadzenFormField>
+
+                        <RadzenFormField Text="Email" Variant="Variant.Outlined">
+                            <RadzenTextBox @bind-Value="model.Email" Name="Email" Style="width: 100%" />
+                             <RadzenRequiredValidator Component="Email" Text="Email is required" />
+                             <RadzenEmailValidator Component="Email" Text="Invalid email format" />
+                        </RadzenFormField>
+
+                        <RadzenFormField Text="Password" Variant="Variant.Outlined">
+                            <RadzenPassword @bind-Value="model.Password" Name="Password" Style="width: 100%" />
+                             <RadzenRequiredValidator Component="Password" Text="Password is required" />
+                             <!-- Strong Password Policy -->
+                             <RadzenLengthValidator Component="Password" Min="10" Text="Min 10 characters" />
+                             <RadzenRegexValidator Component="Password" Text="Must contain uppercase, lowercase, number, and special char" Pattern="@passwordPattern" />
+                        </RadzenFormField>
+                        
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #6b7280; margin-top: -0.5rem;">
+                            Password must be at least 10 characters long and include an uppercase letter, a number, and a special character.
+                        </RadzenText>
+
+                        <RadzenButton ButtonType="ButtonType.Submit" 
+                                    Text="Access Dashboard" 
+                                    ButtonStyle="ButtonStyle.Primary" 
+                                    IsBusy="@isSubmitting" 
+                                    Style="width: 100%; height: 48px; font-weight: 700; background: #0284c7; border: none; border-radius: 8px; margin-top: 1rem;" />
+                        
+                        <div style="text-align: center; margin-top: 1rem;">
+                              <RadzenText TextStyle="TextStyle.Caption" Style="color: #6b7280;">
+                                Already have an account? 
+                                <a href="/login" style="color: #0284c7; font-weight: 600; text-decoration: none;">Sign In</a>
+                            </RadzenText>
+                        </div>
+                    </RadzenStack>
+                </RadzenTemplateForm>
+
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+                    <span style="color: #9ca3af; font-size: 0.75rem;">Powered by <b>ModularSys</b></span>
+                </div>
+            </RadzenStack>
+        </RadzenCard>
+    </div>
 </div>
 
 @code {
     RegisterModel model = new();
     bool isSubmitting = false;
+    // Regex encoded to avoid Razor conflicts. 
+    // ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$
+    const string passwordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$";
 
     class RegisterModel
     {
@@ -70,16 +123,11 @@
         isSubmitting = true;
         try
         {
-            // TODO: Implement specific Customer Registration in AuthService that creates a Customer record
-            // For MVP, we instruct user to contact admin or we rely on default RegisterAsync (which creates Role 1 - Admin!)
-            // We MUST fix AuthService to support Customer Registration.
-            
-            // Register using Customer-specific method
             var (success, message) = await AuthService.RegisterCustomerAsync(model.Username, model.Password, model.FirstName, model.LastName, model.Email);
             
             if (success)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Registration Successful", "Please log in.");
+                NotificationService.Notify(NotificationSeverity.Success, "Welcome to Helpdesk Hero!", "Registration successful. Please log in.");
                 Nav.NavigateTo("login");
             }
             else
