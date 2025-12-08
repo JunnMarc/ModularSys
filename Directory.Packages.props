@@ -8,7 +8,11 @@
     <PackageVersion Include="ChartJs.Blazor" Version="1.1.0" />
     <PackageVersion Include="CrystalReports.Engine" Version="13.0.4000" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.3.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9" />

@@ -60,7 +60,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Include="..\ModularSys.Inventory\_Imports.razor" Link="_Imports.razor" />
+
     </ItemGroup>
 
     <ItemGroup>
@@ -87,8 +87,8 @@
     <ItemGroup>
       <ProjectReference Include="..\ModernSys.Data\ModularSys.Data.csproj" />
       <ProjectReference Include="..\ModularSys.Core\ModularSys.Core.csproj" />
-      <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" />
-      <!-- <ProjectReference Include="..\ModularSys.Inventory\ModularSys.Inventory.csproj" /> -->
+      <ProjectReference Include="..\ModularSys.Helpdesk\ModularSys.Helpdesk.csproj" />
+
     </ItemGroup>
 
 </Project>

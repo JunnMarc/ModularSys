@@ -1,0 +1,63 @@
+@inherits LayoutComponentBase
+@using ModularSys.Core.Interfaces
+@using Radzen
+@using Radzen.Blazor
+@inject NavigationManager Nav
+@inject IAuthService AuthService
+
+<RadzenComponents />
+<RadzenDialog />
+<RadzenNotification />
+<RadzenTooltip />
+
+<div style="min-height: 100vh; display: flex; flex-direction: column; background-color: #f4f6f8;">
+    <!-- Top Navigation Bar -->
+    <div style="background: white; border-bottom: 1px solid #e0e0e0; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 1rem; cursor: pointer;" @onclick='@(() => Nav.NavigateTo("/portal/mytickets"))'>
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
+                <RadzenIcon Icon="support_agent" />
+            </div>
+            <RadzenText TextStyle="TextStyle.H6" Text="Customer Portal" Style="margin: 0; font-weight: 600; color: #1976d2;" />
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <RadzenButton Text="My Tickets" Icon="list" Variant="Variant.Text" Click='@(() => Nav.NavigateTo("/portal/mytickets"))' />
+            <RadzenButton Text="New Ticket" Icon="add_circle" Variant="Variant.Text" Click='@(() => Nav.NavigateTo("/portal/newticket"))' />
+            
+            <div style="height: 24px; width: 1px; background: #e0e0e0; margin: 0 0.5rem;"></div>
+            
+            <RadzenProfileMenu Click="@OnProfileClick">
+                <Template>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <RadzenGravatar Email="@(AuthService.CurrentUser + "@example.com")" Style="width: 32px; height: 32px; border-radius: 50%;" />
+                        <span style="font-weight: 500;">@AuthService.CurrentUser</span>
+                    </div>
+                </Template>
+                <ChildContent>
+                     <RadzenProfileMenuItem Text="Logout" Value="Logout" Icon="logout" />
+                </ChildContent>
+            </RadzenProfileMenu>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="flex: 1; padding: 2rem; margin: 0 auto; width: 100%; max-width: 1200px;">
+        @Body
+    </div>
+    
+    <!-- Footer -->
+    <div style="text-align: center; padding: 1rem; color: #9ca3af; font-size: 0.875rem;">
+        &copy; 2025 ModularSys Enterprise. All rights reserved.
+    </div>
+</div>
+
+@code {
+    private void OnProfileClick(RadzenProfileMenuItem item)
+    {
+        if (item.Value == "Logout")
+        {
+            AuthService.Logout();
+            Nav.NavigateTo("/login");
+        }
+    }
+}

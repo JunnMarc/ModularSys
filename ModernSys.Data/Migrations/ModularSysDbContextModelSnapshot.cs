@@ -220,6 +220,9 @@ namespace ModularSys.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<int>("LoyaltyPoints")
+                        .HasColumnType("int");
+
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
@@ -227,6 +230,12 @@ namespace ModularSys.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PostalCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("SatisfactionScore")
+                        .HasColumnType("float");
+
+                    b.Property<string>("SegmentationTag")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("State")
@@ -462,20 +471,128 @@ namespace ModularSys.Data.Migrations
                     b.ToTable("RevenueTransactions");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Category", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.SLA", b =>
                 {
-                    b.Property<int>("CategoryId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CategoryName")
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Color")
+                    b.Property<int>("ResolutionTimeMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResponseTimeMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SLAs");
+                });
+
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.SLACompliance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DueAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBreached")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SLAType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TimeToCompleteMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.ToTable("SLACompliances");
+                });
+
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.Ticket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedToId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -484,7 +601,7 @@ namespace ModularSys.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DefaultMinThreshold")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -496,475 +613,123 @@ namespace ModularSys.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Icon")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("FirstResponseAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsActive")
+                    b.Property<bool>("FirstResponseBreached")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("FirstResponseDueAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsRevenueCritical")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int?>("ParentCategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("CategoryId");
-
-                    b.HasIndex("CategoryName")
-                        .IsUnique();
-
-                    b.HasIndex("ParentCategoryId");
-
-                    b.ToTable("Categories", (string)null);
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.InventoryTransaction", b =>
-                {
-                    b.Property<int>("InventoryTransactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransactionId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("BatchNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ProductId1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QuantityAfter")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QuantityBefore")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QuantityChange")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Reference")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("ReferenceId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TransactionNumber")
+                    b.Property<string>("Priority")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("TransactionType")
+                    b.Property<bool>("ResolutionBreached")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ResolutionDueAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SLAId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("InventoryTransactionId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("ProductId1");
-
-                    b.ToTable("InventoryTransactions", (string)null);
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Product", b =>
-                {
-                    b.Property<int>("ProductId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductId"));
-
-                    b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BatchNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("CostPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("MaxStockLevel")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MinStockLevel")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("QuantityOnHand")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("ReorderLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("SKU")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Supplier")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("ProductId");
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToId");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("Name");
-
-                    b.HasIndex("SKU");
-
-                    b.ToTable("Products", (string)null);
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.PurchaseOrder", b =>
-                {
-                    b.Property<int>("PurchaseOrderId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderId"));
-
-                    b.Property<DateTime?>("ActualDeliveryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CancellationReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CancelledBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ExpectedDeliveryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OrderNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentTerms")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ShippingCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("SupplierAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupplierEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupplierName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupplierPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("PurchaseOrderId");
-
-                    b.ToTable("PurchaseOrders", (string)null);
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.PurchaseOrderLine", b =>
-                {
-                    b.Property<int>("PurchaseOrderLineId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderLineId"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ProductId1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PurchaseOrderId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("PurchaseOrderLineId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("ProductId1");
-
-                    b.HasIndex("PurchaseOrderId");
-
-                    b.ToTable("PurchaseOrderLines", (string)null);
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.SalesOrder", b =>
-                {
-                    b.Property<int>("SalesOrderId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SalesOrderId"));
-
-                    b.Property<string>("CancellationReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CancelledBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CustomerEmail")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CustomerName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CustomerPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeliveryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OrderNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentMethod")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ShippingAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ShippingCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("SubTotal")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("SalesOrderId");
-
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("SalesOrders", (string)null);
+                    b.HasIndex("SLAId");
+
+                    b.ToTable("Tickets");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.SalesOrderLine", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.TicketCategory", b =>
                 {
-                    b.Property<int>("SalesOrderLineId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SalesOrderLineId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DefaultSLAId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DefaultSLAId");
+
+                    b.ToTable("TicketCategories");
+                });
+
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.TicketComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -981,20 +746,11 @@ namespace ModularSys.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("bit");
 
-                    b.Property<int?>("ProductId1")
+                    b.Property<int>("TicketId")
                         .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SalesOrderId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1002,15 +758,11 @@ namespace ModularSys.Data.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("SalesOrderLineId");
+                    b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("TicketId");
 
-                    b.HasIndex("ProductId1");
-
-                    b.HasIndex("SalesOrderId");
-
-                    b.ToTable("SalesOrderLines", (string)null);
+                    b.ToTable("TicketComments");
                 });
 
             modelBuilder.Entity("ModularSys.Data.Common.Entities.Permission", b =>
@@ -1064,17 +816,6 @@ namespace ModularSys.Data.Migrations
                             Icon = "Lock",
                             IsSystemPermission = false,
                             PermissionName = "ManageUsers"
-                        },
-                        new
-                        {
-                            PermissionId = 2,
-                            Category = "General",
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Can manage inventory",
-                            DisplayOrder = 0,
-                            Icon = "Lock",
-                            IsSystemPermission = false,
-                            PermissionName = "ManageInventory"
                         },
                         new
                         {
@@ -1161,11 +902,6 @@ namespace ModularSys.Data.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 1
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 2
                         },
                         new
                         {
@@ -1371,6 +1107,9 @@ namespace ModularSys.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -1413,6 +1152,8 @@ namespace ModularSys.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("DepartmentId");
 
@@ -1459,94 +1200,64 @@ namespace ModularSys.Data.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Category", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.SLACompliance", b =>
                 {
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Category", "ParentCategory")
-                        .WithMany("SubCategories")
-                        .HasForeignKey("ParentCategoryId");
-
-                    b.Navigation("ParentCategory");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.InventoryTransaction", b =>
-                {
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", "Product")
+                    b.HasOne("ModularSys.Data.Common.Entities.Helpdesk.Ticket", "Ticket")
                         .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", null)
-                        .WithMany("InventoryTransactions")
-                        .HasForeignKey("ProductId1");
-
-                    b.Navigation("Product");
+                    b.Navigation("Ticket");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Product", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.Ticket", b =>
                 {
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Category", "Category")
-                        .WithMany("Products")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.HasOne("ModularSys.Data.Common.Entities.User", "AssignedTo")
+                        .WithMany()
+                        .HasForeignKey("AssignedToId");
+
+                    b.HasOne("ModularSys.Data.Common.Entities.Helpdesk.TicketCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId");
+
+                    b.HasOne("ModularSys.Data.Common.Entities.CRM.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ModularSys.Data.Common.Entities.Helpdesk.SLA", "SLA")
+                        .WithMany()
+                        .HasForeignKey("SLAId");
+
+                    b.Navigation("AssignedTo");
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.PurchaseOrderLine", b =>
-                {
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", null)
-                        .WithMany("PurchaseOrderLines")
-                        .HasForeignKey("ProductId1");
-
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.PurchaseOrder", "PurchaseOrder")
-                        .WithMany("Lines")
-                        .HasForeignKey("PurchaseOrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("PurchaseOrder");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.SalesOrder", b =>
-                {
-                    b.HasOne("ModularSys.Data.Common.Entities.CRM.Customer", "Customer")
-                        .WithMany("SalesOrders")
-                        .HasForeignKey("CustomerId");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("SLA");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.SalesOrderLine", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.TicketCategory", b =>
                 {
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", "Product")
+                    b.HasOne("ModularSys.Data.Common.Entities.Helpdesk.SLA", "DefaultSLA")
                         .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("DefaultSLAId");
 
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.Product", null)
-                        .WithMany("SalesOrderLines")
-                        .HasForeignKey("ProductId1");
+                    b.Navigation("DefaultSLA");
+                });
 
-                    b.HasOne("ModularSys.Data.Common.Entities.Inventory.SalesOrder", "SalesOrder")
-                        .WithMany("Lines")
-                        .HasForeignKey("SalesOrderId")
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.TicketComment", b =>
+                {
+                    b.HasOne("ModularSys.Data.Common.Entities.Helpdesk.Ticket", "Ticket")
+                        .WithMany("Comments")
+                        .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Product");
-
-                    b.Navigation("SalesOrder");
+                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("ModularSys.Data.Common.Entities.RolePermission", b =>
@@ -1570,6 +1281,10 @@ namespace ModularSys.Data.Migrations
 
             modelBuilder.Entity("ModularSys.Data.Common.Entities.User", b =>
                 {
+                    b.HasOne("ModularSys.Data.Common.Entities.CRM.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
                     b.HasOne("ModularSys.Data.Common.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
@@ -1582,6 +1297,8 @@ namespace ModularSys.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Customer");
+
                     b.Navigation("Department");
 
                     b.Navigation("Role");
@@ -1592,34 +1309,11 @@ namespace ModularSys.Data.Migrations
                     b.Navigation("Contacts");
 
                     b.Navigation("Opportunities");
-
-                    b.Navigation("SalesOrders");
                 });
 
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Category", b =>
+            modelBuilder.Entity("ModularSys.Data.Common.Entities.Helpdesk.Ticket", b =>
                 {
-                    b.Navigation("Products");
-
-                    b.Navigation("SubCategories");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.Product", b =>
-                {
-                    b.Navigation("InventoryTransactions");
-
-                    b.Navigation("PurchaseOrderLines");
-
-                    b.Navigation("SalesOrderLines");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.PurchaseOrder", b =>
-                {
-                    b.Navigation("Lines");
-                });
-
-            modelBuilder.Entity("ModularSys.Data.Common.Entities.Inventory.SalesOrder", b =>
-                {
-                    b.Navigation("Lines");
+                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("ModularSys.Data.Common.Entities.Permission", b =>

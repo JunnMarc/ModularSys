@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ModularSys.Data.Common.Entities;
-using ModularSys.Data.Common.Entities.Inventory;
+
 using ModularSys.Data.Common.Entities.Finance;
 using ModularSys.Data.Common.Entities.CRM;
+using ModularSys.Data.Common.Entities.Helpdesk;
 using ModularSys.Data.Common.Entities.Sync;
 using System;
 using ModularSys.Data.Common.Interfaces;
@@ -18,14 +19,14 @@ namespace ModularSys.Data.Common.Db
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         
-        // Inventory Management
-        public DbSet<Product> Products => Set<Product>();
-        public DbSet<Category> Categories => Set<Category>();
-        public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
-        public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
-        public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
-        public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
-        public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
+        // Helpdesk Hero
+        public DbSet<Ticket> Tickets => Set<Ticket>();
+        public DbSet<TicketComment> TicketComments => Set<TicketComment>();
+        public DbSet<TicketCategory> TicketCategories => Set<TicketCategory>();
+        public DbSet<SLA> SLAs => Set<SLA>();
+        public DbSet<SLACompliance> SLACompliances => Set<SLACompliance>();
+        
+
         
         // Finance
         public DbSet<RevenueTransaction> RevenueTransactions => Set<RevenueTransaction>();
@@ -64,14 +65,14 @@ namespace ModularSys.Data.Common.Db
 
             modelBuilder.Entity<Permission>().HasData(
                 new Permission { PermissionId = 1, PermissionName = "ManageUsers", Description = "Can manage users" },
-                new Permission { PermissionId = 2, PermissionName = "ManageInventory", Description = "Can manage inventory" },
+
                 new Permission { PermissionId = 3, PermissionName = "ViewReports", Description = "Can view reports" },
                 new Permission { PermissionId = 4, PermissionName = "ManageDepartments", Description = "Can manage departments" }
             );
 
             modelBuilder.Entity<RolePermission>().HasData(
                 new RolePermission { RoleId = 1, PermissionId = 1 },
-                new RolePermission { RoleId = 1, PermissionId = 2 },
+
                 new RolePermission { RoleId = 1, PermissionId = 3 },
                 new RolePermission { RoleId = 1, PermissionId = 4 }
             );
@@ -97,14 +98,7 @@ namespace ModularSys.Data.Common.Db
             // Apply soft delete query filters manually
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             
-            // Inventory soft delete filters
-            modelBuilder.Entity<Product>().HasQueryFilter(p => !p.IsDeleted);
-            modelBuilder.Entity<Category>().HasQueryFilter(c => !c.IsDeleted);
-            modelBuilder.Entity<SalesOrder>().HasQueryFilter(so => !so.IsDeleted);
-            modelBuilder.Entity<PurchaseOrder>().HasQueryFilter(po => !po.IsDeleted);
-            modelBuilder.Entity<SalesOrderLine>().HasQueryFilter(sol => !sol.IsDeleted);
-            modelBuilder.Entity<PurchaseOrderLine>().HasQueryFilter(pol => !pol.IsDeleted);
-            modelBuilder.Entity<InventoryTransaction>().HasQueryFilter(it => !it.IsDeleted);
+
             
             // CRM soft delete filters
             modelBuilder.Entity<Customer>().HasQueryFilter(c => !c.IsDeleted);

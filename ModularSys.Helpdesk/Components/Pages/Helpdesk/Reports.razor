@@ -1,0 +1,69 @@
+@page "/helpdesk/reports"
+@using ModularSys.Core.Interfaces
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject IReportingService ReportingService
+
+<RadzenStack>
+    <RadzenText TextStyle="TextStyle.H3">Reports & Analytics</RadzenText>
+    <RadzenText TextStyle="TextStyle.Body1">Detailed analysis of helpdesk performance.</RadzenText>
+
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H5">Ticket Distribution by Channel</RadzenText>
+                <RadzenChart>
+                    <RadzenDonutSeries Data="@channelStats" Title="Channel" CategoryProperty="Key" ValueProperty="Value">
+                         <TitleTemplate>
+                            <div class="rz-donut-content">
+                                <div>Tickets</div>
+                            </div>
+                        </TitleTemplate>
+                    </RadzenDonutSeries>
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+         <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H5">SLA Compliance</RadzenText>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Class="rz-p-4">
+                     <RadzenArcGauge Style="width: 100%; height: 250px;">
+                        <RadzenArcGaugeScale Step="20" Min="0" Max="100" MinorStep="2" Radius="1.5" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="0">
+                            <RadzenArcGaugeScaleValue Value="@slaComplianceRate" ShowValue="true" FormatString="{0}%">
+                                <Template Context="pointer">
+                                    <h4>@pointer.Value.ToString("N0")%</h4>
+                                    <span style="font-size: 0.8rem; color: var(--rz-text-secondary-color);">Compliance Rate</span>
+                                </Template>
+                            </RadzenArcGaugeScaleValue>
+                        </RadzenArcGaugeScale>
+                    </RadzenArcGauge>
+                </RadzenStack>
+                 <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-align-center">
+                    Total Breaches: <b>@breachCount</b>
+                </RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+</RadzenStack>
+
+@code {
+    Dictionary<string, int> channelStats = new();
+    int breachCount;
+    double slaComplianceRate = 100;
+
+    protected override async Task OnInitializedAsync()
+    {
+        channelStats = await ReportingService.GetTicketsByChannelStatsAsync();
+        breachCount = await ReportingService.GetSLABreachCountAsync();
+        
+        // Dummy calculation for rate based on breach count (assuming 100 total for demo if 0, or calculated)
+        // ideally GetSLABreachCountAsync should return total vs breached
+        // For visual demo:
+        var total = channelStats.Values.Sum();
+        if (total > 0)
+        {
+            slaComplianceRate = Math.Max(0, 100 - ((double)breachCount / total * 100));
+        }
+    }
+}

@@ -1,0 +1,37 @@
+@page "/newticket"
+@using ModularSys.Core.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<h3>Create New Ticket</h3>
+
+<EditForm Model="@ticket" OnValidSubmit="CreateTicket">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label>Subject</label>
+        <InputText @bind-Value="ticket.Subject" class="form-control" />
+    </div>
+    
+    <div class="mb-3">
+        <label>Description</label>
+        <InputTextArea @bind-Value="ticket.Description" class="form-control" rows="5" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit Ticket</button>
+    <a href="mytickets" class="btn btn-secondary">Cancel</a>
+</EditForm>
+
+@code {
+    private TicketDto ticket = new();
+
+    private async Task CreateTicket()
+    {
+        var response = await Http.PostAsJsonAsync("api/Ticket", ticket);
+        if (response.IsSuccessStatusCode)
+        {
+            NavManager.NavigateTo("mytickets");
+        }
+    }
+}

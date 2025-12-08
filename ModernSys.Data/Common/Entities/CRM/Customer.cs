@@ -25,6 +25,11 @@ namespace ModularSys.Data.Common.Entities.CRM
         public string? Notes { get; set; }
         public string Status { get; set; } = "Active"; // Active, Inactive, Prospect
         public string CustomerType { get; set; } = "Prospect"; // Prospect, Customer, Partner
+        
+        // Helpdesk / Enhanced CRM Fields
+        public int LoyaltyPoints { get; set; }
+        public double? SatisfactionScore { get; set; } // CSAT 1-5
+        public string? SegmentationTag { get; set; } // VIP, Frequent, New
         // Soft Delete Properties (ISoftDeletable)
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
@@ -40,8 +45,6 @@ namespace ModularSys.Data.Common.Entities.CRM
         public ICollection<Contact> Contacts { get; set; } = new List<Contact>();
         public ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
         
-        // Inventory Integration - Sales Orders linked to this customer
-        // Note: Using fully qualified name to avoid circular reference
-        public ICollection<ModularSys.Data.Common.Entities.Inventory.SalesOrder> SalesOrders { get; set; } = new List<ModularSys.Data.Common.Entities.Inventory.SalesOrder>();
+
     }
 }

@@ -226,6 +226,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Safety Net: If Customer lands here, redirect to Portal
+        if (string.Equals(AuthService.CurrentUserRole, "Customer", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("portal/mytickets");
+            return;
+        }
+
         await LoadDashboardData();
     }
 

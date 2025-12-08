@@ -110,6 +110,13 @@
                                     Style="width: 100%; height: 52px; font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: none; border-radius: 8px; margin-top: 0.5rem;" 
                                     IsBusy="@_isLoading"
                                     Disabled="@_isLoading" />
+                                    
+                        <RadzenButton Text="Create Account" 
+                                    Icon="person_add"
+                                    ButtonStyle="ButtonStyle.Base"
+                                    Variant="Variant.Text"
+                                    Style="width: 100%; margin-top: 0.5rem;"
+                                    Click="@(() => Nav.NavigateTo("/register"))" />
                     </RadzenStack>
                 </RadzenTemplateForm>
 
@@ -139,7 +146,22 @@
     {
         if (AuthService.IsAuthenticated)
         {
-            Nav.NavigateTo("/dashboard");
+            RedirectToHome();
+        }
+    }
+
+    private void RedirectToHome()
+    {
+        // Role-Based Redirection detection
+        System.Diagnostics.Debug.WriteLine($"[Login] Redirecting User Role: {AuthService.CurrentUserRole}");
+        
+        if (string.Equals(AuthService.CurrentUserRole, "Customer", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("portal/mytickets");
+        }
+        else
+        {
+            Nav.NavigateTo("dashboard");
         }
     }
     
@@ -160,7 +182,7 @@
             if (success)
             {
                 NotificationService.Notify(NotificationSeverity.Success, "Welcome!", $"Successfully logged in as {_model.Username}");
-                Nav.NavigateTo("/dashboard", forceLoad: true);
+                RedirectToHome();
             }
             else
             {

@@ -1,0 +1,61 @@
+@page "/helpdesk/customers"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.CRM
+@using Radzen
+@using Radzen.Blazor
+@inject ICustomerService CustomerService
+@inject DialogService DialogService
+
+<RadzenStack>
+    <RadzenText TextStyle="TextStyle.H3">Customers (CRM)</RadzenText>
+    <RadzenText TextStyle="TextStyle.Body1">Manage customer profiles, loyalty scores, and satisfaction ratings.</RadzenText>
+
+    <RadzenCard>
+        <RadzenDataGrid Data="@customers" TItem="Customer" AllowFiltering="true" AllowSorting="true" AllowPaging="true" PageSize="10">
+            <Columns>
+                <RadzenDataGridColumn TItem="Customer" Property="CompanyName" Title="Company" />
+                <RadzenDataGridColumn TItem="Customer" Property="ContactName" Title="Contact Person" />
+                <RadzenDataGridColumn TItem="Customer" Property="SegmentationTag" Title="Segment">
+                    <Template Context="c">
+                        @if (!string.IsNullOrEmpty(c.SegmentationTag))
+                        {
+                            <RadzenBadge Text="@c.SegmentationTag" BadgeStyle="BadgeStyle.Secondary" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Customer" Property="LoyaltyPoints" Title="Loyalty Points" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="Customer" Property="SatisfactionScore" Title="CSAT" TextAlign="TextAlign.Center">
+                    <Template Context="c">
+                        @if (c.SatisfactionScore.HasValue)
+                        {
+                            <RadzenRating ReadOnly="true" Value="@((int)c.SatisfactionScore.Value)" Max="5" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Customer" Context="c" Filterable="false" Sortable="false" Width="70px">
+                     <Template>
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Variant="Variant.Flat" Click="@(() => EditCustomer(c))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    IEnumerable<Customer> customers = new List<Customer>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await CustomerService.GetCustomersAsync();
+    }
+
+    async Task EditCustomer(Customer customer)
+    {
+       // For now, simpler inline edit or simple dialog could go here
+       // or navigate to details if we had one.
+       // We'll just show a quick comprehensive dialog usage example
+       // But to save time and complexity, we will just implement this list for now as per "MVP"
+       // Future: Navigate to /helpdesk/customers/{id}
+    }
+}

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ModularSys.Data.Common.Db;
 using ModularSys.Data.Common.Entities.Finance;
-using ModularSys.Data.Common.Entities.Inventory;
+
 using ModularSys.Data.Common.Interfaces;
 using ModularSys.Data.Common.Interfaces.Sync;
 using System;
@@ -26,16 +26,8 @@ namespace ModularSys.Data.Common.Services.Sync
         // List of entity types to sync (in priority order)
         private readonly List<Type> _syncableEntities = new()
         {
-            // Core entities first
-            typeof(Category),
-            typeof(Product),
-            
-            // Transactional entities
-            typeof(SalesOrder),
-            typeof(SalesOrderLine),
-            typeof(PurchaseOrder),
-            typeof(PurchaseOrderLine),
-            typeof(InventoryTransaction),
+
+
             
             // Finance
             typeof(RevenueTransaction)

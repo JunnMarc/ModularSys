@@ -1,0 +1,50 @@
+@page "/ticket/{Id:int}"
+@using ModularSys.Core.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<h3>Ticket Details</h3>
+
+@if (ticket == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-header">
+            <h4>@ticket.Subject <span class="badge bg-secondary">@ticket.Status</span></h4>
+        </div>
+        <div class="card-body">
+            <p><strong>Priority:</strong> @ticket.Priority</p>
+            <p><strong>Created:</strong> @ticket.CreatedAt</p>
+            <hr />
+            <p>@ticket.Description</p>
+        </div>
+    </div>
+    
+    <a href="mytickets" class="btn btn-secondary">Back to List</a>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private TicketDto? ticket;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ticket = await Http.GetFromJsonAsync<TicketDto>($"api/Ticket/{Id}");
+        }
+        catch (Exception ex)
+        {
+            // Handle error (e.g. 404 or 401)
+            Console.WriteLine(ex.Message);
+            NavManager.NavigateTo("mytickets");
+        }
+    }
+}

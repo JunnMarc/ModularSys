@@ -1,0 +1,99 @@
+@page "/register"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities
+@using Radzen
+@using Radzen.Blazor
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject NotificationService NotificationService
+
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #fefefe;">
+    <RadzenCard Style="width: 100%; max-width: 500px; padding: 2rem;">
+        <RadzenStack Gap="1.5rem">
+            <RadzenText TextStyle="TextStyle.H4" TextAlign="TextAlign.Center">Create Account</RadzenText>
+            
+            <RadzenTemplateForm TItem="RegisterModel" Data="@model" Submit="@HandleRegister">
+                <RadzenStack Gap="1rem">
+                    <RadzenFormField Text="Username" Variant="Variant.Outlined">
+                        <RadzenTextBox @bind-Value="model.Username" Name="Username" Style="width: 100%" />
+                         <RadzenRequiredValidator Component="Username" Text="Username is required" />
+                    </RadzenFormField>
+                    
+                    <RadzenFormField Text="First Name" Variant="Variant.Outlined">
+                        <RadzenTextBox @bind-Value="model.FirstName" Name="FirstName" Style="width: 100%" />
+                        <RadzenRequiredValidator Component="FirstName" Text="First Name is required" />
+                    </RadzenFormField>
+
+                    <RadzenFormField Text="Last Name" Variant="Variant.Outlined">
+                        <RadzenTextBox @bind-Value="model.LastName" Name="LastName" Style="width: 100%" />
+                         <RadzenRequiredValidator Component="LastName" Text="Last Name is required" />
+                    </RadzenFormField>
+
+                    <RadzenFormField Text="Email" Variant="Variant.Outlined">
+                        <RadzenTextBox @bind-Value="model.Email" Name="Email" Style="width: 100%" />
+                         <RadzenRequiredValidator Component="Email" Text="Email is required" />
+                         <RadzenEmailValidator Component="Email" Text="Invalid email format" />
+                    </RadzenFormField>
+
+                    <RadzenFormField Text="Password" Variant="Variant.Outlined">
+                        <RadzenPassword @bind-Value="model.Password" Name="Password" Style="width: 100%" />
+                         <RadzenRequiredValidator Component="Password" Text="Password is required" />
+                         <RadzenLengthValidator Component="Password" Min="6" Text="Password must be at least 6 characters" />
+                    </RadzenFormField>
+
+                    <RadzenButton ButtonType="ButtonType.Submit" Text="Register" ButtonStyle="ButtonStyle.Primary" IsBusy="@isSubmitting" Style="width: 100%; margin-top: 1rem;" />
+                    
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="login">Already have an account? Sign In</a>
+                    </div>
+                </RadzenStack>
+            </RadzenTemplateForm>
+        </RadzenStack>
+    </RadzenCard>
+</div>
+
+@code {
+    RegisterModel model = new();
+    bool isSubmitting = false;
+
+    class RegisterModel
+    {
+        public string Username { get; set; } = "";
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    async Task HandleRegister()
+    {
+        isSubmitting = true;
+        try
+        {
+            // TODO: Implement specific Customer Registration in AuthService that creates a Customer record
+            // For MVP, we instruct user to contact admin or we rely on default RegisterAsync (which creates Role 1 - Admin!)
+            // We MUST fix AuthService to support Customer Registration.
+            
+            // Register using Customer-specific method
+            var (success, message) = await AuthService.RegisterCustomerAsync(model.Username, model.Password, model.FirstName, model.LastName, model.Email);
+            
+            if (success)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Registration Successful", "Please log in.");
+                Nav.NavigateTo("login");
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Registration Failed", message);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"An error occurred: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

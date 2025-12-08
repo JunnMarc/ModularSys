@@ -1,0 +1,153 @@
+@page "/portal/ticket/{Id:int}"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.Helpdesk
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject NotificationService NotificationService
+@layout ModularSys.Helpdesk.Components.Layout.PortalLayout
+
+@if (ticket == null)
+{
+    @if (isLoading)
+    {
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="true" Variant="Variant.Flat">
+            Ticket not found or you do not have permission to view it.
+        </RadzenAlert>
+    }
+}
+else
+{
+    <RadzenStack Gap="1.5rem">
+        <!-- Header -->
+        <RadzenCard>
+             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                 <RadzenStack Gap="0">
+                     <RadzenText TextStyle="TextStyle.Overline" Text="@($"REF #{ticket.Id}")" Style="color: #6b7280;" />
+                     <RadzenText TextStyle="TextStyle.H4" Text="@ticket.Subject" Class="rz-mb-0" />
+                     <RadzenText TextStyle="TextStyle.Caption" Text="@($"Submitted on {ticket.CreatedAt:g}")" />
+                 </RadzenStack>
+                 <RadzenStack AlignItems="AlignItems.End" Gap="0.5rem">
+                     <RadzenBadge BadgeStyle="@GetStatusBadge(ticket.Status)" Text="@ticket.Status" Style="font-size: 1rem; padding: 0.5rem 1rem;" />
+                     <RadzenBadge BadgeStyle="@GetPriorityBadge(ticket.Priority)" Text="@ticket.Priority" Variant="Variant.Outlined" />
+                 </RadzenStack>
+             </RadzenStack>
+             <RadzenDivider />
+             <RadzenText TextStyle="TextStyle.Body1" Style="white-space: pre-wrap;">@ticket.Description</RadzenText>
+        </RadzenCard>
+
+        <!-- Comments / Thread -->
+        <RadzenText TextStyle="TextStyle.H5">Discussion</RadzenText>
+        
+        <RadzenStack Gap="1rem">
+            @if (ticket.Comments != null && ticket.Comments.Any())
+            {
+                @foreach (var comment in ticket.Comments.Where(c => !c.IsInternal).OrderBy(c => c.CreatedAt))
+                {
+                    <RadzenCard Style="@(IsMyComment(comment) ? "background-color: #eff6ff; margin-left: 2rem;" : "background-color: white; margin-right: 2rem;")">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-weight: 600;">@comment.AuthorName</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #6b7280;">@(comment.CreatedAt?.ToString("g") ?? "")</RadzenText>
+                        </RadzenStack>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 0.5rem; white-space: pre-wrap;">@comment.Content</RadzenText>
+                    </RadzenCard>
+                }
+            }
+            else
+            {
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: #6b7280; font-style: italic;">No comments yet.</RadzenText>
+            }
+        </RadzenStack>
+
+        <!-- Reply Box -->
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2">Add a Reply</RadzenText>
+            <RadzenTextArea @bind-Value="newComment" Rows="3" Style="width: 100%; margin: 0.5rem 0;" Placeholder="Type your reply here..." />
+            <RadzenButton Text="Post Reply" Icon="reply" Click="@SubmitReply" IsBusy="@isSubmittingReply" Disabled="@string.IsNullOrWhiteSpace(newComment)" />
+        </RadzenCard>
+
+    </RadzenStack>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    
+    Ticket? ticket;
+    string newComment = "";
+    bool isLoading = true;
+    bool isSubmittingReply = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTicket();
+    }
+
+    async Task LoadTicket()
+    {
+        isLoading = true;
+        var t = await TicketService.GetTicketByIdAsync(Id);
+        
+        // Security Check: Ensure ticket belongs to current user
+        if (t != null && t.CustomerId == AuthService.CurrentUserCustomerId)
+        {
+            ticket = t;
+        }
+        else
+        {
+            ticket = null;
+        }
+        isLoading = false;
+    }
+
+    async Task SubmitReply()
+    {
+        if (string.IsNullOrWhiteSpace(newComment) || ticket == null) return;
+
+        isSubmittingReply = true;
+        try
+        {
+            await TicketService.AddCommentAsync(ticket.Id, newComment, false, AuthService.CurrentUser ?? "Customer");
+            newComment = "";
+            await LoadTicket(); // Refresh to show new comment
+             NotificationService.Notify(NotificationSeverity.Success, "Reply Posted");
+        }
+        catch
+        {
+             NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to post reply.");
+        }
+        finally
+        {
+            isSubmittingReply = false;
+        }
+    }
+
+    bool IsMyComment(TicketComment comment)
+    {
+        // Simple check based on author name usually matching current user
+        return comment.AuthorName == AuthService.CurrentUser;
+    }
+
+    BadgeStyle GetStatusBadge(string status) => status switch
+    {
+        "Open" => BadgeStyle.Info,
+        "InProgress" => BadgeStyle.Warning,
+        "Resolved" => BadgeStyle.Success,
+        "Closed" => BadgeStyle.Light,
+        _ => BadgeStyle.Light
+    };
+
+    BadgeStyle GetPriorityBadge(string priority) => priority switch
+    {
+        "Critical" => BadgeStyle.Danger,
+        "High" => BadgeStyle.Warning,
+        "Medium" => BadgeStyle.Info,
+        "Low" => BadgeStyle.Light,
+        _ => BadgeStyle.Light
+    };
+}

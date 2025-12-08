@@ -1,0 +1,39 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider authStateProvider
+@using ModularSys.Web.Client.Services
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized>
+                    Hello, @context.User.Identity?.Name!
+                    <a href="javascript:void(0)" @onclick="Logout">Log out</a>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="login">Log in</a>
+                    <a href="register">Register</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        var authObj = (ApiAuthenticationStateProvider)authStateProvider;
+        authObj.MarkUserAsLoggedOut();
+        navManager.NavigateTo("login");
+    }
+}

@@ -18,6 +18,11 @@ namespace ModularSys.Data.Common.Entities
         public string? ContactNumber { get; set; }
         public required int RoleId { get; set; }
         public required int DepartmentId { get; set; }
+        
+        // Link to CRM Customer (for Portal Users)
+        public int? CustomerId { get; set; }
+        public ModularSys.Data.Common.Entities.CRM.Customer? Customer { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         // Soft Delete Properties

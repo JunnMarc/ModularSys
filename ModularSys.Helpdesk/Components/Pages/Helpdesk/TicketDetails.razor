@@ -1,0 +1,122 @@
+@page "/helpdesk/tickets/{Id:int}"
+@page "/helpdesk/tickets/new"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.Helpdesk
+@using ModularSys.Data.Common.Entities.CRM
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject NavigationManager Nav
+@inject NotificationService NotificationService
+@inject ModularSys.Data.Common.Db.ModularSysDbContext DbContext // Direct for Customers dropdown quick fix
+
+<RadzenStack>
+    <RadzenText TextStyle="TextStyle.H3">@(Id == 0 ? "New Ticket" : $"Ticket #{Id}")</RadzenText>
+
+    <RadzenCard>
+        <RadzenTemplateForm Data="@ticket" Submit="@(async (Ticket args) => await Save(args))">
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenLabel Text="Subject" />
+                    <RadzenTextBox @bind-Value="ticket.Subject" Name="Subject" Style="width: 100%;" />
+                    <RadzenRequiredValidator Component="Subject" Text="Subject is required" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenLabel Text="Customer" />
+                    <RadzenDropDown @bind-Value="ticket.CustomerId" Data="@customers" TextProperty="CompanyName" ValueProperty="Id" Style="width: 100%;" Name="Customer" />
+                     <RadzenRequiredValidator Component="Customer" Text="Customer is required" DefaultValue="0" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenLabel Text="Status" />
+                    <RadzenDropDown @bind-Value="ticket.Status" Data="@statuses" Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenLabel Text="Priority" />
+                    <RadzenDropDown @bind-Value="ticket.Priority" Data="@priorities" Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenLabel Text="Channel" />
+                    <RadzenDropDown @bind-Value="ticket.Channel" Data="@channels" Style="width: 100%;" />
+                </RadzenColumn>
+                <RadzenColumn Size="12">
+                    <RadzenLabel Text="Description" />
+                    <RadzenTextArea @bind-Value="ticket.Description" Style="width: 100%; min-height: 100px;" />
+                </RadzenColumn>
+            </RadzenRow>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem" Class="rz-mt-4">
+                <RadzenButton ButtonType="ButtonType.Submit" Text="Save" Icon="save" />
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Text="Cancel" Click="@(() => Nav.NavigateTo("/helpdesk/tickets"))" />
+            </RadzenStack>
+        </RadzenTemplateForm>
+    </RadzenCard>
+
+    @if (Id != 0)
+    {
+        <RadzenCard Class="rz-mt-4">
+             <RadzenText TextStyle="TextStyle.H5">Comments</RadzenText>
+             <RadzenStack Gap="1rem">
+                 @foreach(var comment in ticket.Comments.OrderBy(c => c.CreatedAt))
+                 {
+                     <RadzenCard Class="rz-p-2" Style="background-color: #f9f9f9;">
+                         <div style="display: flex; justify-content: space-between;">
+                             <RadzenText TextStyle="TextStyle.Subtitle2">@comment.AuthorName</RadzenText>
+                             <RadzenText TextStyle="TextStyle.Caption">@comment.CreatedAt?.ToString("g")</RadzenText>
+                         </div>
+                         <RadzenText TextStyle="TextStyle.Body1">@comment.Content</RadzenText>
+                     </RadzenCard>
+                 }
+                 
+                 <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                     <RadzenTextBox @bind-Value="newComment" Placeholder="Add a comment..." Style="flex: 1;" />
+                     <RadzenButton Icon="send" Click="@AddComment" />
+                 </RadzenStack>
+             </RadzenStack>
+        </RadzenCard>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    Ticket ticket = new Ticket();
+    IEnumerable<Customer> customers = new List<Customer>();
+    string newComment = "";
+
+    List<string> statuses = new() { "Open", "InProgress", "Resolved", "Closed" };
+    List<string> priorities = new() { "Critical", "High", "Medium", "Low" };
+    List<string> channels = new() { "Web", "Email", "Phone", "Chat" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != 0)
+        {
+            ticket = await TicketService.GetTicketByIdAsync(Id) ?? new Ticket();
+        }
+        
+        // Quick fetch customers for dropdown
+        customers = DbContext.Customers.Where(c => !c.IsDeleted).ToList();
+    }
+
+    async Task Save(Ticket args)
+    {
+        if (Id == 0)
+        {
+            await TicketService.CreateTicketAsync(args);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Ticket created");
+        }
+        else
+        {
+            await TicketService.UpdateTicketAsync(args);
+            NotificationService.Notify(NotificationSeverity.Success, "Success", "Ticket updated");
+        }
+        Nav.NavigateTo("/helpdesk/tickets");
+    }
+
+    async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(newComment)) return;
+        
+        await TicketService.AddCommentAsync(Id, newComment, false, "Current User"); // User context needed
+        ticket = await TicketService.GetTicketByIdAsync(Id) ?? ticket; // Refresh
+        newComment = "";
+    }
+}

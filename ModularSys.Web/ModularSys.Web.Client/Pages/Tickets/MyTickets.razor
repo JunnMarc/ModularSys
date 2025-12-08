@@ -1,0 +1,67 @@
+@page "/mytickets"
+@using ModularSys.Core.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<h3>My Tickets</h3>
+
+<div class="mb-3">
+    <a href="newticket" class="btn btn-success">Create New Ticket</a>
+</div>
+
+@if (tickets == null)
+{
+    <p>Loading...</p>
+}
+else if (!tickets.Any())
+{
+    <p>No tickets found.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in tickets)
+            {
+                <tr>
+                    <td>#@ticket.Id</td>
+                    <td>@ticket.Subject</td>
+                    <td>@ticket.Status</td>
+                    <td>@ticket.Priority</td>
+                    <td>@ticket.CreatedAt.ToShortDateString()</td>
+                    <td>
+                        <a href="ticket/@ticket.Id" class="btn btn-sm btn-info">View</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private TicketDto[]? tickets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            tickets = await Http.GetFromJsonAsync<TicketDto[]>("api/Ticket");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

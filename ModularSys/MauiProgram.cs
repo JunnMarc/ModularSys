@@ -63,14 +63,7 @@ namespace ModularSys
                 })
                 .ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
             
-            builder.Services.AddDbContext<InventoryDbContext>(options =>
-                options.UseSqlServer(connectionString, sqlOptions =>
-                {
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(30),
-                        errorNumbersToAdd: null);
-                }));
+
 
             // 2) Factory for isolated contexts (policy checks, background ops)
             builder.Services.AddDbContextFactory<ModularSysDbContext>(options =>
@@ -82,14 +75,7 @@ namespace ModularSys
                         errorNumbersToAdd: null);
                 }));
             
-            builder.Services.AddDbContextFactory<InventoryDbContext>(options =>
-                options.UseSqlServer(connectionString, sqlOptions =>
-                {
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(30),
-                        errorNumbersToAdd: null);
-                }));
+
 
             // Session & Auth
             builder.Services.AddAuthorizationCore();
@@ -131,6 +117,10 @@ namespace ModularSys
             // Register dynamic modules
             var loggerFactory = LoggerFactory.Create(config => config.AddDebug());
             var logger = loggerFactory.CreateLogger("ModuleLoader");
+            
+            // Explicitly register Helpdesk module to ensure Router finds it
+            ModuleLoader.AddAssembly(typeof(ModularSys.Helpdesk.Components.Layout.PortalLayout).Assembly);
+            
             ModuleLoader.RegisterAllModules(builder.Services, logger);
 
             var app = builder.Build();

@@ -8,7 +8,8 @@
 @inject NavigationManager Nav
 @inject NotificationService NotificationService
 @inject DialogService DialogService
-@inject ModularSys.Inventory.Services.InventoryNavigationService InventoryNavService
+@inject ModularSys.Helpdesk.Services.HelpdeskNavigationService HelpdeskNavService
+
 
 <RadzenComponents />
 <RadzenDialog />
@@ -269,65 +270,47 @@
             <div class="nav-section">
                 <div class="nav-section-title">Modules</div>
                 
-                <!-- Inventory Module with Collapsible Submodules -->
+                <!-- Helpdesk Module with Collapsible Submodules -->
                 <div>
-                    <a class="nav-item @(IsInventoryActive() ? "active" : "")" @onclick="ToggleInventorySection" style="justify-content: space-between;">
+                    <a class="nav-item @(IsHelpdeskActive() ? "active" : "")" @onclick="ToggleHelpdeskSection" style="justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="nav-item-icon material-icons">inventory</span>
-                            <span>Inventory</span>
+                            <span class="nav-item-icon material-icons">support_agent</span>
+                            <span>Helpdesk</span>
                         </div>
-                        <span class="material-icons" style="font-size: 1.125rem;">@(_inventoryExpanded ? "expand_less" : "expand_more")</span>
+                        <span class="material-icons" style="font-size: 1.125rem;">@(_helpdeskExpanded ? "expand_less" : "expand_more")</span>
                     </a>
                     
-                    @if (_inventoryExpanded)
+                    @if (_helpdeskExpanded)
                     {
                         <div style="margin-left: 36px; margin-top: 4px;">
-                            <a class="nav-item @(_selectedInventoryModule == "dashboard" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("dashboard"))'
+                            <a class="nav-item @(_selectedHelpdeskModule == "dashboard" ? "active" : "")" 
+                               @onclick='@(() => SelectHelpdeskModule("dashboard"))'
                                style="font-size: 0.8125rem; padding: 8px 12px;">
                                 <span>Dashboard</span>
                             </a>
-                            <a class="nav-item @(_selectedInventoryModule == "products" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("products"))'
+                            <a class="nav-item @(_selectedHelpdeskModule == "tickets" ? "active" : "")" 
+                               @onclick='@(() => SelectHelpdeskModule("tickets"))'
                                style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Products</span>
+                                <span>Ticket Management</span>
                             </a>
-                            <a class="nav-item @(_selectedInventoryModule == "categories" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("categories"))'
+                            <a class="nav-item @(_selectedHelpdeskModule == "customers" ? "active" : "")" 
+                               @onclick='@(() => SelectHelpdeskModule("customers"))'
                                style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Categories</span>
+                                <span>Customers (CRM)</span>
                             </a>
-                            <a class="nav-item @(_selectedInventoryModule == "sales-orders" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("sales-orders"))'
+                            <a class="nav-item @(_selectedHelpdeskModule == "reports" ? "active" : "")" 
+                               @onclick='@(() => SelectHelpdeskModule("reports"))'
                                style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Sales Orders</span>
-                            </a>
-                            <a class="nav-item @(_selectedInventoryModule == "purchase-orders" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("purchase-orders"))'
-                               style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Purchase Orders</span>
-                            </a>
-                            <a class="nav-item @(_selectedInventoryModule == "transactions" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("transactions"))'
-                               style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Transactions</span>
-                            </a>
-                            <a class="nav-item @(_selectedInventoryModule == "stock-alerts" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("stock-alerts"))'
-                               style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Stock Alerts</span>
-                            </a>
-                            <a class="nav-item @(_selectedInventoryModule == "reports" ? "active" : "")" 
-                               @onclick='@(() => SelectInventoryModule("reports"))'
-                               style="font-size: 0.8125rem; padding: 8px 12px;">
-                                <span>Reports</span>
+                                <span>Reports & Analytics</span>
                             </a>
                         </div>
                     }
                 </div>
                 
+
+                
                 <!-- Other Modules -->
-                @foreach (var subsystem in ModuleLoader.Subsystems.Where(s => s.Name != "Inventory").OrderBy(s => s.Order))
+                @foreach (var subsystem in ModuleLoader.Subsystems.Where(s => s.Name != "Inventory" && s.Name != "Helpdesk").OrderBy(s => s.Order))
                 {
                     <a class="nav-item @(IsActive(subsystem.Route) ? "active" : "")" @onclick='@(() => Nav.NavigateTo(subsystem.Route))'>
                         <span class="nav-item-icon material-icons">@subsystem.Icon</span>
@@ -424,9 +407,9 @@ else
 @code {
     private bool sidebarExpanded = true;
     private bool showUserMenu = false;
-    private bool _inventoryExpanded = true;
-    private string _selectedInventoryModule = "dashboard";
-    
+    private bool _helpdeskExpanded = true;
+    private string _selectedHelpdeskModule = "dashboard";
+
     private string GetUserInitials()
     {
         if (string.IsNullOrEmpty(AuthService.CurrentUser))
@@ -444,24 +427,28 @@ else
         return Nav.Uri.Contains(path, StringComparison.OrdinalIgnoreCase);
     }
 
-    private bool IsInventoryActive()
+    private bool IsHelpdeskActive()
     {
-        return Nav.Uri.Contains("/inventory", StringComparison.OrdinalIgnoreCase);
+        return Nav.Uri.Contains("/helpdesk", StringComparison.OrdinalIgnoreCase);
     }
 
-    private void ToggleInventorySection()
+    private void ToggleHelpdeskSection()
     {
-        _inventoryExpanded = !_inventoryExpanded;
+        _helpdeskExpanded = !_helpdeskExpanded;
         StateHasChanged();
     }
 
-    private void SelectInventoryModule(string module)
+    private void SelectHelpdeskModule(string module)
     {
-        _selectedInventoryModule = module;
-        InventoryNavService.SelectModule(module);
-        Nav.NavigateTo("/inventory");
+        _selectedHelpdeskModule = module;
+        HelpdeskNavService.SelectModule(module);
+        Nav.NavigateTo($"/helpdesk/{module}");
         StateHasChanged();
     }
+
+
+
+
 
     private string GetPageTitle()
     {

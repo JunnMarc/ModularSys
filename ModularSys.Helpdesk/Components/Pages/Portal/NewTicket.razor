@@ -1,0 +1,72 @@
+@page "/portal/newticket"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.Helpdesk
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject NotificationService NotificationService
+@layout ModularSys.Helpdesk.Components.Layout.PortalLayout
+
+<RadzenStack Gap="1.5rem" Style="max-width: 800px; margin: 0 auto;">
+    <RadzenText TextStyle="TextStyle.H4">Submit a New Ticket</RadzenText>
+
+    <RadzenCard>
+        <RadzenTemplateForm TItem="Ticket" Data="@ticket" Submit="@HandleSubmit">
+            <RadzenStack Gap="1rem">
+                
+                <RadzenFormField Text="Subject" Variant="Variant.Outlined">
+                    <RadzenTextBox @bind-Value="ticket.Subject" Name="Subject" Style="width: 100%" />
+                    <RadzenRequiredValidator Component="Subject" Text="Subject is required" />
+                </RadzenFormField>
+
+                <RadzenFormField Text="Priority" Variant="Variant.Outlined">
+                    <RadzenDropDown @bind-Value="ticket.Priority" Data="@priorities" Name="Priority" Style="width: 100%" />
+                </RadzenFormField>
+
+                <RadzenFormField Text="Description" Variant="Variant.Outlined">
+                    <RadzenTextArea @bind-Value="ticket.Description" Name="Description" Rows="5" Style="width: 100%" />
+                     <RadzenRequiredValidator Component="Description" Text="Description is required" />
+                </RadzenFormField>
+
+                <RadzenButton ButtonType="ButtonType.Submit" Text="Submit Ticket" Icon="send" ButtonStyle="ButtonStyle.Primary" IsBusy="@isSubmitting" />
+            </RadzenStack>
+        </RadzenTemplateForm>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    Ticket ticket = new Ticket { Priority = "Medium" };
+    bool isSubmitting = false;
+    string[] priorities = { "Low", "Medium", "High", "Critical" };
+
+    async Task HandleSubmit()
+    {
+        if (!AuthService.CurrentUserCustomerId.HasValue)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "You must be linked to a customer profile to submit tickets.");
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            ticket.CustomerId = AuthService.CurrentUserCustomerId.Value;
+            ticket.Status = "Open";
+            
+            await TicketService.CreateTicketAsync(ticket);
+            
+            NotificationService.Notify(NotificationSeverity.Success, "Ticket Submitted", "Your ticket has been created successfully.");
+            Nav.NavigateTo("/portal/mytickets");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", "Failed to submit ticket.");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

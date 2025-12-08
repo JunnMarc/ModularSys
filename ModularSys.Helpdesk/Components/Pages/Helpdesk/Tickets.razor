@@ -1,0 +1,95 @@
+@page "/helpdesk/tickets"
+@using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.Helpdesk
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject NavigationManager Nav
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn Size="12" SizeMD="8">
+            <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="rz-mb-0">Ticket Management</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-mb-0">Manage customer support tickets efficiently.</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="4" Class="rz-text-align-md-right">
+            <RadzenButton Text="New Ticket" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Click="@CreateTicket" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenCard>
+        <RadzenDataGrid Data="@tickets" TItem="Ticket" AllowFiltering="true" AllowGenericSorting="true" AllowPaging="true" PageSize="10">
+            <Columns>
+                <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="ID" Width="80px" />
+                <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject" />
+                <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="120px">
+                    <Template Context="t">
+                        <RadzenBadge BadgeStyle="@GetStatusBadge(t.Status)" Text="@t.Status" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px">
+                    <Template Context="t">
+                        <RadzenBadge BadgeStyle="@GetPriorityBadge(t.Priority)" Text="@t.Priority" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Ticket" Property="Customer.CompanyName" Title="Customer" />
+                <RadzenDataGridColumn TItem="Ticket" Property="CreatedAt" Title="Created" FormatString="{0:d}" Width="120px" />
+                <RadzenDataGridColumn TItem="Ticket" Context="t" Sortable="false" Filterable="false" Width="80px">
+                    <Template>
+                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Variant="Variant.Flat" Click="@(() => OpenTicket(t.Id))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    IEnumerable<Ticket> tickets = new List<Ticket>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTickets();
+    }
+
+    async Task LoadTickets()
+    {
+        tickets = await TicketService.GetTicketsAsync();
+    }
+
+    void CreateTicket()
+    {
+        Nav.NavigateTo("/helpdesk/tickets/new");
+    }
+
+    void OpenTicket(int id)
+    {
+        Nav.NavigateTo($"/helpdesk/tickets/{id}");
+    }
+
+    BadgeStyle GetStatusBadge(string status)
+    {
+        return status switch
+        {
+            "Open" => BadgeStyle.Info,
+            "InProgress" => BadgeStyle.Warning,
+            "Resolved" => BadgeStyle.Success,
+            "Closed" => BadgeStyle.Light,
+            _ => BadgeStyle.Light
+        };
+    }
+
+    BadgeStyle GetPriorityBadge(string priority)
+    {
+        return priority switch
+        {
+            "Critical" => BadgeStyle.Danger,
+            "High" => BadgeStyle.Warning,
+            "Medium" => BadgeStyle.Info,
+            "Low" => BadgeStyle.Light,
+            _ => BadgeStyle.Light
+        };
+    }
+}

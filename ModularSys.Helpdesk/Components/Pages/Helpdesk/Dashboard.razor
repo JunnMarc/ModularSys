@@ -1,0 +1,91 @@
+@page "/helpdesk/dashboard"
+@using ModularSys.Core.Interfaces
+@using Radzen
+@using Radzen.Blazor
+@inject ITicketService TicketService
+@inject IReportingService ReportingService
+@inject IServiceProvider ServiceProvider
+@inject NotificationService NotificationService
+@using ModularSys.Helpdesk.Services
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn Size="12" SizeMD="8">
+            <RadzenText TextStyle="TextStyle.H3">Helpdesk Dashboard</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="4" Class="rz-text-align-md-right">
+            <RadzenButton Text="Seed Sample Data" Icon="dataset" ButtonStyle="ButtonStyle.Secondary" Click="@SeedData" />
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H6">Total Tickets</RadzenText>
+                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-primary">@totalTickets</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="4">
+             <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H6">Open Critical</RadzenText>
+                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-danger">@criticalTickets</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="4">
+             <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H6">Avg Resolution (Hrs)</RadzenText>
+                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-success">@avgResolution.ToString("F1")</RadzenText>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H5">Tickets by Status</RadzenText>
+                <RadzenChart>
+                    <RadzenPieSeries Data="@statusStats" Title="Status" CategoryProperty="Key" ValueProperty="Value" />
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard>
+                 <RadzenText TextStyle="TextStyle.H5">Tickets by Priority</RadzenText>
+                 <RadzenChart>
+                     <RadzenColumnSeries Data="@priorityStats" Title="Priority" CategoryProperty="Key" ValueProperty="Value" />
+                 </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+</RadzenStack>
+
+@code {
+    int totalTickets;
+    int criticalTickets;
+    double avgResolution;
+    Dictionary<string, int> statusStats = new();
+    Dictionary<string, int> priorityStats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+    }
+
+    async Task LoadStats()
+    {
+        statusStats = await TicketService.GetTicketCountsByStatusAsync();
+        priorityStats = await TicketService.GetTicketCountsByPriorityAsync();
+        
+        totalTickets = statusStats.Values.Sum();
+        criticalTickets = priorityStats.ContainsKey("Critical") ? priorityStats["Critical"] : 0;
+        
+        avgResolution = await ReportingService.GetAverageResolutionTimeAsync();
+    }
+
+    async Task SeedData()
+    {
+        await HelpdeskSeeder.SeedAsync(ServiceProvider);
+        NotificationService.Notify(NotificationSeverity.Success, "Data Seeded", "Sample customers and tickets have been generated.");
+        await LoadStats();
+    }
+}

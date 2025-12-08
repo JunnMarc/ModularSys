@@ -12,7 +12,14 @@
         // Redirect to dashboard if authenticated, otherwise to login
         if (AuthService.IsAuthenticated)
         {
-            Nav.NavigateTo("/dashboard", replace: true);
+            if (string.Equals(AuthService.CurrentUserRole, "Customer", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo("/portal/mytickets", replace: true);
+            }
+            else
+            {
+                Nav.NavigateTo("/dashboard", replace: true);
+            }
         }
         else
         {
