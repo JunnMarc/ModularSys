@@ -3,6 +3,7 @@
 @using ModularSys.Data.Common.Entities.Helpdesk
 @using Radzen
 @using Radzen.Blazor
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ITicketService TicketService
 @inject IAuthService AuthService
 @inject NavigationManager Nav
@@ -58,14 +59,18 @@
     </RadzenCard>
 </RadzenStack>
 
+@inject AuthenticationStateProvider AuthStateProvider
+
 @code {
     IEnumerable<Ticket>? tickets;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        
         if (AuthService.CurrentUserCustomerId.HasValue)
         {
-            tickets = await TicketService.GetTicketsAsync(customerId: AuthService.CurrentUserCustomerId.Value);
+            tickets = await TicketService.GetTicketsAsync(authState.User, customerId: AuthService.CurrentUserCustomerId.Value);
         }
         else
         {

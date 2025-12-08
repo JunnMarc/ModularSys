@@ -52,5 +52,31 @@ namespace ModularSys.Helpdesk.Services
         {
             return await _context.Tickets.CountAsync(t => t.ResolutionBreached || t.FirstResponseBreached);
         }
+
+        public async Task<Dictionary<DateTime, int>> GetTicketVolumeByDayAsync(int days)
+        {
+            var startDate = DateTime.UtcNow.AddDays(-days);
+
+            // Fetch dates first because EF Core often has trouble with EntityFunctions.TruncateTime in SQLite/other providers or depending on EF version
+            var rawData = await _context.Tickets
+                .Where(t => t.CreatedAt >= startDate)
+                .Select(t => t.CreatedAt)
+                .ToListAsync();
+
+            // Client-side GroupBy to be safe against different DB provider limitations on Date grouping
+            return rawData
+                .Where(d => d.HasValue)
+                .GroupBy(d => d.Value.Date)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        public async Task<Dictionary<string, int>> GetTicketVolumeByPriorityAsync()
+        {
+            return await _context.Tickets
+                .GroupBy(t => t.Priority)
+                .Select(g => new { Priority = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Priority ?? "Unknown", x => x.Count);
+        }
     }
 }

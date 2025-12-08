@@ -10,7 +10,7 @@ namespace ModularSys.Core.Interfaces
         Task<Ticket> CreateTicketAsync(Ticket ticket);
         Task<Ticket> UpdateTicketAsync(Ticket ticket);
         Task<Ticket?> GetTicketByIdAsync(int id);
-        Task<IEnumerable<Ticket>> GetTicketsAsync(int? customerId = null, string? status = null, int? assignedToId = null);
+        Task<IEnumerable<Ticket>> GetTicketsAsync(System.Security.Claims.ClaimsPrincipal user, int? customerId = null, string? status = null, int? assignedToId = null);
         Task<TicketComment> AddCommentAsync(int ticketId, string content, bool isInternal, string author);
         Task AssignTicketAsync(int ticketId, int userId);
         Task UpdateStatusAsync(int ticketId, string status);

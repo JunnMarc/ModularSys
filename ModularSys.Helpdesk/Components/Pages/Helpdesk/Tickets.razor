@@ -3,10 +3,12 @@
 @using ModularSys.Data.Common.Entities.Helpdesk
 @using Radzen
 @using Radzen.Blazor
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ITicketService TicketService
 @inject NavigationManager Nav
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthStateProvider
 
 <RadzenStack>
     <RadzenRow AlignItems="AlignItems.Center">
@@ -56,7 +58,8 @@
 
     async Task LoadTickets()
     {
-        tickets = await TicketService.GetTicketsAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        tickets = await TicketService.GetTicketsAsync(authState.User);
     }
 
     void CreateTicket()

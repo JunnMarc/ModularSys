@@ -10,5 +10,7 @@ namespace ModularSys.Core.Interfaces
         Task<Dictionary<string, int>> GetTicketsByChannelStatsAsync();
         Task<double> GetAverageResolutionTimeAsync();
         Task<int> GetSLABreachCountAsync();
+        Task<Dictionary<DateTime, int>> GetTicketVolumeByDayAsync(int days);
+        Task<Dictionary<string, int>> GetTicketVolumeByPriorityAsync();
     }
 }

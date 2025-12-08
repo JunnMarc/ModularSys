@@ -16,6 +16,9 @@ namespace ModularSys.Helpdesk
             services.AddScoped<ITicketService, TicketService>();
             services.AddScoped<IReportingService, ReportingService>();
             services.AddScoped<ICustomerService, CustomerService>();
+            services.AddScoped<ISLAService, SLAService>();
+            services.AddScoped<INotificationService, EmailNotificationService>();
+            services.AddScoped<IWorkflowService, WorkflowService>();
             services.AddScoped<HelpdeskNavigationService>();
         }
     }

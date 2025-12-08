@@ -45,6 +45,36 @@
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
+    
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="8">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H5">Ticket Volume (Last 7 Days)</RadzenText>
+                 <RadzenChart>
+                    <RadzenLineSeries Data="@volumeStats" CategoryProperty="Date" ValueProperty="Count" Title="Tickets">
+                        <RadzenMarkers MarkerType="MarkerType.Circle" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Padding="20" FormatString="{0:MMM dd}" />
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Count" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H5">Tickets by Priority</RadzenText>
+                 <RadzenChart>
+                    <RadzenColumnSeries Data="@priorityStats" CategoryProperty="Priority" ValueProperty="Count" Title="Tickets" LineType="LineType.Dashed" />
+                    <RadzenCategoryAxis />
+                    <RadzenValueAxis>
+                         <RadzenGridLines Visible="true" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
 </RadzenStack>
 
 @code {
@@ -52,11 +82,21 @@
     int breachCount;
     double slaComplianceRate = 100;
 
+    class ChartData { public DateTime Date { get; set; } public string Priority { get; set; } public int Count { get; set; } }
+    List<ChartData> volumeStats = new();
+    List<ChartData> priorityStats = new();
+
     protected override async Task OnInitializedAsync()
     {
         channelStats = await ReportingService.GetTicketsByChannelStatsAsync();
         breachCount = await ReportingService.GetSLABreachCountAsync();
         
+        var volDict = await ReportingService.GetTicketVolumeByDayAsync(7);
+        volumeStats = volDict.Select(k => new ChartData { Date = k.Key, Count = k.Value }).ToList();
+
+        var prioDict = await ReportingService.GetTicketVolumeByPriorityAsync();
+        priorityStats = prioDict.Select(k => new ChartData { Priority = k.Key, Count = k.Value }).ToList();
+
         // Dummy calculation for rate based on breach count (assuming 100 total for demo if 0, or calculated)
         // ideally GetSLABreachCountAsync should return total vs breached
         // For visual demo:

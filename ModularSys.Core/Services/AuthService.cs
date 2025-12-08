@@ -242,11 +242,16 @@ namespace ModularSys.Core.Services
             System.Diagnostics.Debug.WriteLine($"[AuthService] Login Successful. User: {user.Username}, Role: {user.Role?.RoleName}");
 
             var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role.RoleName)
-        };
+            {
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, user.Role.RoleName)
+            };
+
+            if (user.CustomerId.HasValue)
+            {
+                claims.Add(new Claim("CustomerCustomerId", user.CustomerId.Value.ToString()));
+            }
 
             foreach (var perm in permissions)
                 claims.Add(new Claim("Permission", perm.PermissionName));
@@ -307,11 +312,16 @@ namespace ModularSys.Core.Services
             var permissions = await _rolePermissionService.GetPermissionsForRoleAsync(dbUser.RoleId);
 
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.Name, dbUser.Username),
-        new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
-        new Claim(ClaimTypes.Role, dbUser.Role.RoleName)
-    };
+            {
+                new Claim(ClaimTypes.Name, dbUser.Username),
+                new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
+                new Claim(ClaimTypes.Role, dbUser.Role.RoleName)
+            };
+
+            if (dbUser.CustomerId.HasValue)
+            {
+                claims.Add(new Claim("CustomerCustomerId", dbUser.CustomerId.Value.ToString()));
+            }
 
             foreach (var perm in permissions)
                 claims.Add(new Claim("Permission", perm.PermissionName));
