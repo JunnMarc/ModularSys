@@ -31,19 +31,19 @@
 
         <h4 style="margin: 0 0 16px 0; font-size: 1.125rem; font-weight: 600; color: #212121;">Assign Permissions</h4>
 
-        @if (_allPermissions.Any())
+        @if (_permissionSelections.Any())
         {
             <div style="max-height: 300px; overflow-y: auto; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px;">
-                @foreach (var permissionGroup in _allPermissions.GroupBy(p => p.Category))
+                @foreach (var permissionGroup in _permissionSelections.GroupBy(p => p.Permission.Category))
                 {
                     <div style="margin-bottom: 12px;">
                         <p style="font-weight: 600; margin: 0 0 8px 0; color: #212121;">@permissionGroup.Key</p>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
-                            @foreach (var permission in permissionGroup)
+                            @foreach (var selection in permissionGroup)
                             {
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <RadzenCheckBox @bind-Value="_selectedPermissionIds[permission.PermissionId]" TValue="bool" />
-                                    <label>@permission.PermissionName</label>
+                                    <RadzenCheckBox @bind-Value="selection.IsSelected" TValue="bool" />
+                                    <label>@selection.Permission.PermissionName</label>
                                 </div>
                             }
                         </div>
@@ -75,17 +75,20 @@
         
         public string Description { get; set; } = "";
     }
-    private List<Permission> _allPermissions = new();
-    private Dictionary<int, bool> _selectedPermissionIds = new();
+
+    public class PermissionSelectionModel
+    {
+        public Permission Permission { get; set; } = default!;
+        public bool IsSelected { get; set; }
+    }
+
+    private List<PermissionSelectionModel> _permissionSelections = new();
     private bool _isEditMode => ExistingRole != null;
 
     protected override async Task OnInitializedAsync()
     {
-        _allPermissions = await PermissionService.GetAllAsync();
-        foreach (var p in _allPermissions)
-        {
-            _selectedPermissionIds.Add(p.PermissionId, false);
-        }
+        var allPermissions = await PermissionService.GetAllAsync();
+        _permissionSelections = allPermissions.Select(p => new PermissionSelectionModel { Permission = p, IsSelected = false }).ToList();
 
         if (_isEditMode)
         {
@@ -93,11 +96,13 @@
             _roleModel.Description = ExistingRole.Description;
 
             var currentPermissions = await RolePermissionService.GetPermissionsForRoleAsync(ExistingRole.RoleId);
-            foreach (var p in currentPermissions)
+            var currentPermissionIds = currentPermissions.Select(p => p.PermissionId).ToHashSet();
+
+            foreach (var selection in _permissionSelections)
             {
-                if (_selectedPermissionIds.ContainsKey(p.PermissionId))
+                if (currentPermissionIds.Contains(selection.Permission.PermissionId))
                 {
-                    _selectedPermissionIds[p.PermissionId] = true;
+                    selection.IsSelected = true;
                 }
             }
         }
@@ -135,7 +140,7 @@
                 NotificationService.Notify(NotificationSeverity.Success, "Success", "Role created successfully.");
             }
 
-            var grantedPermissionIds = _selectedPermissionIds.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            var grantedPermissionIds = _permissionSelections.Where(x => x.IsSelected).Select(x => x.Permission.PermissionId).ToList();
             await RolePermissionService.AssignPermissionsAsync(savedRole.RoleId, grantedPermissionIds);
 
             DialogService.Close(true);

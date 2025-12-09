@@ -34,7 +34,7 @@ public class UserInputModel
 
     // Password fields (only for create/password change)
     // For new users: can use temporary password (< 12 chars) or permanent password (>= 12 chars)
-    [StringLength(100, MinimumLength = 1, ErrorMessage = "Password cannot be empty")]
+    [StringLength(100, ErrorMessage = "Password cannot be longer than 100 characters")]
     public string Password { get; set; } = string.Empty;
 
     [Compare("Password", ErrorMessage = "Passwords do not match")]

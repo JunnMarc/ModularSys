@@ -51,9 +51,22 @@ public class UserService : IUserService
     public async Task<bool> UpdateAsync(User user)
     {
         await using var db = _contextFactory.CreateDbContext();
-        user.UpdatedAt = DateTime.UtcNow;
-        user.UpdatedBy = _authService.CurrentUser ?? "System";
-        db.Users.Update(user);
+        var existingUser = await db.Users.FindAsync(user.Id);
+        if (existingUser == null) return false;
+
+        // Update properties
+        existingUser.Username = user.Username;
+        existingUser.FirstName = user.FirstName;
+        existingUser.LastName = user.LastName;
+        existingUser.Email = user.Email;
+        existingUser.ContactNumber = user.ContactNumber;
+        existingUser.RoleId = user.RoleId;
+        existingUser.DepartmentId = user.DepartmentId;
+        
+        existingUser.UpdatedAt = DateTime.UtcNow;
+        existingUser.UpdatedBy = _authService.CurrentUser ?? "System";
+
+        db.Users.Update(existingUser);
         return await db.SaveChangesAsync() > 0;
     }
 
