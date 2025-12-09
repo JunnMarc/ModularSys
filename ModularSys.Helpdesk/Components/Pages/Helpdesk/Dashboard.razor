@@ -1,70 +1,195 @@
 @page "/helpdesk/dashboard"
 @using ModularSys.Core.Interfaces
+@using ModularSys.Data.Common.Entities.Helpdesk
 @using Radzen
 @using Radzen.Blazor
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ITicketService TicketService
 @inject IReportingService ReportingService
-@inject IServiceProvider ServiceProvider
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NotificationService NotificationService
-@using ModularSys.Helpdesk.Services
 
-<RadzenStack>
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+        transition: transform 0.2s;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    .kpi-icon {
+        background: #f8f9fa;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #495057;
+    }
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .kpi-label {
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+<RadzenStack Gap="1.5rem" Style="max-width: 1600px; margin: 0 auto; padding-bottom: 2rem;">
+    
+    <!-- Header -->
     <RadzenRow AlignItems="AlignItems.Center">
-        <RadzenColumn Size="12" SizeMD="8">
-            <RadzenText TextStyle="TextStyle.H3">Helpdesk Dashboard</RadzenText>
+        <RadzenColumn>
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; letter-spacing: -0.5px; margin: 0;">Helpdesk Overview</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Real-time metrics and ticket analysis</RadzenText>
         </RadzenColumn>
-        <RadzenColumn Size="12" SizeMD="4" Class="rz-text-align-md-right">
-            <RadzenButton Text="Seed Sample Data" Icon="dataset" ButtonStyle="ButtonStyle.Secondary" Click="@SeedData" />
+        <RadzenColumn Class="rz-text-align-right">
+             <RadzenText TextStyle="TextStyle.Caption" Class="rz-text-secondary">Last updated: @DateTime.Now.ToString("t")</RadzenText>
         </RadzenColumn>
     </RadzenRow>
     
+    <!-- KPI Cards -->
     <RadzenRow>
-        <RadzenColumn Size="12" SizeMD="4">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H6">Total Tickets</RadzenText>
-                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-primary">@totalTickets</RadzenText>
+        <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Total Tickets</span>
+                        <span class="kpi-value text-primary">@totalTickets</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: var(--rz-primary);">
+                        <RadzenIcon Icon="confirmation_number" />
+                    </div>
+                </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
-        <RadzenColumn Size="12" SizeMD="4">
-             <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H6">Open Critical</RadzenText>
-                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-danger">@criticalTickets</RadzenText>
+        
+         <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Open Critical</span>
+                        <span class="kpi-value" style="color: var(--rz-danger);">@criticalTickets</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: var(--rz-danger); background: #fee2e2;">
+                        <RadzenIcon Icon="warning" />
+                    </div>
+                </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
-        <RadzenColumn Size="12" SizeMD="4">
-             <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H6">Avg Resolution (Hrs)</RadzenText>
-                <RadzenText TextStyle="TextStyle.H2" Class="rz-color-success">@avgResolution.ToString("F1")</RadzenText>
+        
+        <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Avg Resolution</span>
+                        <span class="kpi-value" style="color: var(--rz-success);">@avgResolution.ToString("F1")h</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: var(--rz-success); background: #dcfce7;">
+                        <RadzenIcon Icon="timer" />
+                    </div>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+        
+         <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">SLA Breached</span>
+                        <span class="kpi-value" style="color: #d97706;">@breachedTickets</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: #d97706; background: #fef3c7;">
+                        <RadzenIcon Icon="alarm_off" />
+                    </div>
+                </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
 
-    <RadzenRow>
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H5">Tickets by Status</RadzenText>
-                <RadzenChart>
-                    <RadzenPieSeries Data="@statusStats" Title="Status" CategoryProperty="Key" ValueProperty="Value" />
+    <!-- Charts Section -->
+     <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="8">
+            <RadzenCard Class="kpi-card" Style="height: 400px;">
+                <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-4">Ticket Volume by Status</RadzenText>
+                <RadzenChart ColorScheme="ColorScheme.Palette" Style="height: 320px;">
+                    <RadzenColumnSeries Data="@statusStats" CategoryProperty="Key" Title="Tickets" ValueProperty="Value">
+                        <TooltipTemplate Context="data">
+                             <div>
+                                 <strong>@data.Key</strong>
+                                 <div>@data.Value tickets</div>
+                             </div>
+                        </TooltipTemplate>
+                    </RadzenColumnSeries>
+                    <RadzenCategoryAxis Padding="20" />
+                    <RadzenValueAxis Min="0" Step="1">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Count" />
+                    </RadzenValueAxis>
+                    <RadzenLegend Visible="false" />
                 </RadzenChart>
             </RadzenCard>
         </RadzenColumn>
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                 <RadzenText TextStyle="TextStyle.H5">Tickets by Priority</RadzenText>
-                 <RadzenChart>
-                     <RadzenColumnSeries Data="@priorityStats" Title="Priority" CategoryProperty="Key" ValueProperty="Value" />
+        
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Class="kpi-card" Style="height: 400px;">
+                 <RadzenText TextStyle="TextStyle.H6" Class="rz-mb-4">Priority Distribution</RadzenText>
+                 <RadzenChart ColorScheme="ColorScheme.Divergent" Style="height: 320px;">
+                     <RadzenPieSeries Data="@priorityStats" CategoryProperty="Key" Title="Priority" ValueProperty="Value">
+                          <RadzenSeriesDataLabels Visible="true" />
+                     </RadzenPieSeries>
+                     <RadzenLegend Position="LegendPosition.Bottom" />
                  </RadzenChart>
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
+    
+    <!-- Recent Activity -->
+    <RadzenCard Class="kpi-card rz-p-0" Style="overflow: hidden;">
+        <div class="rz-p-4" style="border-bottom: 1px solid #e0e0e0; background: #fafafa;">
+             <RadzenText TextStyle="TextStyle.H6" Class="rz-m-0">Recent Tickets</RadzenText>
+        </div>
+        <RadzenDataGrid Data="@recentTickets" TItem="Ticket" AllowSorting="false" AllowPaging="false" Style="border: none;">
+            <Columns>
+                <RadzenDataGridColumn TItem="Ticket" Property="Id" Title="#" Width="60px" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="Ticket" Property="Subject" Title="Subject" />
+                <RadzenDataGridColumn TItem="Ticket" Property="Customer.CompanyName" Title="Customer" Width="200px" />
+                <RadzenDataGridColumn TItem="Ticket" Property="Status" Title="Status" Width="100px">
+                    <Template Context="t">
+                         <RadzenBadge Text="@t.Status" BadgeStyle="@GetStatusBadge(t.Status)" Variant="Variant.Flat" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Ticket" Property="Priority" Title="Priority" Width="100px">
+                     <Template Context="t">
+                         <RadzenBadge Text="@t.Priority" BadgeStyle="@GetPriorityBadge(t.Priority)" Variant="Variant.Outlined" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="Ticket" Property="CreatedAt" Title="Created" Width="150px">
+                    <Template Context="t">@t.CreatedAt?.ToString("MMM dd, HH:mm")</Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </RadzenCard>
+
 </RadzenStack>
 
 @code {
     int totalTickets;
     int criticalTickets;
+    int breachedTickets;
     double avgResolution;
     Dictionary<string, int> statusStats = new();
     Dictionary<string, int> priorityStats = new();
+    List<Ticket> recentTickets = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,19 +198,47 @@
 
     async Task LoadStats()
     {
-        statusStats = await TicketService.GetTicketCountsByStatusAsync();
-        priorityStats = await TicketService.GetTicketCountsByPriorityAsync();
-        
-        totalTickets = statusStats.Values.Sum();
-        criticalTickets = priorityStats.ContainsKey("Critical") ? priorityStats["Critical"] : 0;
-        
-        avgResolution = await ReportingService.GetAverageResolutionTimeAsync();
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            // Get base stats
+            statusStats = await TicketService.GetTicketCountsByStatusAsync();
+            priorityStats = await TicketService.GetTicketCountsByPriorityAsync();
+            
+            totalTickets = statusStats.Values.Sum();
+            criticalTickets = priorityStats.ContainsKey("Critical") ? priorityStats["Critical"] : 0;
+            
+            avgResolution = await ReportingService.GetAverageResolutionTimeAsync();
+            
+            // Fetch recent tickets for list & breach calc
+            var allTickets = await TicketService.GetTicketsAsync(user);
+            recentTickets = allTickets.OrderByDescending(t => t.CreatedAt).Take(5).ToList();
+            
+            breachedTickets = allTickets.Count(t => t.ResolutionBreached);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard Error: {ex.Message}");
+        }
     }
-
-    async Task SeedData()
+    
+    BadgeStyle GetStatusBadge(string status) => status switch
     {
-        await HelpdeskSeeder.SeedAsync(ServiceProvider);
-        NotificationService.Notify(NotificationSeverity.Success, "Data Seeded", "Sample customers and tickets have been generated.");
-        await LoadStats();
-    }
+        "Open" => BadgeStyle.Info,
+        "InProgress" => BadgeStyle.Warning,
+        "Resolved" => BadgeStyle.Success,
+        "Closed" => BadgeStyle.Base,
+        _ => BadgeStyle.Light
+    };
+    
+    BadgeStyle GetPriorityBadge(string priority) => priority switch
+    {
+        "Critical" => BadgeStyle.Danger,
+        "High" => BadgeStyle.Warning,
+        "Medium" => BadgeStyle.Info,
+        "Low" => BadgeStyle.Success,
+        _ => BadgeStyle.Light
+    };
 }

@@ -6,35 +6,153 @@
 @inject ICustomerService CustomerService
 @inject DialogService DialogService
 
-<RadzenStack>
-    <RadzenText TextStyle="TextStyle.H3">Customers (CRM)</RadzenText>
-    <RadzenText TextStyle="TextStyle.Body1">Manage customer profiles, loyalty scores, and satisfaction ratings.</RadzenText>
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+        transition: transform 0.2s;
+        background: white;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+    .kpi-icon {
+        background: #f8f9fa;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #495057;
+    }
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .kpi-label {
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
 
-    <RadzenCard>
-        <RadzenDataGrid Data="@customers" TItem="Customer" AllowFiltering="true" AllowSorting="true" AllowPaging="true" PageSize="10">
+<RadzenStack Gap="1.5rem" Style="max-width: 1600px; margin: 0 auto; padding-bottom: 2rem;">
+    
+    <!-- Header -->
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn>
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; letter-spacing: -0.5px; margin: 0;">Customer Management (CRM)</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Manage customer profiles, loyalty, and satisfaction</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Class="rz-text-align-right">
+             <RadzenButton Text="Add Customer" Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Style="border-radius: 8px; padding: 0 24px;" />
+        </RadzenColumn>
+    </RadzenRow>
+
+    <!-- KPI Stats -->
+    <RadzenRow>
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Class="kpi-card">
+                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Total Customers</span>
+                        <span class="kpi-value text-primary">@customers.Count()</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: var(--rz-primary);">
+                        <RadzenIcon Icon="groups" />
+                    </div>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+         <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Class="kpi-card">
+                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Average CSAT</span>
+                        <span class="kpi-value" style="color: var(--rz-success);">@GetAvgCsat()</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: var(--rz-success); background: #dcfce7;">
+                        <RadzenIcon Icon="sentiment_satisfied" />
+                    </div>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+         <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Class="kpi-card">
+                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                    <RadzenStack Gap="0">
+                        <span class="kpi-label">Total Loyalty Points</span>
+                        <span class="kpi-value" style="color: #6366f1;">@customers.Sum(c => c.LoyaltyPoints).ToString("N0")</span>
+                    </RadzenStack>
+                    <div class="kpi-icon" style="color: #6366f1; background: #e0e7ff;">
+                        <RadzenIcon Icon="loyalty" />
+                    </div>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <!-- Main Grid -->
+    <RadzenCard Class="kpi-card" Style="padding: 0; overflow: hidden;">
+        <RadzenDataGrid Data="@customers" TItem="Customer" AllowFiltering="true" FilterMode="FilterMode.Simple" AllowSorting="true" AllowPaging="true" PageSize="10" Style="border: none;">
             <Columns>
-                <RadzenDataGridColumn TItem="Customer" Property="CompanyName" Title="Company" />
-                <RadzenDataGridColumn TItem="Customer" Property="ContactName" Title="Contact Person" />
-                <RadzenDataGridColumn TItem="Customer" Property="SegmentationTag" Title="Segment">
+                <RadzenDataGridColumn TItem="Customer" Property="CompanyName" Title="Company" MinWidth="200px">
+                     <Template Context="c">
+                         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                             <RadzenAvatar Text="@(c.CompanyName.Substring(0,1).ToUpper())" Size="BadgeSize.Medium" Style="background-color: #f3f4f6; color: #1f2937;" />
+                             <span style="font-weight: 500;">@c.CompanyName</span>
+                         </RadzenStack>
+                     </Template>
+                </RadzenDataGridColumn>
+                
+                <RadzenDataGridColumn TItem="Customer" Property="ContactName" Title="Contact Person" Width="180px" />
+                
+                <RadzenDataGridColumn TItem="Customer" Property="Email" Title="Email" Width="220px" />
+
+                <RadzenDataGridColumn TItem="Customer" Property="SegmentationTag" Title="Segment" Width="140px">
                     <Template Context="c">
                         @if (!string.IsNullOrEmpty(c.SegmentationTag))
                         {
-                            <RadzenBadge Text="@c.SegmentationTag" BadgeStyle="BadgeStyle.Secondary" />
+                            <RadzenBadge Text="@c.SegmentationTag" BadgeStyle="BadgeStyle.Secondary" Variant="Variant.Flat" />
+                        }
+                        else 
+                        {
+                            <span class="rz-text-secondary" style="font-size: 0.8rem;">-</span>
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="Customer" Property="LoyaltyPoints" Title="Loyalty Points" TextAlign="TextAlign.Center" />
-                <RadzenDataGridColumn TItem="Customer" Property="SatisfactionScore" Title="CSAT" TextAlign="TextAlign.Center">
+                
+                <RadzenDataGridColumn TItem="Customer" Property="LoyaltyPoints" Title="Loyalty" TextAlign="TextAlign.Center" Width="100px">
+                    <Template Context="c">
+                        <strong style="color: #6366f1;">@c.LoyaltyPoints</strong>
+                    </Template>
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn TItem="Customer" Property="SatisfactionScore" Title="CSAT" TextAlign="TextAlign.Center" Width="120px">
                     <Template Context="c">
                         @if (c.SatisfactionScore.HasValue)
                         {
-                            <RadzenRating ReadOnly="true" Value="@((int)c.SatisfactionScore.Value)" Max="5" />
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="2px" JustifyContent="JustifyContent.Center">
+                                 <RadzenIcon Icon="star" Style="color: #fbbf24; font-size: 1rem;" />
+                                 <span>@c.SatisfactionScore</span>
+                            </RadzenStack>
+                        }
+                        else
+                        {
+                            <span class="rz-text-secondary">-</span>
                         }
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="Customer" Context="c" Filterable="false" Sortable="false" Width="70px">
+                
+                <RadzenDataGridColumn TItem="Customer" Context="c" Filterable="false" Sortable="false" Width="70px" TextAlign="TextAlign.End">
                      <Template>
-                        <RadzenButton Icon="edit" Size="ButtonSize.Small" Variant="Variant.Flat" Click="@(() => EditCustomer(c))" />
+                        <RadzenButton Icon="chevron_right" Size="ButtonSize.Small" Variant="Variant.Text" ButtonStyle="ButtonStyle.Dark" Click="@(() => EditCustomer(c))" />
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>
@@ -52,10 +170,13 @@
 
     async Task EditCustomer(Customer customer)
     {
-       // For now, simpler inline edit or simple dialog could go here
-       // or navigate to details if we had one.
-       // We'll just show a quick comprehensive dialog usage example
-       // But to save time and complexity, we will just implement this list for now as per "MVP"
-       // Future: Navigate to /helpdesk/customers/{id}
+       // Placeholder for edit navigation
+    }
+    
+    string GetAvgCsat()
+    {
+        var rated = customers.Where(c => c.SatisfactionScore.HasValue).ToList();
+        if (!rated.Any()) return "N/A";
+        return rated.Average(c => c.SatisfactionScore.Value).ToString("F1");
     }
 }

@@ -125,7 +125,7 @@
                         <div>
                             <div class="meta-label">Assignee</div>
                             <!-- Mock Assignee Dropdown -->
-                           <RadzenDropDown TValue="int?" Data="@users" TextProperty="Username" ValueProperty="Id" @bind-Value="ticket.AssignedToId" Placeholder="Unassigned" Style="width: 100%;" />
+                           <RadzenDropDown TValue="int?" Data="@users" TextProperty="Username" ValueProperty="Id" @bind-Value="ticket.AssignedToId" Placeholder="Unassigned" Style="width: 100%;" Disabled="true" />
                         </div>
 
                         <RadzenRow>

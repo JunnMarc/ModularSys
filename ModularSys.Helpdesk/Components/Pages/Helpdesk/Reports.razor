@@ -5,73 +5,135 @@
 @inject ITicketService TicketService
 @inject IReportingService ReportingService
 
-<RadzenStack>
-    <RadzenText TextStyle="TextStyle.H3">Reports & Analytics</RadzenText>
-    <RadzenText TextStyle="TextStyle.Body1">Detailed analysis of helpdesk performance.</RadzenText>
+<style>
+    .kpi-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+        background: white;
+    }
+    
+    .chart-container {
+        height: 350px;
+    }
+</style>
+
+<RadzenStack Gap="1.5rem" Style="max-width: 1600px; margin: 0 auto; padding-bottom: 2rem;">
+    <!-- Header -->
+    <RadzenRow AlignItems="AlignItems.Center">
+        <RadzenColumn>
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; letter-spacing: -0.5px; margin: 0;">Reports & Analytics</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Detailed insights into support performance</RadzenText>
+        </RadzenColumn>
+         <RadzenColumn Class="rz-text-align-right">
+             <RadzenButton Text="Export Report" Icon="download" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined" Size="ButtonSize.Small" />
+        </RadzenColumn>
+    </RadzenRow>
 
     <RadzenRow>
         <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H5">Ticket Distribution by Channel</RadzenText>
-                <RadzenChart>
-                    <RadzenDonutSeries Data="@channelStats" Title="Channel" CategoryProperty="Key" ValueProperty="Value">
-                         <TitleTemplate>
-                            <div class="rz-donut-content">
-                                <div>Tickets</div>
-                            </div>
-                        </TitleTemplate>
-                    </RadzenDonutSeries>
-                </RadzenChart>
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Gap="1rem">
+                     <div>
+                        <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 600;">Distribution by Channel</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Where tickets are coming from</RadzenText>
+                     </div>
+                     <div class="chart-container">
+                        <RadzenChart ColorScheme="ColorScheme.Pastel">
+                            <RadzenDonutSeries Data="@channelStats" Title="Channel" CategoryProperty="Key" ValueProperty="Value">
+                                 <TitleTemplate>
+                                    <div class="rz-donut-content">
+                                        <RadzenText TextStyle="TextStyle.H4" Class="rz-mb-0">@channelStats.Values.Sum()</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption">Total Tickets</RadzenText>
+                                    </div>
+                                </TitleTemplate>
+                            </RadzenDonutSeries>
+                            <RadzenLegend Position="LegendPosition.Right" />
+                        </RadzenChart>
+                     </div>
+                </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
+        
          <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H5">SLA Compliance</RadzenText>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Class="rz-p-4">
-                     <RadzenArcGauge Style="width: 100%; height: 250px;">
-                        <RadzenArcGaugeScale Step="20" Min="0" Max="100" MinorStep="2" Radius="1.5" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="0">
-                            <RadzenArcGaugeScaleValue Value="@slaComplianceRate" ShowValue="true" FormatString="{0}%">
-                                <Template Context="pointer">
-                                    <h4>@pointer.Value.ToString("N0")%</h4>
-                                    <span style="font-size: 0.8rem; color: var(--rz-text-secondary-color);">Compliance Rate</span>
-                                </Template>
-                            </RadzenArcGaugeScaleValue>
-                        </RadzenArcGaugeScale>
-                    </RadzenArcGauge>
+            <RadzenCard Class="kpi-card">
+                <RadzenStack Gap="1rem">
+                     <div>
+                        <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 600;">SLA Compliance</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Adherence to response and resolution targets</RadzenText>
+                     </div>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="chart-container">
+                         <RadzenArcGauge Style="width: 100%; height: 280px;">
+                            <RadzenArcGaugeScale Step="20" Min="0" Max="100" MinorStep="2" Radius="1.5" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="0">
+                                <RadzenArcGaugeScaleValue Value="@slaComplianceRate" ShowValue="true" FormatString="{0}%">
+                                    <Template Context="pointer">
+                                        <h3 class="rz-mb-0">@pointer.Value.ToString("N0")%</h3>
+                                        <span class="rz-text-secondary" style="font-size: 0.8rem;">Compliance Rate</span>
+                                    </Template>
+                                </RadzenArcGaugeScaleValue>
+                            </RadzenArcGaugeScale>
+                        </RadzenArcGauge>
+                    </RadzenStack>
+                    <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-align-center rz-mt-2">
+                        <RadzenIcon Icon="warning" Style="vertical-align: middle; color: #d97706;" /> 
+                        Total Breaches: <b style="color: #d97706;">@breachCount</b>
+                    </RadzenText>
                 </RadzenStack>
-                 <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-align-center">
-                    Total Breaches: <b>@breachCount</b>
-                </RadzenText>
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
     
     <RadzenRow>
         <RadzenColumn Size="12" SizeMD="8">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H5">Ticket Volume (Last 7 Days)</RadzenText>
-                 <RadzenChart>
-                    <RadzenLineSeries Data="@volumeStats" CategoryProperty="Date" ValueProperty="Count" Title="Tickets">
-                        <RadzenMarkers MarkerType="MarkerType.Circle" />
-                    </RadzenLineSeries>
-                    <RadzenCategoryAxis Padding="20" FormatString="{0:MMM dd}" />
-                    <RadzenValueAxis>
-                        <RadzenGridLines Visible="true" />
-                        <RadzenAxisTitle Text="Count" />
-                    </RadzenValueAxis>
-                </RadzenChart>
+            <RadzenCard Class="kpi-card">
+                 <RadzenStack Gap="1rem">
+                     <div>
+                        <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 600;">7-Day Ticket Volume</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Incoming ticket trends over the last week</RadzenText>
+                     </div>
+                     <div class="chart-container">
+                         <RadzenChart ColorScheme="ColorScheme.Palette">
+                            <RadzenLineSeries Data="@volumeStats" CategoryProperty="Date" ValueProperty="Count" Title="Tickets" Smooth="true">
+                                <RadzenMarkers MarkerType="MarkerType.Circle" />
+                                <RadzenSeriesDataLabels Visible="true" />
+                            </RadzenLineSeries>
+                            <RadzenCategoryAxis Padding="20" FormatString="{0:MMM dd}" />
+                            <RadzenValueAxis Min="0">
+                                <RadzenGridLines Visible="true" LineType="LineType.Dashed" />
+                                <RadzenAxisTitle Text="Number of Tickets" />
+                            </RadzenValueAxis>
+                            <RadzenLegend Visible="false" />
+                        </RadzenChart>
+                     </div>
+                 </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
+        
         <RadzenColumn Size="12" SizeMD="4">
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H5">Tickets by Priority</RadzenText>
-                 <RadzenChart>
-                    <RadzenColumnSeries Data="@priorityStats" CategoryProperty="Priority" ValueProperty="Count" Title="Tickets" LineType="LineType.Dashed" />
-                    <RadzenCategoryAxis />
-                    <RadzenValueAxis>
-                         <RadzenGridLines Visible="true" />
-                    </RadzenValueAxis>
-                </RadzenChart>
+            <RadzenCard Class="kpi-card">
+                 <RadzenStack Gap="1rem">
+                     <div>
+                        <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 600;">Priority Breakdown</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Class="rz-text-secondary">Tickets by severity level</RadzenText>
+                     </div>
+                     <div class="chart-container">
+                         <RadzenChart ColorScheme="ColorScheme.Divergent">
+                            <RadzenColumnSeries Data="@priorityStats" CategoryProperty="Priority" ValueProperty="Count" Title="Tickets">
+                                <TooltipTemplate Context="data">
+                                    <div>
+                                        <strong>@data.Priority</strong>
+                                        <div>@data.Count tickets</div>
+                                    </div>
+                                </TooltipTemplate>
+                            </RadzenColumnSeries>
+                            <RadzenCategoryAxis />
+                            <RadzenValueAxis Min="0">
+                                 <RadzenGridLines Visible="true" LineType="LineType.Dashed" />
+                            </RadzenValueAxis>
+                            <RadzenLegend Visible="false" />
+                        </RadzenChart>
+                     </div>
+                 </RadzenStack>
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
@@ -97,9 +159,7 @@
         var prioDict = await ReportingService.GetTicketVolumeByPriorityAsync();
         priorityStats = prioDict.Select(k => new ChartData { Priority = k.Key, Count = k.Value }).ToList();
 
-        // Dummy calculation for rate based on breach count (assuming 100 total for demo if 0, or calculated)
-        // ideally GetSLABreachCountAsync should return total vs breached
-        // For visual demo:
+        // Calculate compliance rate
         var total = channelStats.Values.Sum();
         if (total > 0)
         {
